@@ -68,6 +68,10 @@ export interface TaskDeps {
 export type FailureDelivery = "not_sent" | "unknown";
 
 export type TaskEvent =
+  /** 提交材料已备好，正在并发闸里排队等空位。 */
+  | { type: "queued" }
+  /** 过了并发闸，提交请求正在路上。 */
+  | { type: "submitting" }
   | { type: "submitted"; taskId: string }
   | { type: "progress"; progress: number; status: string }
   | { type: "succeeded"; resultPath: string | null }
@@ -214,9 +218,11 @@ export class TaskScheduler {
       }
 
       let taskId: string;
+      emit({ type: "queued" });
       try {
         const outcome = await this.gate.run(async () => {
           if (token.stopped) throw new TaskCancelled();
+          emit({ type: "submitting" });
           return this.deps.http.submit(prepared.request);
         });
         if (token.stopped) return;

@@ -1,0 +1,51 @@
+/* 提示词输入框：标题一行，下面是撑满的纯文本输入区 */
+
+.prompt-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+}
+
+.prompt-widget__header {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.prompt-widget__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prompt-widget__tools {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.prompt-widget__input {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 6px 8px;
+  resize: none;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  user-select: text;
+}
+
+/* 与原件一致：聚焦时不换样式 */
+.prompt-widget__input:focus {
+  outline: none;
+}
+
+.prompt-widget__input::placeholder {
+  color: var(--text-secondary);
+}

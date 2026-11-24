@@ -15,9 +15,10 @@ afterEach(() => {
 });
 
 describe("translation tables", () => {
-  it("gives both languages the same keys: the 187 inherited from the source project plus the shell additions", () => {
+  it("gives both languages the same keys: the 187 inherited from the source project plus the rewrite's own", () => {
     expect(Object.keys(zh)).toEqual(Object.keys(en));
-    expect(Object.keys(en)).toHaveLength(202);
+    // 重写版自己追加的键：外壳 15 个，任务状态和提交并发设置 6 个
+    expect(Object.keys(en)).toHaveLength(208);
     for (const value of [...Object.values(en), ...Object.values(zh)]) {
       expect(typeof value).toBe("string");
     }

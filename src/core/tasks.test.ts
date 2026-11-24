@@ -152,6 +152,8 @@ describe("task lifecycle", () => {
     const events = await h.run({ refImageUrls: ["https://ex/ref.png"] });
 
     expect(events).toEqual([
+      { type: "queued" },
+      { type: "submitting" },
       { type: "submitted", taskId: SERVER_ID },
       { type: "progress", progress: 10, status: "running" },
       { type: "progress", progress: 100, status: "succeeded" },
@@ -486,6 +488,32 @@ describe("polling", () => {
   });
 });
 
+describe("submission queue", () => {
+  it("keeps a task in the queued state until the gate has a free slot", async () => {
+    const h = harness({ submitConcurrency: 1 });
+    const firstSubmit = deferred<HttpOutcome>();
+    h.scripts.submit = (request) =>
+      JSON.parse(request.body ?? "{}").prompt === "first" ? firstSubmit.promise : Promise.resolve(responded(200, { id: SERVER_ID }));
+    h.scripts.query = () => Promise.resolve(succeeded([{ url: "https://cdn/a.png" }]));
+    const queuedEvents: TaskEvent[] = [];
+    h.scheduler.start({ prompt: "first", model: "nano-banana" }, () => {});
+    const second = h.scheduler.start({ prompt: "second", model: "nano-banana" }, (event) => queuedEvents.push(event));
+
+    await flush();
+    expect(queuedEvents).toEqual([{ type: "queued" }]);
+    expect(h.state.submitRequests).toHaveLength(1);
+
+    firstSubmit.resolve(responded(200, { id: SERVER_ID }));
+    await second.done;
+    expect(queuedEvents.slice(0, 3)).toEqual([
+      { type: "queued" },
+      { type: "submitting" },
+      { type: "submitted", taskId: SERVER_ID },
+    ]);
+    expect(h.state.submitRequests).toHaveLength(2);
+  });
+});
+
 describe("cancelling", () => {
   it("stops following a task without touching its history row", async () => {
     const h = harness();
@@ -500,7 +528,11 @@ describe("cancelling", () => {
     handle.cancel();
     firstAnswer.resolve(responded(200, { status: "running", progress: 20 }));
     await handle.done;
-    expect(events).toEqual([{ type: "submitted", taskId: SERVER_ID }]);
+    expect(events).toEqual([
+      { type: "queued" },
+      { type: "submitting" },
+      { type: "submitted", taskId: SERVER_ID },
+    ]);
     expect(h.state.queries).toHaveLength(1);
     expect(h.rows.get(SERVER_ID)).toMatchObject({ status: "running" });
     expect(h.scheduler.activeCount).toBe(0);
@@ -518,7 +550,12 @@ describe("cancelling", () => {
     h.scheduler.cancelAll();
     gate.resolve(responded(200, { id: SERVER_ID }));
     await Promise.all(handles.map((handle) => handle.done));
-    expect(events).toEqual([[], [], []]);
+    // 三个提交都已经在途，所以都走过了排队和提交中两个状态
+    expect(events).toEqual([
+      [{ type: "queued" }, { type: "submitting" }],
+      [{ type: "queued" }, { type: "submitting" }],
+      [{ type: "queued" }, { type: "submitting" }],
+    ]);
     expect(h.rows.size).toBe(0);
     expect(h.scheduler.activeCount).toBe(0);
   });

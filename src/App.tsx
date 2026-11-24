@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react";
-import { FluentProvider } from "@fluentui/react-components";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   ALL_PAGES,
   DEFAULT_PAGE,
   NAV_MIN_EXPAND_WIDTH,
   type NavMode,
   type PageKey,
-  type ResolvedTheme,
 } from "./app/navigation";
+import { AppProvider } from "./components/AppProvider";
 import { NavigationRail } from "./components/NavigationRail";
-import { NoticeHost } from "./components/Notice";
 import { TitleBar } from "./components/TitleBar";
-import { useAccentColor, useResolvedTheme, useThemeMode } from "./hooks/useAppTheme";
+import { useResolvedTheme, useThemeMode } from "./hooks/useAppTheme";
 import { useConfigValue } from "./hooks/useConfigValue";
 import { useTr } from "./hooks/useLanguage";
 import { useWindowWidth } from "./hooks/useWindowWidth";
@@ -24,7 +22,7 @@ import VideoPage from "./pages/VideoPage";
 import { platform } from "./platform";
 import { runAsync } from "./platform/async";
 import { cfg } from "./state/config";
-import { themesFor } from "./theme";
+import { subscribeRestore } from "./state/restore";
 
 /** 当前页面和返回栈；返回栈按顺序记着经过的页面，最后一项是上一页。 */
 interface Location {
@@ -41,24 +39,18 @@ const PAGE_COMPONENTS: Record<PageKey, ComponentType> = {
 };
 
 export default function App() {
-  const resolvedTheme = useResolvedTheme();
-  const accent = useAccentColor();
-  const themes = useMemo(() => themesFor(accent), [accent]);
   return (
-    <FluentProvider
-      className="app-provider"
-      theme={resolvedTheme === "dark" ? themes.dark : themes.light}
-    >
-      <Shell resolvedTheme={resolvedTheme} accent={accent} />
-      <NoticeHost />
-    </FluentProvider>
+    <AppProvider>
+      <Shell />
+    </AppProvider>
   );
 }
 
 /** 主窗口外壳：左侧导航、页面容器和标题栏（对应 ui/main_window.py 的窗口部分）。 */
-function Shell({ resolvedTheme, accent }: { resolvedTheme: ResolvedTheme; accent: string }) {
+function Shell() {
   const t = useTr();
   const themeMode = useThemeMode();
+  const resolvedTheme = useResolvedTheme();
   const language = normalizeLanguage(useConfigValue("language", "en"));
   const viewportWidth = useWindowWidth();
   const [location, setLocation] = useState<Location>({ page: DEFAULT_PAGE, backStack: [] });
@@ -72,14 +64,11 @@ function Shell({ resolvedTheme, accent }: { resolvedTheme: ResolvedTheme; accent
   }, [language]);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = resolvedTheme;
-    // 自绘的那部分界面（导航指示条、焦点框等）跟着主题色走
-    document.documentElement.style.setProperty("--accent", accent);
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
     // 源项目只在启动时设一次窗口标题；这里随语言切换即时更新
     document.title = title;
     if (platform.isTauri) runAsync(platform.window.setTitle(title));
-  }, [title, resolvedTheme, language, accent]);
+  }, [title, language]);
 
   // 让原生窗口（滚动条等部件）的亮暗与界面一致；auto 时交还给系统
   useEffect(() => {
@@ -108,6 +97,7 @@ function Shell({ resolvedTheme, accent }: { resolvedTheme: ResolvedTheme; accent
   }, [navMode]);
 
   // 与原件的导航历史一致：换页才入栈，返回键退回上一页，栈空时禁用
+  // 换页才入栈；返回键退回上一页
   const navigate = (next: PageKey) => {
     setLocation((current) =>
       current.page === next
@@ -115,6 +105,9 @@ function Shell({ resolvedTheme, accent }: { resolvedTheme: ResolvedTheme; accent
         : { page: next, backStack: [...current.backStack, current.page] },
     );
   };
+
+  // 历史页的「重新生成」：外壳只管切到目标页面，页面自己监听同一个请求回填参数
+  useEffect(() => subscribeRestore((request) => navigate(request.page)), []);
 
   const goBack = () => {
     setLocation((current) => {

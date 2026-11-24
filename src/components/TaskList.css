@@ -1,0 +1,159 @@
+/* 任务列表和任务卡片。尺寸和配色取自源项目的 TaskWidget：
+   卡片高 120、圆角 8，左侧 40 宽的序号，中间 50 见方的状态位 */
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 5px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.task-card {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 120px;
+  padding: 10px;
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: var(--task-bg);
+}
+
+.task-card--success {
+  border-color: var(--task-success-border);
+  background: var(--task-success-bg);
+}
+
+.task-card--failed {
+  border-color: var(--task-failed-border);
+  background: var(--task-failed-bg);
+}
+
+.task-card__index {
+  flex: none;
+  width: 40px;
+  font-weight: 600;
+}
+
+.task-card__stack {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+}
+
+.task-card__ring-track,
+.task-card__ring-value {
+  fill: none;
+  stroke-width: 4;
+}
+
+.task-card__ring-track {
+  stroke: color-mix(in srgb, var(--text-primary) 12%, transparent);
+}
+
+.task-card__ring-value {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray 300ms ease-out;
+}
+
+.task-card__ring-text {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.task-card__stack-button {
+  width: 50px;
+  height: 50px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.task-card__stack-button svg {
+  font-size: 28px;
+}
+
+.task-card__result {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.task-card__result:hover {
+  background: var(--surface-hover);
+}
+
+.task-card__result-icon {
+  font-size: 36px;
+}
+
+.task-card__thumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.task-card__menu {
+  position: fixed;
+  z-index: 10;
+  min-width: 190px;
+  padding: 4px;
+  border: 1px solid var(--nav-menu-border);
+  border-radius: 6px;
+  background: var(--nav-menu-bg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.task-card__menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-card__menu-item:hover {
+  background: var(--nav-hover);
+}
+
+.task-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.task-card__status {
+  overflow-wrap: anywhere;
+}
+
+.task-card__hint {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+}

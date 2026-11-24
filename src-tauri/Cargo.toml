@@ -20,14 +20,21 @@ crate-type = ["rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# protocol-asset：缩略图、历史记录里的图和试听音频要靠 asset 协议读本地文件
+tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-fs = "2"
 tauri-plugin-sql = { version = "2.6.0", features = ["sqlite"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-clipboard-manager = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "http2", "system-proxy"] }
 tokio = { version = "1", features = ["fs", "io-util"] }
+
+# 读剪贴板里的文件列表要直接调系统接口，剪贴板插件没有这一项
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_DataExchange", "Win32_UI_Shell"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

@@ -22,7 +22,7 @@ export interface WindowApi {
   onResized(listener: () => void): () => void;
 }
 
-/** 文件操作。读不到、写不了、不存在（除了 exists、isFile、isDir）都要抛错。 */
+/** 文件操作。读不了、写不了、不存在（除了 exists、isFile、isDir）都要抛错。 */
 export interface FileSystemApi {
   exists(path: string): Promise<boolean>;
   isFile(path: string): Promise<boolean>;
@@ -49,6 +49,62 @@ export interface HttpApi {
   download(url: string, destPath: string): Promise<HttpOutcome>;
 }
 
+/** 文件对话框里的文件类型筛选；extensions 不带点。 */
+export interface FileFilter {
+  name: string;
+  extensions: string[];
+}
+
+export interface DialogApi {
+  /** 选文件，返回所选路径；用户取消时是空数组。 */
+  pickFiles(options?: { title?: string; multiple?: boolean; filters?: FileFilter[] }): Promise<string[]>;
+  /** 选文件夹；用户取消时是 null。 */
+  pickDirectory(options?: { title?: string; defaultPath?: string | null }): Promise<string | null>;
+}
+
+export interface OpenerApi {
+  /** 用系统默认程序打开一个文件，或者打开一个文件夹。 */
+  openPath(path: string): Promise<void>;
+}
+
+/**
+ * 剪贴板里当前的东西。顺序与源项目一致：先看位图，再看文件，最后才是文本。
+ * 位图不直接给数据，先存成 `<数据目录>/input/grsai_clipboard_<unix 秒>.png`，给回这个路径。
+ */
+export type ClipboardSnapshot =
+  | { kind: "empty" }
+  | { kind: "image"; path: string }
+  | { kind: "files"; paths: string[] }
+  | { kind: "text"; text: string };
+
+export interface ClipboardApi {
+  read(): Promise<ClipboardSnapshot>;
+}
+
+export interface DragDropEvent {
+  /** enter 是拖着东西进入窗口，over 是在窗口里移动，drop 是松手，leave 是拖着东西离开了窗口。 */
+  type: "enter" | "over" | "drop" | "leave";
+  /** 光标相对窗口内容区左上角的位置，单位是 CSS 像素。 */
+  position: { x: number; y: number };
+  paths: string[];
+}
+
+export interface DragDropApi {
+  /** 订阅拖放。Tauri 会替窗口接管拖放，网页收不到浏览器自己的 drop 事件。 */
+  subscribe(handler: (event: DragDropEvent) => void): () => void;
+}
+
+/** 给本地文件生成可用于 img、audio 的地址。 */
+export interface MediaApi {
+  /**
+   * 把路径加进放行名单。对话框选中的路径系统会自动放行，
+   * 拖进来的、从历史记录里翻出来的、用户另选的输出文件夹都要先过这一道。
+   */
+  allow(paths: string[], recursive?: boolean): Promise<void>;
+  /** 本地文件在页面里的地址。 */
+  url(path: string): string;
+}
+
 export interface Platform {
   readonly isTauri: boolean;
   /** 启动时准备一次：在 Tauri 里要先解析出数据目录，之后各能力才可用。 */
@@ -63,4 +119,9 @@ export interface Platform {
   readonly configStorage: ConfigStorage;
   /** 打开（不存在就新建）一个 SQLite 数据库。 */
   openDatabase(path: string): Promise<SqlExecutor>;
+  readonly dialog: DialogApi;
+  readonly opener: OpenerApi;
+  readonly clipboard: ClipboardApi;
+  readonly dragDrop: DragDropApi;
+  readonly media: MediaApi;
 }

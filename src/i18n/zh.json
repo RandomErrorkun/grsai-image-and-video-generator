@@ -200,5 +200,11 @@
   "settings.theme.content": "跟随系统，或固定使用浅色、深色",
   "settings.accent_color.title": "主题色",
   "settings.accent_color.content": "用于按钮、开关和高亮",
-  "settings.applied": "配置已生效"
+  "settings.applied": "配置已生效",
+  "task.status_queued": "第 {attempt} 次尝试：排队中（等待提交空位）…",
+  "task.status_submitting": "第 {attempt} 次尝试：提交中…",
+  "task.status_submitted": "第 {attempt} 次尝试：已提交（任务 {taskId}）",
+  "task.delivery_unknown": "请求已发出但没有收到答复，服务端可能已经建立了任务，所以没有自动重试。",
+  "settings.submit_concurrency.title": "提交并发数",
+  "settings.submit_concurrency.content": "同时在途的提交请求上限，多出的任务排队等候，不会减少任务数量。"
 }

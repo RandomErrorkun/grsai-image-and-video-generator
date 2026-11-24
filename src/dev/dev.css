@@ -1,0 +1,33 @@
+/* 开发预览页的边框和按钮行，只在 src/dev 里用 */
+
+.demo-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 20px;
+  background: var(--window-bg);
+  color: var(--text-primary);
+}
+
+.demo-grow {
+  flex: 1;
+  min-height: 160px;
+}
+
+.demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.demo-note {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.demo-tasks {
+  flex: 1;
+  min-height: 200px;
+}

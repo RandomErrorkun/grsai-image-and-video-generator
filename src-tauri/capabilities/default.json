@@ -14,6 +14,9 @@
     "opener:default",
     "sql:default",
     "sql:allow-execute",
+    "dialog:default",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-read-image",
     "fs:allow-copy-file",
     "fs:allow-exists",
     "fs:allow-lstat",
@@ -28,7 +31,7 @@
     "fs:allow-write-text-file",
     {
       "identifier": "fs:scope",
-      "description": "The app keeps its config, history database, input and output next to the executable",
+      "description": "The app keeps its config, history database, input and output next to the executable. Paths from drag and drop or a custom output folder are added at runtime by the allow_paths command",
       "allow": ["$RESOURCE", "$RESOURCE/**"]
     }
   ]

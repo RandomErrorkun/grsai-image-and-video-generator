@@ -18,6 +18,18 @@
   --caption-pressed: rgba(0, 0, 0, 0.2);
   --nav-menu-bg: rgb(243, 243, 243);
   --nav-menu-border: rgb(229, 229, 229);
+  /* 卡片类表面：输入框、任务列表、素材区 */
+  --surface: rgb(255, 255, 255);
+  --surface-border: rgba(0, 0, 0, 0.12);
+  --surface-hover: rgba(0, 0, 0, 0.0392);
+  /* 任务卡片 */
+  --task-bg: rgba(0, 0, 0, 0.1);
+  --task-border: rgb(224, 224, 224);
+  --task-success-bg: rgba(0, 255, 0, 0.1);
+  --task-success-border: rgb(144, 238, 144);
+  --task-failed-bg: rgba(255, 0, 0, 0.1);
+  --task-failed-border: rgb(255, 182, 193);
+  --danger: rgb(232, 17, 35);
 }
 
 :root[data-theme="dark"] {
@@ -33,6 +45,15 @@
   --caption-pressed: rgba(255, 255, 255, 0.2);
   --nav-menu-bg: rgb(32, 32, 32);
   --nav-menu-border: rgb(57, 57, 57);
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-border: rgba(255, 255, 255, 0.1);
+  --surface-hover: rgba(255, 255, 255, 0.0392);
+  --task-bg: rgba(255, 255, 255, 0.05);
+  --task-border: rgba(255, 255, 255, 0.14);
+  --task-success-bg: rgba(255, 255, 255, 0.1);
+  --task-success-border: rgb(144, 238, 144);
+  --task-failed-bg: rgba(255, 255, 255, 0.1);
+  --task-failed-border: rgb(255, 182, 193);
 }
 
 html {
