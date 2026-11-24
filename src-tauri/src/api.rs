@@ -82,16 +82,29 @@ impl ApiState {
     }
 }
 
+/// reqwest 的 Display 只给一句话，真正的原因藏在 source 链里。把整条链拼出来，
+/// 排查网络问题时才看得到是握手、超时还是连接被断。
+fn describe(error: &reqwest::Error) -> String {
+    let mut text = error.to_string();
+    let mut source = std::error::Error::source(error);
+    while let Some(cause) = source {
+        text.push_str(": ");
+        text.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    text
+}
+
 /// A failure before the server answered. Anything that is not a client-building
 /// or connecting error happened after the request was on the wire.
 fn classify(error: reqwest::Error) -> HttpOutcome {
     if error.is_builder() || error.is_connect() {
         HttpOutcome::NotSent {
-            message: error.to_string(),
+            message: describe(&error),
         }
     } else {
         HttpOutcome::Unknown {
-            message: error.to_string(),
+            message: describe(&error),
             status: error.status().map(|status| status.as_u16()),
         }
     }
