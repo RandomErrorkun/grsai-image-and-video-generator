@@ -1,0 +1,8 @@
+# Keep line endings consistent across platforms
+* text=auto eol=lf
+
+# Windows binaries must stay byte-for-byte
+*.ico binary
+*.icns binary
+*.png binary
+*.exe binary

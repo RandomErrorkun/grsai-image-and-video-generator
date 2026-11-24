@@ -1,0 +1,325 @@
+/*
+ * 应用外壳的样式。尺寸和配色取自源项目（qfluentwidgets 的 FluentWindow）：
+ * 标题栏高 48，导航栏收起宽 48、展开宽 322，页面内容区左上角圆角 10。
+ */
+
+:root {
+  color-scheme: light;
+  --font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --accent: #0078d4;
+  --window-bg: rgb(240, 244, 249);
+  --text-primary: rgb(0, 0, 0);
+  --text-secondary: rgb(96, 96, 96);
+  --content-bg: rgba(255, 255, 255, 0.5);
+  --content-border: rgba(0, 0, 0, 0.068);
+  --nav-hover: rgba(0, 0, 0, 0.0392);
+  --nav-selected: rgba(0, 0, 0, 0.0235);
+  --caption-hover: rgba(0, 0, 0, 0.102);
+  --caption-pressed: rgba(0, 0, 0, 0.2);
+  --nav-menu-bg: rgb(243, 243, 243);
+  --nav-menu-border: rgb(229, 229, 229);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --window-bg: rgb(32, 32, 32);
+  --text-primary: rgb(255, 255, 255);
+  --text-secondary: rgb(160, 160, 160);
+  --content-bg: rgba(255, 255, 255, 0.0314);
+  --content-border: rgba(0, 0, 0, 0.18);
+  --nav-hover: rgba(255, 255, 255, 0.0392);
+  --nav-selected: rgba(255, 255, 255, 0.0235);
+  --caption-hover: rgba(255, 255, 255, 0.102);
+  --caption-pressed: rgba(255, 255, 255, 0.2);
+  --nav-menu-bg: rgb(32, 32, 32);
+  --nav-menu-border: rgb(57, 57, 57);
+}
+
+html {
+  margin: 0;
+  height: 100%;
+  background: var(--window-bg);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-family);
+  font-size: 14px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+#root {
+  height: 100%;
+}
+
+/* FluentProvider 默认铺自己的底色；这里让窗口底色透出来 */
+#root .fui-FluentProvider {
+  height: 100%;
+  background: transparent;
+}
+
+.app {
+  position: relative;
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  background: var(--window-bg);
+  color: var(--text-primary);
+  user-select: none;
+}
+
+/* ---------- 左侧导航 ---------- */
+
+.nav {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 48px;
+  height: 100%;
+  padding: 5px 0;
+  transition: width 150ms ease-out;
+}
+
+.nav--expanded {
+  width: 322px;
+}
+
+/* 窗口不够宽时展开成浮层，盖在页面内容上 */
+.nav--menu {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 322px;
+  background: var(--nav-menu-bg);
+  border: 1px solid var(--nav-menu-border);
+  border-radius: 0 7px 7px 0;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.14), 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+.nav__tools,
+.nav__items,
+.nav__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.nav__items {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.nav__bottom {
+  flex: none;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-item:hover {
+  background: var(--nav-hover);
+}
+
+.nav-item:active {
+  opacity: 0.7;
+}
+
+.nav-item:disabled {
+  background: transparent;
+  opacity: 0.4;
+  cursor: default;
+}
+
+.nav-item--selected {
+  background: var(--nav-selected);
+}
+
+.nav-item--selected:hover {
+  background: var(--nav-hover);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 图标 16 像素，落在 40 宽的图标位正中；文字从第 44 像素起 */
+.nav-item svg {
+  flex: none;
+  margin-left: 12px;
+}
+
+.nav-item__indicator {
+  position: absolute;
+  top: 10px;
+  left: 1px;
+  width: 3px;
+  height: 16px;
+  border-radius: 1.5px;
+  background: var(--accent);
+}
+
+.nav-item__label {
+  display: none;
+}
+
+.nav--expanded .nav-item:not(.nav__tools .nav-item),
+.nav--menu .nav-item:not(.nav__tools .nav-item) {
+  width: 100%;
+}
+
+.nav--expanded .nav-item__label,
+.nav--menu .nav-item__label {
+  display: block;
+  margin-left: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 标题栏 ---------- */
+
+.titlebar {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  left: 46px;
+  display: flex;
+  align-items: center;
+  height: 48px;
+}
+
+.titlebar__icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.titlebar__title {
+  flex: 1;
+  min-width: 0;
+  margin-left: 4px;
+  padding: 0 4px;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.titlebar__buttons {
+  display: flex;
+  flex: none;
+  align-self: flex-start;
+}
+
+.caption-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.caption-button:hover {
+  background: var(--caption-hover);
+}
+
+.caption-button:active {
+  background: var(--caption-pressed);
+}
+
+.caption-button--close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+.caption-button--close:active {
+  background: #f1707a;
+  color: #000;
+}
+
+.caption-glyph {
+  width: 10px;
+  height: 10px;
+}
+
+/* ---------- 页面内容区 ---------- */
+
+.content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  margin-top: 48px;
+  overflow: hidden;
+  border-top: 1px solid var(--content-border);
+  border-left: 1px solid var(--content-border);
+  border-top-left-radius: 10px;
+  background: var(--content-bg);
+}
+
+.page-host {
+  height: 100%;
+}
+
+.page-host--hidden {
+  display: none;
+}
+
+.page {
+  height: 100%;
+}
+
+.page--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
+/* ---------- 设置页（M0 只有语言和主题两项） ---------- */
+
+.settings-stub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 480px;
+  max-width: 100%;
+  padding: 30px;
+}
+
+.settings-stub__field {
+  user-select: none;
+}
