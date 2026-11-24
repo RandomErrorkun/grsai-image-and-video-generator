@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    /* Node 的类型声明（node:sqlite 等，单测里用）；TypeScript 6 不再自动带入 @types */
+    "types": ["node"],
 
     /* Linting */
     "strict": true,

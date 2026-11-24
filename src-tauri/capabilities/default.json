@@ -11,6 +11,25 @@
     "core:window:allow-start-dragging",
     "core:window:allow-set-theme",
     "core:window:allow-set-title",
-    "opener:default"
+    "opener:default",
+    "sql:default",
+    "sql:allow-execute",
+    "fs:allow-copy-file",
+    "fs:allow-exists",
+    "fs:allow-lstat",
+    "fs:allow-mkdir",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-read-text-file",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-stat",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    {
+      "identifier": "fs:scope",
+      "description": "The app keeps its config, history database, input and output next to the executable",
+      "allow": ["$RESOURCE", "$RESOURCE/**"]
+    }
   ]
 }

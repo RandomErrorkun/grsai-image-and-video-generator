@@ -1,5 +1,5 @@
 {
-  "main.title": "Banana Image Generator",
+  "main.title": "Grsai Image and Video Generator",
   "nav.generator": "Generator",
   "nav.video": "Video",
   "nav.comic": "Comic",
@@ -85,7 +85,7 @@
   "video.frames_empty_warning": "First/last frame mode needs at least one frame image.",
   "settings.general": "General Configuration",
   "settings.language.title": "Language",
-  "settings.language.content": "Set application language (restart required)",
+  "settings.language.content": "Switches to the new language right away",
   "settings.language.en": "English",
   "settings.language.zh": "简体中文",
   "settings.retries.title": "Max Retries",
@@ -196,5 +196,9 @@
   "theme.auto": "Follow system",
   "theme.light": "Light",
   "theme.dark": "Dark",
-  "settings.theme.title": "Theme"
+  "settings.theme.title": "Theme",
+  "settings.theme.content": "Follow the system, or always use light or dark",
+  "settings.accent_color.title": "Accent color",
+  "settings.accent_color.content": "Used for buttons, switches and highlights",
+  "settings.applied": "Settings applied"
 }

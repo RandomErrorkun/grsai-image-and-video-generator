@@ -26,7 +26,10 @@ dist-ssr
 # App data (kept beside the executable, same as the source project)
 grsai_config.json
 grsai_history.db
-grsai_history.db-*
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
 grsai_history.json
 grsai_history.json.bak
 history.json
@@ -35,3 +38,6 @@ output/
 
 # The API docs stay in the source project and are read from there, never copied here
 api_docs/
+
+# Python bytecode from the helper scripts
+__pycache__/

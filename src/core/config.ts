@@ -4,6 +4,8 @@
  * 键名和默认值与源项目保持一致，旧数据可以直接导入。文件读写通过
  * ConfigStorage 注入，core 层不依赖具体的运行环境。
  */
+import { LEGACY_IMAGE_MODEL_ALIASES } from "./modelCatalog";
+import { pyStr } from "./py";
 
 export const CONFIG_FILE_NAME = "grsai_config.json";
 
@@ -43,6 +45,10 @@ export const DEFAULT_CONFIG = {
   parallel_tasks: 1,
   comic_parallel_tasks: 2,
   max_retries: 5,
+  // 提交并发闸：同时在途的提交请求数上限。重写版新增的键，取手册建议区间 2 到 3 的上沿
+  submit_concurrency: 3,
+  // 主题色，#RRGGBB。源项目写死 #0078D4，这里做成可调，重写版新增的键
+  accent_color: "#0078D4",
   theme: "auto",
   language: "en",
   text_format_enabled: true,
@@ -114,9 +120,100 @@ function isRecord(value: unknown): value is LooseConfig {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** 和源项目的 json.dump(indent=4) 保持同一格式，方便用户手改和比对。 */
+/** 与源项目的 json.dump(indent=4) 保持同一格式，方便用户手改和比对。 */
 export function serializeConfig(data: AppConfig): string {
   return JSON.stringify(data, null, 4);
+}
+
+/** 只认自有键的查表，与 dict 的 in 一致。 */
+function hasKey(table: object, key: unknown): boolean {
+  return typeof key === "string" && Object.prototype.hasOwnProperty.call(table, key);
+}
+
+/** 旧的标签名到现行标签键。 */
+const TAB_KEY_MAP: Readonly<Record<string, string>> = {
+  "Banana 1": "banana_pro",
+  "Banana Pro": "banana_pro",
+  "GPT Image": "gpt_image",
+};
+
+/**
+ * 旧配置迁移（对应 _migrate_config）：把早期的键名换成现行的，并补齐缺失的默认键。
+ * 键的先后顺序照搬，文件里的排列不会被打乱。
+ * 迁移途中遇到源项目会抛异常的脏数据时同样抛错，由 load() 回落到默认值。
+ */
+export function migrateConfig(oldConfig: unknown): AppConfig {
+  if (!isRecord(oldConfig)) {
+    throw new TypeError(`'${pyStr(oldConfig)}' object has no attribute 'get'`);
+  }
+  const migrated: LooseConfig = { ...oldConfig };
+
+  // 最早的 last_aspect_ratio / last_image_size 改成了 nano_banana_*
+  for (const [oldKey, newKey] of [
+    ["last_aspect_ratio", "nano_banana_aspect_ratio"],
+    ["last_image_size", "nano_banana_image_size"],
+  ] as const) {
+    if (oldKey in migrated) {
+      const value = migrated[oldKey];
+      delete migrated[oldKey];
+      migrated[newKey] = value;
+    }
+  }
+
+  // 早期直连 Google Gemini 的地址换回 Grsai
+  if ("api_base_url" in migrated && typeof migrated.api_base_url !== "string") {
+    throw new TypeError(`'${pyStr(migrated.api_base_url)}' object has no attribute 'startswith'`);
+  }
+  if (typeof migrated.api_base_url === "string" && migrated.api_base_url.startsWith("https://generativelanguage.googleapis.com")) {
+    migrated.api_base_url = DEFAULT_CONFIG.api_base_url;
+  }
+
+  // 旧模型名换成现行模型名；列表这类不可哈希的值与源项目一样让迁移失败
+  const remapModel = (value: unknown): unknown => {
+    if (typeof value === "object" && value !== null) {
+      throw new TypeError(`unhashable type: '${Array.isArray(value) ? "list" : "dict"}'`);
+    }
+    return hasKey(LEGACY_IMAGE_MODEL_ALIASES, value) ? LEGACY_IMAGE_MODEL_ALIASES[value as string] : value;
+  };
+  if ("last_model" in migrated) migrated.last_model = remapModel(migrated.last_model);
+  if ("comic_image_model" in migrated) migrated.comic_image_model = remapModel(migrated.comic_image_model);
+  for (const [key, value] of Object.entries(migrated)) {
+    if (key.startsWith("last_model_")) migrated[key] = remapModel(value);
+  }
+
+  // 旧的标签显示名改成稳定的标签键
+  const hashableTab = (value: unknown): string => {
+    if (typeof value === "object" && value !== null) throw new TypeError("unhashable type: 'list'");
+    return value as string;
+  };
+  if ("last_tab" in migrated && hasKey(TAB_KEY_MAP, hashableTab(migrated.last_tab))) {
+    migrated.last_tab = TAB_KEY_MAP[migrated.last_tab as string];
+  }
+
+  // 独立的 Banana 1 标签已经并进 Banana，旧值折过去
+  if (migrated.last_tab === "banana_1") migrated.last_tab = "banana_pro";
+
+  // Banana 1 标签记住的模型，只在 Banana 标签还没记住模型时带过去
+  const legacyBanana1Key = "last_model_tab_banana_1";
+  const bananaProKey = "last_model_tab_banana_pro";
+  if (legacyBanana1Key in migrated && !(bananaProKey in migrated)) {
+    const legacyValue = remapModel(migrated[legacyBanana1Key]);
+    migrated[bananaProKey] = legacyValue;
+  }
+
+  for (const [oldName, newKey] of Object.entries(TAB_KEY_MAP)) {
+    const oldModelKey = `last_model_${oldName}`;
+    const newModelKey = `last_model_tab_${newKey}`;
+    if (oldModelKey in migrated && !(newModelKey in migrated)) {
+      migrated[newModelKey] = migrated[oldModelKey];
+    }
+  }
+
+  // 补齐缺失的默认键
+  for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
+    if (!(key in migrated)) migrated[key] = value;
+  }
+  return migrated as AppConfig;
 }
 
 function assignEntries(target: LooseConfig, source: LooseConfig): void {
@@ -131,14 +228,11 @@ function assignEntries(target: LooseConfig, source: LooseConfig): void {
   }
 }
 
-/** 用读到的配置覆盖 data，并补齐缺失的默认键（对应 _migrate_config 末尾的补键逻辑）。 */
-function replaceData(data: AppConfig, source: LooseConfig): void {
+/** 用迁移后的配置覆盖 data。 */
+function replaceData(data: AppConfig, source: AppConfig): void {
   const target = data as unknown as LooseConfig;
   for (const key of Object.keys(target)) delete target[key];
   assignEntries(target, source);
-  for (const [key, value] of Object.entries(DEFAULT_CONFIG)) {
-    if (!(key in target)) target[key] = value;
-  }
 }
 
 export function createConfigStore(
@@ -189,26 +283,28 @@ export function createConfigStore(
     } catch (error) {
       // 文件在却读不了：和源项目一样回落到默认值，且不回写，免得覆盖用户手里的文件。
       onError(error);
-      replaceData(data, DEFAULT_CONFIG);
+      replaceData(data, { ...DEFAULT_CONFIG });
       notify();
       return;
     }
 
-    let loaded: unknown = DEFAULT_CONFIG;
     if (text === null) {
-      // 首次启动：生成默认配置，稍后落盘。
-    } else {
-      try {
-        loaded = JSON.parse(text);
-        if (!isRecord(loaded)) throw new SyntaxError("config root is not an object");
-      } catch {
-        // 文件损坏：只回落到默认值，不回写，给用户留下排查的余地。
-        loaded = DEFAULT_CONFIG;
-      }
+      // 首次启动：生成默认配置并落盘。
+      replaceData(data, { ...DEFAULT_CONFIG });
+      notify();
+      await save();
+      return;
     }
-    replaceData(data, loaded as LooseConfig);
+
+    let loaded: AppConfig;
+    try {
+      // 文件损坏或有迁移不了的脏数据：只回落到默认值，不回写，给用户留下排查的余地。
+      loaded = migrateConfig(JSON.parse(text));
+    } catch {
+      loaded = { ...DEFAULT_CONFIG };
+    }
+    replaceData(data, loaded);
     notify();
-    if (text === null) await save();
   }
 
   function get(key: string, fallback?: ConfigValue): ConfigValue | null | undefined {

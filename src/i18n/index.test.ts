@@ -17,7 +17,7 @@ afterEach(() => {
 describe("translation tables", () => {
   it("gives both languages the same keys: the 187 inherited from the source project plus the shell additions", () => {
     expect(Object.keys(zh)).toEqual(Object.keys(en));
-    expect(Object.keys(en)).toHaveLength(198);
+    expect(Object.keys(en)).toHaveLength(202);
     for (const value of [...Object.values(en), ...Object.values(zh)]) {
       expect(typeof value).toBe("string");
     }
@@ -27,7 +27,7 @@ describe("translation tables", () => {
     expect(en["drop.placeholder"]).toBe(
       "Drag & Drop Images Here\n(Max {max})\nOr Click to Select\n(Ctrl+V to Paste)",
     );
-    expect(zh["main.title"]).toBe("Banana 图像生成器");
+    expect(zh["generator.generate"]).toBe("开始生成");
     expect(en["nav.toggle_theme"]).toBe("Toggle Theme");
     expect(zh["nav.toggle_theme"]).toBe("切换主题");
   });

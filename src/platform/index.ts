@@ -9,4 +9,4 @@ function detectTauri(): boolean {
 /** 当前运行环境的能力集合：Tauri 里是真的，浏览器里是 mock。 */
 export const platform: Platform = detectTauri() ? tauriPlatform : browserPlatform;
 
-export type { NativeTheme, Platform, WindowApi } from "./types";
+export type { FileSystemApi, HttpApi, NativeTheme, Platform, WindowApi } from "./types";

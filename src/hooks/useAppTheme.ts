@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { normalizeThemeMode, type ResolvedTheme } from "../app/navigation";
 import { useConfigValue } from "./useConfigValue";
+import { DEFAULT_ACCENT_COLOR, normalizeAccentColor } from "../theme";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
@@ -28,4 +29,9 @@ export function useResolvedTheme(): ResolvedTheme {
   const mode = useThemeMode();
   const systemTheme = useSystemTheme();
   return mode === "auto" ? systemTheme : mode;
+}
+
+/** 配置里的主题色，规整成小写的 #RRGGBB；没设或写得不对就用默认值。 */
+export function useAccentColor(): string {
+  return normalizeAccentColor(useConfigValue("accent_color", DEFAULT_ACCENT_COLOR)) ?? DEFAULT_ACCENT_COLOR;
 }

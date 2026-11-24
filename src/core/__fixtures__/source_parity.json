@@ -1,0 +1,2574 @@
+{
+  "payloads": [
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana"
+      },
+      "payload": {
+        "model": "nano-banana",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-fast"
+      },
+      "payload": {
+        "model": "nano-banana-fast",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2"
+      },
+      "payload": {
+        "model": "nano-banana-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2.1"
+      },
+      "payload": {
+        "model": "nano-banana-2.1",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-lite"
+      },
+      "payload": {
+        "model": "nano-banana-2-lite",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-cl"
+      },
+      "payload": {
+        "model": "nano-banana-2-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-2k-cl"
+      },
+      "payload": {
+        "model": "nano-banana-2-2k-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "2K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-4k-cl"
+      },
+      "payload": {
+        "model": "nano-banana-2-4k-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "4K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro"
+      },
+      "payload": {
+        "model": "nano-banana-pro",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-vt"
+      },
+      "payload": {
+        "model": "nano-banana-pro-vt",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-cl"
+      },
+      "payload": {
+        "model": "nano-banana-pro-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-vip"
+      },
+      "payload": {
+        "model": "nano-banana-pro-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-4k-vip"
+      },
+      "payload": {
+        "model": "nano-banana-pro-4k-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "4K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2"
+      },
+      "payload": {
+        "model": "gpt-image-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2-vip"
+      },
+      "payload": {
+        "model": "gpt-image-2-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5"
+      },
+      "payload": {
+        "model": "gpt-image-2.5",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5-flare"
+      },
+      "payload": {
+        "model": "gpt-image-2.5-flare",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5-sunburst"
+      },
+      "payload": {
+        "model": "gpt-image-2.5-sunburst",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6"
+      },
+      "payload": {
+        "model": "gpt-image-2.6",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "outputFormat": "png"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6-flare"
+      },
+      "payload": {
+        "model": "gpt-image-2.6-flare",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "outputFormat": "gif"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6-sunburst"
+      },
+      "payload": {
+        "model": "gpt-image-2.6-sunburst",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "outputFormat": "gif"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "minimax-h3"
+      },
+      "payload": {
+        "model": "minimax-h3",
+        "prompt": "p",
+        "aspectRatio": "landscape",
+        "images": [],
+        "audios": [],
+        "seed": 1643081421,
+        "resolution": "480p",
+        "duration": 5
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "agnes-video-2.5"
+      },
+      "payload": {
+        "model": "agnes-video-2.5",
+        "prompt": "p",
+        "aspectRatio": "16:9",
+        "images": [],
+        "audios": [],
+        "seed": 1358850458,
+        "resolution": "720p",
+        "duration": 5
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "wan-3.0"
+      },
+      "payload": {
+        "model": "wan-3.0",
+        "prompt": "p",
+        "aspectRatio": "16:9",
+        "images": [],
+        "audios": [],
+        "seed": 735023106,
+        "resolution": "720p",
+        "duration": 5
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-1.5"
+      },
+      "payload": {
+        "model": "gpt-image-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gemini-2.5-flash-image"
+      },
+      "payload": {
+        "model": "nano-banana-fast",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "sora-2"
+      },
+      "payload": {
+        "model": "sora-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "veo3.1-fast-1080p"
+      },
+      "payload": {
+        "model": "veo3.1-fast-1080p",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "no-such-model"
+      },
+      "payload": null
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-fast",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-fast",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2.1",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-2.1",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-lite",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-2-lite",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-cl",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-2-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-2k-cl",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-2-2k-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "2K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-4k-cl",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-2-4k-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "4K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-pro",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-vt",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-pro-vt",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-cl",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-pro-cl",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-vip",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-pro-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro-4k-vip",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-pro-4k-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "4K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2-vip",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "background": "transparent",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2.5",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5-flare",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2.5-flare",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "background": "transparent",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5-sunburst",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2.5-sunburst",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "background": "transparent",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2.6",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "outputFormat": "svg",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6-flare",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2.6-flare",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "background": "transparent",
+        "outputFormat": "gif",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6-sunburst",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2.6-sunburst",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "background": "transparent",
+        "outputFormat": "gif",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "minimax-h3",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "minimax-h3",
+        "prompt": "p",
+        "aspectRatio": "landscape",
+        "images": [
+          "u1"
+        ],
+        "audios": [
+          "a1"
+        ],
+        "seed": 1682099215,
+        "resolution": "480p",
+        "duration": 5
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "agnes-video-2.5",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "agnes-video-2.5",
+        "prompt": "p",
+        "aspectRatio": "16:9",
+        "seed": 1052935757,
+        "resolution": "720p",
+        "duration": 5,
+        "firstFrame": "f"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "wan-3.0",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "wan-3.0",
+        "prompt": "p",
+        "aspectRatio": "16:9",
+        "seed": 684454772,
+        "resolution": "720p",
+        "duration": 5,
+        "firstFrame": "f"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-1.5",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "gpt-image-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gemini-2.5-flash-image",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "nano-banana-fast",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "imageSize": "1K",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "sora-2",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "sora-2",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "veo3.1-fast-1080p",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "veo3.1-fast-1080p",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "images": [
+          "u1"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "no-such-model",
+        "aspect_ratio": "",
+        "image_size": "bogus",
+        "quality": "bogus",
+        "background": "transparent",
+        "output_format": "svg",
+        "duration": "x",
+        "seed": null,
+        "ref_image_urls": [
+          "u1"
+        ],
+        "ref_audios": [
+          "a1"
+        ],
+        "first_frame": "f",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": null
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-pro",
+        "aspect_ratio": "1:1",
+        "image_size": "4K",
+        "ref_image_urls": []
+      },
+      "payload": {
+        "model": "nano-banana-pro",
+        "prompt": "p",
+        "aspectRatio": "1:1",
+        "imageSize": "4K"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "nano-banana-2-4k-cl",
+        "aspect_ratio": null,
+        "image_size": null
+      },
+      "payload": {
+        "model": "nano-banana-2-4k-cl",
+        "prompt": "p",
+        "aspectRatio": "auto"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.5-sunburst",
+        "aspect_ratio": "9:21",
+        "image_size": "1536x1536",
+        "quality": "xhigh",
+        "background": "transparent",
+        "output_format": null
+      },
+      "payload": {
+        "model": "gpt-image-2.5-sunburst",
+        "prompt": "p",
+        "aspectRatio": "9:21",
+        "quality": "xhigh",
+        "background": "transparent"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6",
+        "output_format": "svg",
+        "background": null
+      },
+      "payload": {
+        "model": "gpt-image-2.6",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "outputFormat": "svg"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2.6-sunburst",
+        "output_format": "png"
+      },
+      "payload": {
+        "model": "gpt-image-2.6-sunburst",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "auto",
+        "outputFormat": "gif"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "gpt-image-2-vip",
+        "quality": "high",
+        "background": "opaque"
+      },
+      "payload": {
+        "model": "gpt-image-2-vip",
+        "prompt": "p",
+        "aspectRatio": "auto",
+        "quality": "high"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "minimax-h3",
+        "aspect_ratio": "portrait",
+        "image_size": "1080p",
+        "duration": 20,
+        "seed": 42,
+        "ref_image_urls": null,
+        "ref_audios": null
+      },
+      "payload": {
+        "model": "minimax-h3",
+        "prompt": "p",
+        "aspectRatio": "portrait",
+        "images": [],
+        "audios": [],
+        "seed": 42,
+        "resolution": "1080p",
+        "duration": 10
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "minimax-h3",
+        "aspect_ratio": "bad",
+        "image_size": "bad",
+        "duration": 0,
+        "seed": "007",
+        "first_frame": "ff",
+        "last_frame": "lf"
+      },
+      "payload": {
+        "model": "minimax-h3",
+        "prompt": "p",
+        "aspectRatio": "landscape",
+        "images": [],
+        "audios": [],
+        "seed": 7,
+        "resolution": "480p",
+        "duration": 1
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "wan-3.0",
+        "aspect_ratio": "21:9",
+        "image_size": "1080p",
+        "duration": 99,
+        "seed": -5,
+        "ref_image_urls": [
+          "i"
+        ],
+        "ref_audios": [
+          "a"
+        ],
+        "first_frame": "ff",
+        "last_frame": null,
+        "ref_videos": null
+      },
+      "payload": {
+        "model": "wan-3.0",
+        "prompt": "p",
+        "aspectRatio": "21:9",
+        "seed": -5,
+        "resolution": "1080p",
+        "duration": 30,
+        "firstFrame": "ff"
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "agnes-video-2.5",
+        "aspect_ratio": "9:16",
+        "image_size": "2k",
+        "duration": 1,
+        "seed": 3.9,
+        "ref_videos": [
+          "v"
+        ],
+        "first_frame": null,
+        "last_frame": "lf"
+      },
+      "payload": {
+        "model": "agnes-video-2.5",
+        "prompt": "p",
+        "aspectRatio": "9:16",
+        "seed": 3,
+        "resolution": "2k",
+        "duration": 4,
+        "lastFrame": "lf",
+        "videos": [
+          "v"
+        ]
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "wan-3.0",
+        "duration": 7.9,
+        "seed": null
+      },
+      "payload": {
+        "model": "wan-3.0",
+        "prompt": "p",
+        "aspectRatio": "16:9",
+        "images": [],
+        "audios": [],
+        "seed": 1683715515,
+        "resolution": "720p",
+        "duration": 7
+      }
+    },
+    {
+      "params": {
+        "prompt": "p",
+        "model": "no-such-model",
+        "aspect_ratio": "1:1"
+      },
+      "payload": null
+    }
+  ],
+  "config_migration": [
+    {
+      "old": {},
+      "result": {
+        "ok": {
+          "api_base_url": "https://grsai.dakka.com.cn",
+          "api_key": "",
+          "output_folder": "./output",
+          "last_model": "nano-banana-2-lite",
+          "nano_banana_aspect_ratio": "auto",
+          "nano_banana_image_size": "1K",
+          "gpt_image_size": "auto",
+          "gpt_image_quality": "auto",
+          "gpt_image_tier": "1K",
+          "gpt_image_output_format": "png",
+          "gpt_transparent_background": false,
+          "video_last_model": "minimax-h3",
+          "video_aspect_ratio": "landscape",
+          "video_resolution": "480p",
+          "video_duration": 5,
+          "video_parallel_tasks": 1,
+          "agnes_video_aspect_ratio": "16:9",
+          "agnes_video_resolution": "720p",
+          "agnes_video_duration": 5,
+          "wan_video_aspect_ratio": "16:9",
+          "wan_video_resolution": "720p",
+          "wan_video_duration": 5,
+          "video_frames_mode": false,
+          "auto_retry_on_failure": false,
+          "vip_moderation_auto_retry": false,
+          "parallel_tasks": 1,
+          "comic_parallel_tasks": 2,
+          "max_retries": 5,
+          "theme": "auto",
+          "language": "en",
+          "text_format_enabled": true,
+          "text_font_size": 12,
+          "text_font_family": "Arial",
+          "text_auto_wrap": true,
+          "comic_story_model": "gemini-3.1-pro",
+          "comic_image_model": "nano-banana-2-lite",
+          "comic_page_count": 6,
+          "comic_aspect_ratio": "3:4",
+          "comic_image_size": "1K",
+          "comic_last_project": "",
+          "history_items_per_page": 5,
+          "last_tab": "banana_pro"
+        }
+      }
+    },
+    {
+      "old": {
+        "last_aspect_ratio": "16:9",
+        "last_image_size": "2K",
+        "api_base_url": "https://generativelanguage.googleapis.com/v1",
+        "last_model": "gpt-image-1.5",
+        "comic_image_model": "gemini-2.5-flash-image",
+        "last_model_Banana 1": "sora-image",
+        "last_tab": "Banana 1",
+        "last_model_tab_banana_1": "gpt-image-1.5"
+      },
+      "result": {
+        "ok": {
+          "api_base_url": "https://grsai.dakka.com.cn",
+          "last_model": "gpt-image-2",
+          "comic_image_model": "nano-banana-fast",
+          "last_model_Banana 1": "gpt-image-2",
+          "last_tab": "banana_pro",
+          "last_model_tab_banana_1": "gpt-image-2",
+          "nano_banana_aspect_ratio": "16:9",
+          "nano_banana_image_size": "2K",
+          "last_model_tab_banana_pro": "gpt-image-2",
+          "api_key": "",
+          "output_folder": "./output",
+          "gpt_image_size": "auto",
+          "gpt_image_quality": "auto",
+          "gpt_image_tier": "1K",
+          "gpt_image_output_format": "png",
+          "gpt_transparent_background": false,
+          "video_last_model": "minimax-h3",
+          "video_aspect_ratio": "landscape",
+          "video_resolution": "480p",
+          "video_duration": 5,
+          "video_parallel_tasks": 1,
+          "agnes_video_aspect_ratio": "16:9",
+          "agnes_video_resolution": "720p",
+          "agnes_video_duration": 5,
+          "wan_video_aspect_ratio": "16:9",
+          "wan_video_resolution": "720p",
+          "wan_video_duration": 5,
+          "video_frames_mode": false,
+          "auto_retry_on_failure": false,
+          "vip_moderation_auto_retry": false,
+          "parallel_tasks": 1,
+          "comic_parallel_tasks": 2,
+          "max_retries": 5,
+          "theme": "auto",
+          "language": "en",
+          "text_format_enabled": true,
+          "text_font_size": 12,
+          "text_font_family": "Arial",
+          "text_auto_wrap": true,
+          "comic_story_model": "gemini-3.1-pro",
+          "comic_page_count": 6,
+          "comic_aspect_ratio": "3:4",
+          "comic_image_size": "1K",
+          "comic_last_project": "",
+          "history_items_per_page": 5
+        }
+      }
+    },
+    {
+      "old": {
+        "last_tab": "banana_1",
+        "last_model_tab_banana_1": "nano-banana-pro",
+        "last_model_tab_banana_pro": "nano-banana-2",
+        "last_model_Banana Pro": "sora-image",
+        "last_model_GPT Image": "x",
+        "last_model_other": "gpt-image-1.5"
+      },
+      "result": {
+        "ok": {
+          "last_tab": "banana_pro",
+          "last_model_tab_banana_1": "nano-banana-pro",
+          "last_model_tab_banana_pro": "nano-banana-2",
+          "last_model_Banana Pro": "gpt-image-2",
+          "last_model_GPT Image": "x",
+          "last_model_other": "gpt-image-2",
+          "last_model_tab_gpt_image": "x",
+          "api_base_url": "https://grsai.dakka.com.cn",
+          "api_key": "",
+          "output_folder": "./output",
+          "last_model": "nano-banana-2-lite",
+          "nano_banana_aspect_ratio": "auto",
+          "nano_banana_image_size": "1K",
+          "gpt_image_size": "auto",
+          "gpt_image_quality": "auto",
+          "gpt_image_tier": "1K",
+          "gpt_image_output_format": "png",
+          "gpt_transparent_background": false,
+          "video_last_model": "minimax-h3",
+          "video_aspect_ratio": "landscape",
+          "video_resolution": "480p",
+          "video_duration": 5,
+          "video_parallel_tasks": 1,
+          "agnes_video_aspect_ratio": "16:9",
+          "agnes_video_resolution": "720p",
+          "agnes_video_duration": 5,
+          "wan_video_aspect_ratio": "16:9",
+          "wan_video_resolution": "720p",
+          "wan_video_duration": 5,
+          "video_frames_mode": false,
+          "auto_retry_on_failure": false,
+          "vip_moderation_auto_retry": false,
+          "parallel_tasks": 1,
+          "comic_parallel_tasks": 2,
+          "max_retries": 5,
+          "theme": "auto",
+          "language": "en",
+          "text_format_enabled": true,
+          "text_font_size": 12,
+          "text_font_family": "Arial",
+          "text_auto_wrap": true,
+          "comic_story_model": "gemini-3.1-pro",
+          "comic_image_model": "nano-banana-2-lite",
+          "comic_page_count": 6,
+          "comic_aspect_ratio": "3:4",
+          "comic_image_size": "1K",
+          "comic_last_project": "",
+          "history_items_per_page": 5
+        }
+      }
+    },
+    {
+      "old": {
+        "last_tab": "GPT Image",
+        "last_model_x": "nano-banana",
+        "extra_key": 1,
+        "max_retries": 9,
+        "theme": null,
+        "last_model": 7,
+        "comic_image_model": null
+      },
+      "result": {
+        "ok": {
+          "last_tab": "gpt_image",
+          "last_model_x": "nano-banana",
+          "extra_key": 1,
+          "max_retries": 9,
+          "theme": null,
+          "last_model": 7,
+          "comic_image_model": null,
+          "api_base_url": "https://grsai.dakka.com.cn",
+          "api_key": "",
+          "output_folder": "./output",
+          "nano_banana_aspect_ratio": "auto",
+          "nano_banana_image_size": "1K",
+          "gpt_image_size": "auto",
+          "gpt_image_quality": "auto",
+          "gpt_image_tier": "1K",
+          "gpt_image_output_format": "png",
+          "gpt_transparent_background": false,
+          "video_last_model": "minimax-h3",
+          "video_aspect_ratio": "landscape",
+          "video_resolution": "480p",
+          "video_duration": 5,
+          "video_parallel_tasks": 1,
+          "agnes_video_aspect_ratio": "16:9",
+          "agnes_video_resolution": "720p",
+          "agnes_video_duration": 5,
+          "wan_video_aspect_ratio": "16:9",
+          "wan_video_resolution": "720p",
+          "wan_video_duration": 5,
+          "video_frames_mode": false,
+          "auto_retry_on_failure": false,
+          "vip_moderation_auto_retry": false,
+          "parallel_tasks": 1,
+          "comic_parallel_tasks": 2,
+          "language": "en",
+          "text_format_enabled": true,
+          "text_font_size": 12,
+          "text_font_family": "Arial",
+          "text_auto_wrap": true,
+          "comic_story_model": "gemini-3.1-pro",
+          "comic_page_count": 6,
+          "comic_aspect_ratio": "3:4",
+          "comic_image_size": "1K",
+          "comic_last_project": "",
+          "history_items_per_page": 5
+        }
+      }
+    },
+    {
+      "old": {
+        "last_tab": "Banana Pro",
+        "api_base_url": null
+      },
+      "result": {
+        "error": "AttributeError",
+        "message": "'NoneType' object has no attribute 'startswith'"
+      }
+    },
+    {
+      "old": {
+        "last_tab": "Banana Pro",
+        "api_base_url": "https://grsai.dakka.com.cn"
+      },
+      "result": {
+        "ok": {
+          "last_tab": "banana_pro",
+          "api_base_url": "https://grsai.dakka.com.cn",
+          "api_key": "",
+          "output_folder": "./output",
+          "last_model": "nano-banana-2-lite",
+          "nano_banana_aspect_ratio": "auto",
+          "nano_banana_image_size": "1K",
+          "gpt_image_size": "auto",
+          "gpt_image_quality": "auto",
+          "gpt_image_tier": "1K",
+          "gpt_image_output_format": "png",
+          "gpt_transparent_background": false,
+          "video_last_model": "minimax-h3",
+          "video_aspect_ratio": "landscape",
+          "video_resolution": "480p",
+          "video_duration": 5,
+          "video_parallel_tasks": 1,
+          "agnes_video_aspect_ratio": "16:9",
+          "agnes_video_resolution": "720p",
+          "agnes_video_duration": 5,
+          "wan_video_aspect_ratio": "16:9",
+          "wan_video_resolution": "720p",
+          "wan_video_duration": 5,
+          "video_frames_mode": false,
+          "auto_retry_on_failure": false,
+          "vip_moderation_auto_retry": false,
+          "parallel_tasks": 1,
+          "comic_parallel_tasks": 2,
+          "max_retries": 5,
+          "theme": "auto",
+          "language": "en",
+          "text_format_enabled": true,
+          "text_font_size": 12,
+          "text_font_family": "Arial",
+          "text_auto_wrap": true,
+          "comic_story_model": "gemini-3.1-pro",
+          "comic_image_model": "nano-banana-2-lite",
+          "comic_page_count": 6,
+          "comic_aspect_ratio": "3:4",
+          "comic_image_size": "1K",
+          "comic_last_project": "",
+          "history_items_per_page": 5
+        }
+      }
+    },
+    {
+      "old": {
+        "last_model": [
+          "unhashable"
+        ]
+      },
+      "result": {
+        "error": "TypeError",
+        "message": "unhashable type: 'list'"
+      }
+    },
+    {
+      "old": {
+        "last_tab": [
+          "unhashable"
+        ]
+      },
+      "result": {
+        "error": "TypeError",
+        "message": "unhashable type: 'list'"
+      }
+    },
+    {
+      "old": [
+        "not",
+        "a",
+        "dict"
+      ],
+      "result": {
+        "error": "AttributeError",
+        "message": "'list' object has no attribute 'get'"
+      }
+    },
+    {
+      "old": {
+        "last_model_tab_banana_1": {
+          "un": "hashable"
+        },
+        "last_tab": "banana_1"
+      },
+      "result": {
+        "error": "TypeError",
+        "message": "unhashable type: 'dict'"
+      }
+    }
+  ],
+  "planning_messages": [
+    {
+      "ok": [
+        {
+          "role": "system",
+          "content": "你是一位专业漫画编剧和分镜策划师。请把用户的故事需求扩写成可直接用于漫画创作的分页脚本。要求剧情连贯、角色稳定、对白自然、每一页都具备明确的画面目标和可执行的出图提示词。所有文本字段必须使用简体中文输出，尤其是 title、style_notes、story_beat、narration、dialogue、scene_description、camera_direction、panel_layout、image_prompt。除用户原文中的专有名词、英文名或必须保留的品牌名外，禁止输出英文句子、英文关键词列表或英文风格描述。如果我按顺序提供了多张人物参考图，你必须逐张识别并记住，每张图都是不同的编号，不允许混淆角色。你必须根据每一页实际登场角色，给出 reference_targets，表示这一页主要参考哪些图片编号。image_prompt 必须是可直接用于出图模型的完整中文提示词，里面要写清人物、场景、动作、情绪、镜头、光影、构图、分镜页感和对白呈现方式。页面标题不是必需项，如果没有必要可以输出空字符串。你必须只返回严格 JSON，不要输出 markdown，不要解释，不要多余文本。"
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "下面我会按固定顺序提供人物参考图，请严格记住编号，不要把不同参考图里的角色特征混在一起。"
+            },
+            {
+              "type": "text",
+              "text": "输出语言：English\n目标页数：3\n绘图阶段是否提供人物参考图：无\n请控制主要角色数量，确保角色在全篇视觉上保持一致。\n每一页都应被设计为完整的漫画页画面，而不是单独角色立绘。\n请优先把关键信息写进 image_prompt，不要依赖页面标题补充信息。\n整篇故事必须有起承转合，页与页之间衔接清楚。\n如果对白里不希望出现角色名字，也请直接在对白文本里避免写名字，不要在 image_prompt 里重复英文台词。\n如果提供了多张参考图，请严格按提供顺序理解：参考图一就是第 1 张，参考图二就是第 2 张，以此类推。\n请先看参考图，再写故事规划；不要凭空脑补参考图里不存在的发色、眼镜、服装或角色身份。\n再次强调：请不要输出英文提示词，最终 JSON 中每一页的 image_prompt 也必须是自然、完整、可执行的中文描述。\n故事需求：\nA lonely lighthouse keeper\n\n补充风格说明：\n无额外要求\n\n请严格按照下面的 JSON 结构返回：\n{\n  \"title\": \"短篇标题\",\n  \"style_notes\": \"全局画风说明\",\n  \"pages\": [\n    {\n      \"page_number\": 1,\n      \"title\": \"可选页面标题，可留空字符串\",\n      \"story_beat\": \"这一页发生了什么\",\n      \"narration\": \"旁白，可为空\",\n      \"dialogue\": [\n        \"角色名：对白\"\n      ],\n      \"scene_description\": \"这一页应该看到什么\",\n      \"camera_direction\": \"镜头与构图建议\",\n      \"panel_layout\": \"建议的分镜排版\",\n      \"reference_targets\": [\n        1\n      ],\n      \"image_prompt\": \"可直接用于出图的一整页漫画提示词\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ok": [
+        {
+          "role": "system",
+          "content": "你是一位专业漫画编剧和分镜策划师。请把用户的故事需求扩写成可直接用于漫画创作的分页脚本。要求剧情连贯、角色稳定、对白自然、每一页都具备明确的画面目标和可执行的出图提示词。所有文本字段必须使用简体中文输出，尤其是 title、style_notes、story_beat、narration、dialogue、scene_description、camera_direction、panel_layout、image_prompt。除用户原文中的专有名词、英文名或必须保留的品牌名外，禁止输出英文句子、英文关键词列表或英文风格描述。如果我按顺序提供了多张人物参考图，你必须逐张识别并记住，每张图都是不同的编号，不允许混淆角色。你必须根据每一页实际登场角色，给出 reference_targets，表示这一页主要参考哪些图片编号。image_prompt 必须是可直接用于出图模型的完整中文提示词，里面要写清人物、场景、动作、情绪、镜头、光影、构图、分镜页感和对白呈现方式。页面标题不是必需项，如果没有必要可以输出空字符串。你必须只返回严格 JSON，不要输出 markdown，不要解释，不要多余文本。"
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "下面我会按固定顺序提供人物参考图，请严格记住编号，不要把不同参考图里的角色特征混在一起。"
+            },
+            {
+              "type": "text",
+              "text": "参考图一：这是第 1 张人物参考图。请先单独识别这张图里的角色外观特征，包括发色、发型、脸型、眼睛/眼镜、服装、配饰、年龄气质。后面如果提到“参考图一”，就是指这一张。"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "ref_one.png"
+              }
+            },
+            {
+              "type": "text",
+              "text": "参考图二：这是第 2 张人物参考图。请先单独识别这张图里的角色外观特征，包括发色、发型、脸型、眼睛/眼镜、服装、配饰、年龄气质。后面如果提到“参考图二”，就是指这一张。"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "ref_two.PNG"
+              }
+            },
+            {
+              "type": "text",
+              "text": "输出语言：English\n目标页数：5\n绘图阶段是否提供人物参考图：有\n请控制主要角色数量，确保角色在全篇视觉上保持一致。\n每一页都应被设计为完整的漫画页画面，而不是单独角色立绘。\n请优先把关键信息写进 image_prompt，不要依赖页面标题补充信息。\n整篇故事必须有起承转合，页与页之间衔接清楚。\n如果对白里不希望出现角色名字，也请直接在对白文本里避免写名字，不要在 image_prompt 里重复英文台词。\n如果提供了多张参考图，请严格按提供顺序理解：参考图一就是第 1 张，参考图二就是第 2 张，以此类推。\n请先看参考图，再写故事规划；不要凭空脑补参考图里不存在的发色、眼镜、服装或角色身份。\n再次强调：请不要输出英文提示词，最终 JSON 中每一页的 image_prompt 也必须是自然、完整、可执行的中文描述。\n故事需求：\nStory\nlines\n\n补充风格说明：\nink wash\n\n请严格按照下面的 JSON 结构返回：\n{\n  \"title\": \"短篇标题\",\n  \"style_notes\": \"全局画风说明\",\n  \"pages\": [\n    {\n      \"page_number\": 1,\n      \"title\": \"可选页面标题，可留空字符串\",\n      \"story_beat\": \"这一页发生了什么\",\n      \"narration\": \"旁白，可为空\",\n      \"dialogue\": [\n        \"角色名：对白\"\n      ],\n      \"scene_description\": \"这一页应该看到什么\",\n      \"camera_direction\": \"镜头与构图建议\",\n      \"panel_layout\": \"建议的分镜排版\",\n      \"reference_targets\": [\n        1\n      ],\n      \"image_prompt\": \"可直接用于出图的一整页漫画提示词\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ok": [
+        {
+          "role": "system",
+          "content": "你是一位专业漫画编剧和分镜策划师。请把用户的故事需求扩写成可直接用于漫画创作的分页脚本。要求剧情连贯、角色稳定、对白自然、每一页都具备明确的画面目标和可执行的出图提示词。所有文本字段必须使用简体中文输出，尤其是 title、style_notes、story_beat、narration、dialogue、scene_description、camera_direction、panel_layout、image_prompt。除用户原文中的专有名词、英文名或必须保留的品牌名外，禁止输出英文句子、英文关键词列表或英文风格描述。如果我按顺序提供了多张人物参考图，你必须逐张识别并记住，每张图都是不同的编号，不允许混淆角色。你必须根据每一页实际登场角色，给出 reference_targets，表示这一页主要参考哪些图片编号。image_prompt 必须是可直接用于出图模型的完整中文提示词，里面要写清人物、场景、动作、情绪、镜头、光影、构图、分镜页感和对白呈现方式。页面标题不是必需项，如果没有必要可以输出空字符串。你必须只返回严格 JSON，不要输出 markdown，不要解释，不要多余文本。"
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "下面我会按固定顺序提供人物参考图，请严格记住编号，不要把不同参考图里的角色特征混在一起。"
+            },
+            {
+              "type": "text",
+              "text": "参考图一：这是第 1 张人物参考图。请先单独识别这张图里的角色外观特征，包括发色、发型、脸型、眼睛/眼镜、服装、配饰、年龄气质。后面如果提到“参考图一”，就是指这一张。"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "ref_two.PNG"
+              }
+            },
+            {
+              "type": "text",
+              "text": "输出语言：简体中文\n目标页数：4\n绘图阶段是否提供人物参考图：有\n请控制主要角色数量，确保角色在全篇视觉上保持一致。\n每一页都应被设计为完整的漫画页画面，而不是单独角色立绘。\n请优先把关键信息写进 image_prompt，不要依赖页面标题补充信息。\n整篇故事必须有起承转合，页与页之间衔接清楚。\n如果对白里不希望出现角色名字，也请直接在对白文本里避免写名字，不要在 image_prompt 里重复英文台词。\n如果提供了多张参考图，请严格按提供顺序理解：参考图一就是第 1 张，参考图二就是第 2 张，以此类推。\n请先看参考图，再写故事规划；不要凭空脑补参考图里不存在的发色、眼镜、服装或角色身份。\n再次强调：请不要输出英文提示词，最终 JSON 中每一页的 image_prompt 也必须是自然、完整、可执行的中文描述。\n故事需求：\n故事\n\n补充风格说明：\n水墨\n\n请严格按照下面的 JSON 结构返回：\n{\n  \"title\": \"短篇标题\",\n  \"style_notes\": \"全局画风说明\",\n  \"pages\": [\n    {\n      \"page_number\": 1,\n      \"title\": \"可选页面标题，可留空字符串\",\n      \"story_beat\": \"这一页发生了什么\",\n      \"narration\": \"旁白，可为空\",\n      \"dialogue\": [\n        \"角色名：对白\"\n      ],\n      \"scene_description\": \"这一页应该看到什么\",\n      \"camera_direction\": \"镜头与构图建议\",\n      \"panel_layout\": \"建议的分镜排版\",\n      \"reference_targets\": [\n        1\n      ],\n      \"image_prompt\": \"可直接用于出图的一整页漫画提示词\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "comic_plans": [
+    {
+      "content": "```json\n{\"title\": \" 灯塔 \", \"style_notes\": \"水彩\", \"pages\": [{\"page_number\": 1, \"title\": \"T\", \"story_beat\": \"S\", \"narration\": \"\", \"dialogue\": [\"A: hi\", \"  \", 3], \"scene_description\": \"sea\", \"camera_direction\": \"wide\", \"panel_layout\": \"3 panels\", \"reference_targets\": [1, 2, 2, 9], \"image_prompt\": \" full prompt \"}, {\"title\": \"Second\", \"dialogue\": \"- a\\n• b\\n\\nc\", \"reference_targets\": \"1，3\"}]}\n```",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "ok": {
+          "title": "灯塔",
+          "style_notes": "水彩",
+          "pages": [
+            {
+              "page_number": 1,
+              "title": "T",
+              "story_beat": "S",
+              "narration": "",
+              "dialogue": [
+                "A: hi",
+                "3"
+              ],
+              "scene_description": "sea",
+              "camera_direction": "wide",
+              "panel_layout": "3 panels",
+              "image_prompt": "full prompt",
+              "reference_targets": [
+                1,
+                2
+              ]
+            },
+            {
+              "page_number": 2,
+              "title": "Second",
+              "story_beat": "",
+              "narration": "",
+              "dialogue": [
+                "a",
+                "b",
+                "c"
+              ],
+              "scene_description": "",
+              "camera_direction": "",
+              "panel_layout": "",
+              "image_prompt": "请生成一张完整的漫画页插画。 这是全篇第 2 / 3 页。 如果提供了人物参考图，请保持人物身份、发型、服装和气质稳定统一。 本页重点参考：参考图一、参考图三 本页剧情重点： 画面场景： 分镜与排版： 镜头与机位： 旁白氛围： 对白要点：a b c 整体画风：水彩 要求叙事清晰、表演生动、画面有戏剧张力、具备漫画页阅读顺序。",
+              "reference_targets": [
+                1,
+                3
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "content": "Here you go: {\"pages\": [{\"page_number\": \"4\", \"image_prompt\": \"x\"}], \"style_notes\": null} hope it helps",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "ok": {
+          "title": "",
+          "style_notes": "None",
+          "pages": [
+            {
+              "page_number": 4,
+              "title": "",
+              "story_beat": "",
+              "narration": "",
+              "dialogue": [],
+              "scene_description": "",
+              "camera_direction": "",
+              "panel_layout": "",
+              "image_prompt": "x",
+              "reference_targets": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "content": "{\"pages\": []}",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "Story model returned no comic pages."
+      }
+    },
+    {
+      "content": "{\"pages\": \"oops\"}",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "Story model returned no comic pages."
+      }
+    },
+    {
+      "content": "[]",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "Story model did not return valid JSON."
+      }
+    },
+    {
+      "content": "",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "Empty response from story model."
+      }
+    },
+    {
+      "content": "no json at all",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "Story model did not return valid JSON."
+      }
+    },
+    {
+      "content": "{\"pages\": [1, \"two\", null], \"title\": \"Only bad pages\"}",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "Failed to normalize comic pages from story model output."
+      }
+    },
+    {
+      "content": "{\"pages\": [{\"page_number\": \"x\", \"image_prompt\": \"y\"}]}",
+      "page_count": 3,
+      "reference_count": 4,
+      "result": {
+        "error": "ValueError",
+        "message": "invalid literal for int() with base 10: 'x'"
+      }
+    }
+  ],
+  "extension_for_url": [
+    {
+      "url": "https://x/a.PNG",
+      "default": "png",
+      "result": "png"
+    },
+    {
+      "url": "https://x/a.PNG",
+      "default": "mp4",
+      "result": "png"
+    },
+    {
+      "url": "https://x/a.b.jpg?sig=1&x=2",
+      "default": "png",
+      "result": "jpg"
+    },
+    {
+      "url": "https://x/a.b.jpg?sig=1&x=2",
+      "default": "mp4",
+      "result": "jpg"
+    },
+    {
+      "url": "https://x/v.mp4?token=.png",
+      "default": "png",
+      "result": "mp4"
+    },
+    {
+      "url": "https://x/v.mp4?token=.png",
+      "default": "mp4",
+      "result": "mp4"
+    },
+    {
+      "url": "https://x/noext",
+      "default": "png",
+      "result": "png"
+    },
+    {
+      "url": "https://x/noext",
+      "default": "mp4",
+      "result": "mp4"
+    },
+    {
+      "url": "https://x/archive.tar.gz",
+      "default": "png",
+      "result": "png"
+    },
+    {
+      "url": "https://x/archive.tar.gz",
+      "default": "mp4",
+      "result": "mp4"
+    },
+    {
+      "url": "https://x/.webp",
+      "default": "png",
+      "result": "webp"
+    },
+    {
+      "url": "https://x/.webp",
+      "default": "mp4",
+      "result": "webp"
+    },
+    {
+      "url": "https://x/clip.MOV#frag",
+      "default": "png",
+      "result": "png"
+    },
+    {
+      "url": "https://x/clip.MOV#frag",
+      "default": "mp4",
+      "result": "mp4"
+    },
+    {
+      "url": null,
+      "default": "png",
+      "result": "png"
+    },
+    {
+      "url": null,
+      "default": "mp4",
+      "result": "mp4"
+    },
+    {
+      "url": "",
+      "default": "png",
+      "result": "png"
+    },
+    {
+      "url": "",
+      "default": "mp4",
+      "result": "mp4"
+    }
+  ],
+  "normalize_project_name": [
+    {
+      "name": "My Comic",
+      "result": "My_Comic"
+    },
+    {
+      "name": "  a/b:c*d?e|f\\g<h>i\"j  ",
+      "result": "a_b_c_d_e_f_g_h_i_j"
+    },
+    {
+      "name": "...name...",
+      "result": "name"
+    },
+    {
+      "name": "。。",
+      "result": "。。"
+    },
+    {
+      "name": "   ",
+      "result": ""
+    },
+    {
+      "name": "",
+      "result": ""
+    },
+    {
+      "name": null,
+      "result": ""
+    },
+    {
+      "name": "A  B\tC\nD",
+      "result": "A_B_C_D"
+    },
+    {
+      "name": "_._x_._",
+      "result": "x"
+    }
+  ],
+  "ntpath": {
+    "join": [
+      {
+        "parts": [
+          "C:\\Users\\someone\\Grsai Banana",
+          "output"
+        ],
+        "result": "C:\\Users\\someone\\Grsai Banana\\output"
+      },
+      {
+        "parts": [
+          "C:\\Users\\someone\\Grsai Banana",
+          "",
+          "pages"
+        ],
+        "result": "C:\\Users\\someone\\Grsai Banana\\pages"
+      },
+      {
+        "parts": [
+          "C:\\abs",
+          "rel",
+          "D:\\z"
+        ],
+        "result": "D:\\z"
+      },
+      {
+        "parts": [
+          "C:\\Users\\someone\\Grsai Banana",
+          "x"
+        ],
+        "result": "C:\\Users\\someone\\Grsai Banana\\x"
+      },
+      {
+        "parts": [
+          "",
+          "y"
+        ],
+        "result": "y"
+      }
+    ],
+    "absolute": [
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": "output",
+        "result": "C:\\Users\\someone\\Grsai Banana\\output"
+      },
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": ".\\output",
+        "result": "C:\\Users\\someone\\Grsai Banana\\output"
+      },
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": "output\\..\\input",
+        "result": "C:\\Users\\someone\\Grsai Banana\\input"
+      },
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": "..\\..\\x",
+        "result": "C:\\Users\\x"
+      },
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": "C:\\other\\y",
+        "result": "C:\\other\\y"
+      },
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": "",
+        "result": "C:\\Users\\someone\\Grsai Banana"
+      },
+      {
+        "base": "C:\\Users\\someone\\Grsai Banana",
+        "path": "a//b/./c",
+        "result": "C:\\Users\\someone\\Grsai Banana\\a\\b\\c"
+      }
+    ],
+    "relative": [
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana",
+        "to": "C:\\Users\\someone\\Grsai Banana\\project\\pages\\a.png",
+        "result": {
+          "ok": "project\\pages\\a.png"
+        }
+      },
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana\\project",
+        "to": "C:\\Users\\someone\\Grsai Banana\\project\\reference_images\\ref_01.png",
+        "result": {
+          "ok": "reference_images\\ref_01.png"
+        }
+      },
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana\\project\\pages",
+        "to": "C:\\Users\\someone\\Grsai Banana\\project",
+        "result": {
+          "ok": ".."
+        }
+      },
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana\\project\\pages",
+        "to": "C:\\Users\\someone\\Grsai Banana\\other\\b.png",
+        "result": {
+          "ok": "..\\..\\other\\b.png"
+        }
+      },
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana\\a\\b\\c",
+        "to": "C:\\Users\\someone\\Grsai Banana\\a\\x",
+        "result": {
+          "ok": "..\\..\\x"
+        }
+      },
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana",
+        "to": "C:\\Users\\someone\\Grsai Banana",
+        "result": {
+          "ok": "."
+        }
+      },
+      {
+        "from": "C:\\Users\\someone\\Grsai Banana",
+        "to": "D:\\elsewhere",
+        "result": {
+          "error": "ValueError",
+          "message": "path is on mount 'D:', start on mount 'C:'"
+        }
+      }
+    ],
+    "splitext": [
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\ref_01.PNG",
+        "result": [
+          "C:\\Users\\someone\\Grsai Banana\\ref_01",
+          ".PNG"
+        ]
+      },
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\.hidden",
+        "result": [
+          "C:\\Users\\someone\\Grsai Banana\\.hidden",
+          ""
+        ]
+      },
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\dir.d\\file",
+        "result": [
+          "C:\\Users\\someone\\Grsai Banana\\dir.d\\file",
+          ""
+        ]
+      },
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\noext",
+        "result": [
+          "C:\\Users\\someone\\Grsai Banana\\noext",
+          ""
+        ]
+      },
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\trailing.",
+        "result": [
+          "C:\\Users\\someone\\Grsai Banana\\trailing",
+          "."
+        ]
+      },
+      {
+        "path": "archive.tar.gz",
+        "result": [
+          "archive.tar",
+          ".gz"
+        ]
+      }
+    ],
+    "basename": [
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\a.png",
+        "result": "a.png"
+      },
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\dir\\\\",
+        "result": ""
+      },
+      {
+        "path": "plain.png",
+        "result": "plain.png"
+      },
+      {
+        "path": "C:\\Users\\someone\\Grsai Banana\\\\",
+        "result": ""
+      },
+      {
+        "path": "C:\\name.exe",
+        "result": "name.exe"
+      }
+    ]
+  },
+  "py_str": [
+    {
+      "value": null,
+      "result": "None"
+    },
+    {
+      "value": true,
+      "result": "True"
+    },
+    {
+      "value": false,
+      "result": "False"
+    },
+    {
+      "value": 0,
+      "result": "0"
+    },
+    {
+      "value": 1,
+      "result": "1"
+    },
+    {
+      "value": -3,
+      "result": "-3"
+    },
+    {
+      "value": 2.5,
+      "result": "2.5"
+    },
+    {
+      "value": 1e+16,
+      "result": "1e+16"
+    },
+    {
+      "value": "a b",
+      "result": "a b"
+    },
+    {
+      "value": "",
+      "result": ""
+    },
+    {
+      "value": [
+        1,
+        "a",
+        null
+      ],
+      "result": "[1, 'a', None]"
+    },
+    {
+      "value": {
+        "k": "v",
+        "n": null,
+        "b": true,
+        "list": [
+          1,
+          2
+        ]
+      },
+      "result": "{'k': 'v', 'n': None, 'b': True, 'list': [1, 2]}"
+    }
+  ],
+  "py_int": [
+    {
+      "value": null,
+      "result": {
+        "error": "TypeError",
+        "message": "int() argument must be a string, a bytes-like object or a real number, not 'NoneType'"
+      }
+    },
+    {
+      "value": true,
+      "result": {
+        "ok": 1
+      }
+    },
+    {
+      "value": false,
+      "result": {
+        "ok": 0
+      }
+    },
+    {
+      "value": 5,
+      "result": {
+        "ok": 5
+      }
+    },
+    {
+      "value": 5.9,
+      "result": {
+        "ok": 5
+      }
+    },
+    {
+      "value": -5.9,
+      "result": {
+        "ok": -5
+      }
+    },
+    {
+      "value": 0.0,
+      "result": {
+        "ok": 0
+      }
+    },
+    {
+      "value": "7",
+      "result": {
+        "ok": 7
+      }
+    },
+    {
+      "value": " 8 ",
+      "result": {
+        "ok": 8
+      }
+    },
+    {
+      "value": "+6",
+      "result": {
+        "ok": 6
+      }
+    },
+    {
+      "value": "-2",
+      "result": {
+        "ok": -2
+      }
+    },
+    {
+      "value": "3.5",
+      "result": {
+        "error": "ValueError",
+        "message": "invalid literal for int() with base 10: '3.5'"
+      }
+    },
+    {
+      "value": "abc",
+      "result": {
+        "error": "ValueError",
+        "message": "invalid literal for int() with base 10: 'abc'"
+      }
+    },
+    {
+      "value": "",
+      "result": {
+        "error": "ValueError",
+        "message": "invalid literal for int() with base 10: ''"
+      }
+    },
+    {
+      "value": 1000.0,
+      "result": {
+        "ok": 1000
+      }
+    },
+    {
+      "value": "0x10",
+      "result": {
+        "error": "ValueError",
+        "message": "invalid literal for int() with base 10: '0x10'"
+      }
+    },
+    {
+      "value": "１２",
+      "result": {
+        "ok": 12
+      }
+    }
+  ],
+  "py_splitlines": [
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "i",
+    "j"
+  ],
+  "py_strip": [
+    {
+      "text": "  - item one  ",
+      "result": "item one"
+    },
+    {
+      "text": "--•- two ",
+      "result": "- two"
+    }
+  ]
+}

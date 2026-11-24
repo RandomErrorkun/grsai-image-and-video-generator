@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "grsai-banana",
+  "productName": "Grsai Image and Video Generator",
   "version": "0.1.0",
   "identifier": "com.grsaibanana.app",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Banana Image Generator",
+        "title": "Grsai Image and Video Generator",
         "url": "index.html",
         "width": 1100,
         "height": 750,

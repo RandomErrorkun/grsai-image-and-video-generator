@@ -25,9 +25,15 @@ function memoryStorage(initial?: string) {
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
+/** 重写版新增的配置键，源项目的配置文件里没有。 */
+const REWRITE_ONLY_KEYS = ["submit_concurrency", "accent_color"];
+
 describe("config defaults", () => {
-  it("has the 42 keys of the source project", () => {
-    expect(Object.keys(DEFAULT_CONFIG)).toHaveLength(42);
+  it("has the 42 keys of the source project plus the two the rewrite adds", () => {
+    expect(Object.keys(DEFAULT_CONFIG)).toHaveLength(44);
+    expect(Object.keys(DEFAULT_CONFIG).filter((key) => !REWRITE_ONLY_KEYS.includes(key))).toHaveLength(42);
+    expect(DEFAULT_CONFIG.submit_concurrency).toBe(3);
+    expect(DEFAULT_CONFIG.accent_color).toBe("#0078D4");
     expect(DEFAULT_CONFIG.api_base_url).toBe("https://grsai.dakka.com.cn");
     expect(DEFAULT_CONFIG.output_folder).toBe("./output");
     expect(DEFAULT_CONFIG.last_model).toBe("nano-banana-2-lite");
