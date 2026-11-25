@@ -113,6 +113,8 @@ export interface ConfigStore {
   load(): Promise<void>;
   /** 把当前配置写回存储（对应 Config.save_config）；连续调用会合并，不会乱序覆盖。 */
   save(): Promise<void>;
+  /** 等还没写完的配置落盘；没有在写的就直接完成，不会再写一遍。 */
+  flush(): Promise<void>;
   subscribe(listener: () => void): () => void;
 }
 
@@ -327,5 +329,10 @@ export function createConfigStore(
     };
   }
 
-  return { data, get, set, load, save, subscribe };
+  async function flush(): Promise<void> {
+    // 连着改了好几次时写是排队进行的，要等最后一笔写完
+    while (writing) await pending;
+  }
+
+  return { data, get, set, load, save, flush, subscribe };
 }

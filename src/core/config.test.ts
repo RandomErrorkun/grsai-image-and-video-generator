@@ -162,6 +162,41 @@ describe("config store", () => {
     expect(writes).toHaveLength(2);
   });
 
+  it("flush waits for queued writes without writing again", async () => {
+    const writes: string[] = [];
+    const releases: Array<() => void> = [];
+    const storage: ConfigStorage = {
+      read: () => null,
+      write: (text) =>
+        new Promise<void>((resolve) => {
+          writes.push(text);
+          releases.push(resolve);
+        }),
+    };
+    const store = createConfigStore(storage);
+
+    // 没有在写的直接完成，不碰存储
+    await store.flush();
+    expect(writes).toHaveLength(0);
+
+    store.set("theme", "dark");
+    store.set("theme", "light");
+    let flushed = false;
+    const flushing = store.flush().then(() => {
+      flushed = true;
+    });
+    await tick();
+    // 第二笔还排在后面，这时还不能算写完
+    releases[0]();
+    await tick();
+    expect(flushed).toBe(false);
+    expect(writes).toHaveLength(2);
+    releases[1]();
+    await flushing;
+    expect(flushed).toBe(true);
+    expect(JSON.parse(writes[1]).theme).toBe("light");
+  });
+
   it("reports a failed write instead of throwing", async () => {
     const onError = vi.fn();
     const store = createConfigStore(

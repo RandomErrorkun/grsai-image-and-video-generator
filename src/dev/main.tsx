@@ -3,6 +3,7 @@
  *
  *   http://localhost:1421/src/dev/index.html?demo=tasklist                    预览下面登记好的示例
  *   http://localhost:1421/src/dev/index.html?load=/src/pages/X.tsx&name=default   预览任意模块的导出
+ *   再加 &props=<URL 编码的 JSON> 给组件传参数
  */
 import { useEffect, useRef, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
@@ -124,12 +125,22 @@ async function bootstrap(): Promise<void> {
     }
   }
   if (!Component) {
-    show("Usage: ?demo=prompt|tasklist  or  ?load=/src/pages/X.tsx&name=default");
+    show("Usage: ?demo=prompt|tasklist  or  ?load=/src/pages/X.tsx&name=default&props=<json>");
     return;
+  }
+  // props 是一段 URL 编码的 JSON，原样传给组件
+  let componentProps: Record<string, unknown> = {};
+  if (params.get("props")) {
+    try {
+      componentProps = JSON.parse(params.get("props") ?? "{}") as Record<string, unknown>;
+    } catch (error) {
+      show(`props is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+      return;
+    }
   }
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <DevRoot>
-      <Component />
+      <Component {...componentProps} />
     </DevRoot>,
   );
 }

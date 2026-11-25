@@ -3,6 +3,8 @@ import logo from "../assets/logo.png";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
+import { cfg } from "../state/config";
+import { stopAllTasks } from "../state/taskLists";
 
 function MinimizeGlyph() {
   return (
@@ -35,6 +37,16 @@ function CloseGlyph() {
       <path d="M0 0l10 10M10 0L0 10" stroke="currentColor" />
     </svg>
   );
+}
+
+/**
+ * 与源项目一致：关窗口时直接停掉所有任务，没有确认。
+ * 配置是异步落盘的，先等没写完的写完再关，免得刚改的设置丢掉。
+ */
+async function closeWindow(): Promise<void> {
+  stopAllTasks();
+  await cfg.flush();
+  await platform.window.close();
 }
 
 /**
@@ -91,7 +103,7 @@ export function TitleBar({ title }: { title: string }) {
             className="caption-button caption-button--close"
             title={t("window.close")}
             aria-label={t("window.close")}
-            onClick={() => runAsync(platform.window.close())}
+            onClick={() => runAsync(closeWindow())}
           >
             <CloseGlyph />
           </button>
