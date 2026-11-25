@@ -83,7 +83,7 @@ export interface NewTaskInput {
 type FailedEvent = Extract<TaskEvent, { type: "failed" }>;
 
 const isVipRestricted = (card: TaskCard, failureReason: string | null, vipModerationRetry: boolean): boolean =>
-  (VIP_MODELS as readonly string[]).includes(card.spec.model) &&
+  VIP_MODELS.includes(card.spec.model) &&
   failureReason !== null &&
   MODERATION_FAILURE_REASONS.has(failureReason) &&
   !vipModerationRetry;

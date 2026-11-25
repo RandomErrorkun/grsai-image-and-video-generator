@@ -5,13 +5,8 @@
  * 请求体的每一处钳制和回退都以源码为准，单测逐条盯着。
  */
 import {
-  COMPLETION_MODELS,
-  GPT_OUTPUT_FORMAT_OPTIONS,
-  GPT_IMAGE_QUALITY_OPTIONS,
-  GPT_TRANSPARENT_MODELS,
+  imageModelSpec,
   LEGACY_IMAGE_MODEL_ALIASES,
-  NANO_IMAGE_SIZE_OPTIONS,
-  NANO_MODELS,
   VIDEO_MODEL_SET,
   videoAspectOptions,
   videoDefaultAspect,
@@ -131,8 +126,9 @@ function orEmpty(value: readonly string[] | null | undefined): string[] {
  */
 export function buildGeneratePayload(params: GenerateParams): Record<string, unknown> | null {
   const model = normalizeLegacyModel(params.model);
+  const spec = typeof model === "string" ? imageModelSpec(model) : null;
 
-  if (typeof model === "string" && NANO_MODELS.has(model)) {
+  if (spec?.family === "banana") {
     const payload: Record<string, unknown> = {
       model,
       prompt: params.prompt,
@@ -140,32 +136,30 @@ export function buildGeneratePayload(params: GenerateParams): Record<string, unk
     };
     // 源项目的 image_size 默认值是 "1K"，没给时也要带上
     const imageSize = params.imageSize === undefined ? "1K" : params.imageSize;
-    const allowedSizes = lookup(NANO_IMAGE_SIZE_OPTIONS, model);
-    if (allowedSizes && imageSize) {
-      payload.imageSize = (allowedSizes as readonly unknown[]).includes(imageSize) ? imageSize : allowedSizes[0];
+    if (spec.sizes && imageSize) {
+      payload.imageSize = spec.sizes.includes(imageSize) ? imageSize : spec.sizes[0];
     }
     if (truthy(params.refImageUrls)) payload.images = params.refImageUrls;
     return payload;
   }
 
-  if (
-    typeof model === "string" &&
-    (COMPLETION_MODELS.has(model) || LEGACY_COMPLETION_MODELS.has(model))
-  ) {
+  // 源项目里同样按旧名处理的两个对话模型名，没有条目，按 gpt 系的默认值走
+  if (spec?.family === "gpt" || (typeof model === "string" && LEGACY_COMPLETION_MODELS.has(model))) {
     const payload: Record<string, unknown> = {
       model,
       prompt: params.prompt,
       aspectRatio: params.aspectRatio || "auto",
     };
-    const qualityOptions = lookup(GPT_IMAGE_QUALITY_OPTIONS, model) ?? ["auto"];
-    payload.quality = params.quality !== null && (qualityOptions as readonly unknown[]).includes(params.quality)
-      ? params.quality
-      : qualityOptions[0];
-    if (params.background === "transparent" && (GPT_TRANSPARENT_MODELS as readonly string[]).includes(model)) {
+    const qualityOptions = spec?.qualities ?? ["auto"];
+    payload.quality =
+      params.quality !== null && (qualityOptions as readonly unknown[]).includes(params.quality)
+        ? params.quality
+        : qualityOptions[0];
+    if (params.background === "transparent" && spec?.transparent === true) {
       payload.background = "transparent";
     }
     // outputFormat 仅 2.6 系列支持；非法取值回退到该模型第一个可选格式
-    const formatOptions = lookup(GPT_OUTPUT_FORMAT_OPTIONS, model);
+    const formatOptions = spec?.outputFormats;
     if (formatOptions) {
       payload.outputFormat = formatOptions.includes(params.outputFormat ?? "")
         ? params.outputFormat
