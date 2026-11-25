@@ -35,8 +35,6 @@ export interface GeneratorState {
   tier: string;
   format: string;
   transparent: boolean;
-  /** 变体数。接口没有 variants 参数，多变体靠多提几个任务。 */
-  variants: number;
 }
 
 /**
@@ -44,8 +42,6 @@ export interface GeneratorState {
  * 比例行属于哪个系列由条目本身决定（有 sizes 的是 Banana），不在这里重复。
  */
 export interface ModelControls {
-  /** 变体数，只有 GPT Image 系有。 */
-  variants: boolean;
   /** 质量下拉框，模型的档位不止一个才显示。 */
   quality: boolean;
   /** 像素档位，只收像素值的模型才有。 */
@@ -73,7 +69,6 @@ export const PARALLEL_MIN = 1;
 export const PARALLEL_MAX = 10;
 
 const NO_CONTROLS: ModelControls = {
-  variants: false,
   quality: false,
   tier: false,
   transparent: false,
@@ -143,7 +138,6 @@ export function initialState(config: GeneratorConfig): GeneratorState {
     tier: "",
     format: DEFAULT_CONFIG.gpt_image_output_format,
     transparent: config.get("gpt_transparent_background", DEFAULT_CONFIG.gpt_transparent_background) === true,
-    variants: 1,
   };
   return withModel(blank, blank.model, config);
 }
@@ -168,7 +162,6 @@ export function modelControls(model: string): ModelControls {
   if (!spec || "sizes" in spec) return vip ? { ...NO_CONTROLS, vip } : NO_CONTROLS;
   return {
     ...NO_CONTROLS,
-    variants: true,
     quality: spec.qualities.length > 1,
     tier: spec.pixelOnly === true,
     transparent: spec.transparent === true,
@@ -222,9 +215,9 @@ export function taskParams(state: GeneratorState, config: GeneratorConfig): Task
   return params;
 }
 
-/** 一次点击提交的任务数，全部一起启动。 */
-export function taskCount(parallel: number, variants: number): number {
-  return Math.max(parallel * variants, 1);
+/** 一次点击提交的任务数，全部一起启动。接口没有变体参数，变体数选项已按用户要求去掉（2026-11-25）。 */
+export function taskCount(parallel: number): number {
+  return Math.max(parallel, 1);
 }
 
 /** 历史记录里的参考图：旧记录可能存的是一个路径，也可能是路径数组。 */

@@ -119,7 +119,7 @@ export default function GeneratorPage() {
     const params = taskParams(form, cfg);
     cfg.set("auto_retry_on_failure", autoRetry);
     cfg.set("parallel_tasks", parallel);
-    const total = taskCount(parallel, form.variants);
+    const total = taskCount(parallel);
     const paths = dropRef.current?.getPaths() ?? [];
     // 只带还在磁盘上的本地文件，与源项目的 os.path.isfile 一致
     const isLocal = await Promise.all(paths.map((path) => localFiles.isFile(path).catch(() => false)));
@@ -154,18 +154,6 @@ export default function GeneratorPage() {
                 {options(tabModels(form.tab))}
               </Select>
             </Field>
-            {controls.variants ? (
-              <Field caption={t("generator.variants")}>
-                <Select
-                  value={String(form.variants)}
-                  aria-label={t("generator.variants")}
-                  onChange={(_event, data) => update({ variants: Number(data.value) })}
-                >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                </Select>
-              </Field>
-            ) : null}
           </div>
 
           {banana ? (

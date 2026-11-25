@@ -36,8 +36,9 @@ describe("translation tables", () => {
 
 describe("translate", () => {
   it("looks up the requested language, then English, then falls back to the key", () => {
-    expect(translate("zh", "nav.generator")).toBe("生成");
-    expect(translate("en", "nav.generator")).toBe("Generator");
+    // 生成页的导航名在 2026-11-25 按用户要求改成了「图像 / Image」
+    expect(translate("zh", "nav.generator")).toBe("图像");
+    expect(translate("en", "nav.generator")).toBe("Image");
     expect(translate("zh", "no.such.key")).toBe("no.such.key");
     expect(translate("en", "no.such.key")).toBe("no.such.key");
   });

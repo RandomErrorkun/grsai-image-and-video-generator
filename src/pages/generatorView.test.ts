@@ -80,16 +80,14 @@ describe("generatorView", () => {
 
   it("shows only the controls the catalog entry offers", () => {
     expect(modelControls("nano-banana-2")).toEqual({
-      variants: false,
       quality: false,
       tier: false,
       transparent: false,
       format: false,
       vip: false,
     });
-    expect(modelControls("gpt-image-2")).toMatchObject({ variants: true, quality: false, tier: false, transparent: false });
+    expect(modelControls("gpt-image-2")).toMatchObject({ quality: false, tier: false, transparent: false });
     expect(modelControls("gpt-image-2-vip")).toMatchObject({
-      variants: true,
       quality: true,
       tier: true,
       transparent: true,
@@ -98,7 +96,7 @@ describe("generatorView", () => {
     });
     expect(modelControls("gpt-image-2.6-flare")).toMatchObject({ quality: true, tier: true, format: true, vip: false });
     expect(modelControls("gpt-image-2.6")).toMatchObject({ quality: false, tier: false, format: true });
-    expect(modelControls("nano-banana-pro-cl")).toMatchObject({ variants: false, vip: true });
+    expect(modelControls("nano-banana-pro-cl")).toMatchObject({ vip: true });
   });
 
   it("builds task params the way the source does and remembers them", () => {
@@ -148,10 +146,10 @@ describe("generatorView", () => {
     expect(cfg.get("gpt_image_output_format", "")).toBe("png");
   });
 
-  it("submits parallel × variants tasks", () => {
-    expect(taskCount(1, 1)).toBe(1);
-    expect(taskCount(2, 2)).toBe(4);
-    expect(taskCount(0, 2)).toBe(1);
+  it("submits as many tasks as the parallel count, and at least one", () => {
+    expect(taskCount(1)).toBe(1);
+    expect(taskCount(3)).toBe(3);
+    expect(taskCount(0)).toBe(1);
   });
 
   it("keeps the parallel count inside the slider range", () => {
