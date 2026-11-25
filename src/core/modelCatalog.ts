@@ -1,34 +1,32 @@
 /**
  * 模型清单和参数表（对应 core/model_catalog.py）。
  *
- * 新增模型只改这个文件：图像模型在 IMAGE_MODELS 里加一条，视频模型在 VIDEO_MODEL_LIST 里加一条。
- * 一个模型的全部特性都写在它那一条里；生成页、视频页和请求构造都照表走，不按模型名到处判断。
+ * 按大类分表：Banana、GPT Image、视频、对话。每个模型一条，写全它自己的全部参数。
+ * 同系列、名字相近的新模型，机制未必和老的相同，所以这里不按名字或系列推断任何东西：
+ * 该有的字段一律必填，漏写会编译不过；不写的只有「支不支持某功能」这类开关。
+ * 新增模型时只改这个文件，在对应的那张表里加一条。生成页、视频页和请求构造都照表走。
  * 视频模型要在界面上显示一段说明时，再往两份文案表里加一个键，写进条目的 hintKey。
  * 模型命名与参数支持以 Grsai 官网和 api_docs 为准。
  */
 
-// ---- 各家族共用的选项集合 ----
+// ---- 各模型条目要引用的选项集合 ----
 
 export const TAB_BANANA_PRO = "banana_pro";
 export const TAB_GPT_IMAGE = "gpt_image";
-
-/** 剧情规划的对话模型。 */
-export const CHAT_MODELS = ["gemini-3.1-pro", "gemini-3-pro", "gemini-2.5-pro"] as const;
 
 export const NANO_BASE_RATIOS = [
   "auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "5:4", "4:5", "21:9",
 ] as const;
 
-/** nano-banana-2 系列额外支持的比例。 */
+/** nano-banana-2 系列用的比例集合，比基础集合多四种。 */
 export const NANO_EXTENDED_RATIOS: readonly string[] = [...NANO_BASE_RATIOS, "1:4", "4:1", "1:8", "8:1"];
 
-/** gpt-image-2 / 2.5 / 2.6：支持比例或 1K 像素值。 */
 export const GPT_IMAGE_RATIOS = [
   "auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3",
   "5:4", "4:5", "21:9", "9:21", "1:2", "2:1",
 ] as const;
 
-/** vip 系模型只支持像素值，比例要按 1K/2K/4K 档位换算成像素。 */
+/** 只收像素值的模型用的比例集合，比例要按 1K/2K/4K 档位换算成像素。 */
 export const GPT_VIP_RATIOS = [
   "auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3",
   "5:4", "4:5", "21:9", "9:21", "1:3", "3:1", "2:1", "1:2",
@@ -36,7 +34,7 @@ export const GPT_VIP_RATIOS = [
 
 export const GPT_PIXEL_TIERS = ["1K", "2K", "4K"] as const;
 
-/** 官方文档给出的 vip 系模型比例到像素的对照，依次是 1K、2K、4K，部分比例没有 4K。 */
+/** 官方文档给出的比例到像素的对照，依次是 1K、2K、4K，部分比例没有 4K。 */
 export const GPT_PIXEL_MAP: Readonly<Record<string, readonly string[]>> = {
   "1:1": ["1024x1024", "2048x2048", "2880x2880"],
   "16:9": ["1280x720", "2048x1152", "3840x2160"],
@@ -70,128 +68,197 @@ function lookup<V>(table: Readonly<Record<string, V>>, key: string): V | undefin
   return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
 }
 
-// ---- 图像模型 ----
+// ---- Banana 系列 ----
 
-/** banana 系的请求体是 model、prompt、aspectRatio、imageSize；gpt 系另带质量等参数。也决定它排在生成页的哪个选项卡。 */
-export type ImageFamily = "banana" | "gpt";
-
-export interface ImageModelSpec {
+export interface BananaModelSpec {
   /** 模型名，原样发给接口。 */
   readonly id: string;
-  readonly family: ImageFamily;
-  /** 可选尺寸，只有 banana 系有。 */
-  readonly sizes?: readonly string[];
-  /** 可选比例；不给就用家族的基础集合。 */
-  readonly ratios?: readonly string[];
-  /** 质量档位，只有 gpt 系有；不给等于只有 auto。 */
-  readonly qualities?: readonly string[];
+  /** 可选尺寸，请求里的 imageSize 只能取这里面的值。 */
+  readonly sizes: readonly string[];
+  /** 可选比例。 */
+  readonly ratios: readonly string[];
+  /** 因违规失败时默认不自动重试。 */
+  readonly vipModeration?: boolean;
+}
+
+/** 表里的顺序就是生成页下拉框的顺序。 */
+export const BANANA_MODELS: readonly BananaModelSpec[] = [
+  { id: "nano-banana", sizes: ["1K"], ratios: NANO_BASE_RATIOS },
+  { id: "nano-banana-fast", sizes: ["1K"], ratios: NANO_BASE_RATIOS },
+  { id: "nano-banana-2", sizes: ["1K", "2K", "4K"], ratios: NANO_EXTENDED_RATIOS },
+  { id: "nano-banana-2.1", sizes: ["1K", "2K", "4K"], ratios: NANO_EXTENDED_RATIOS },
+  { id: "nano-banana-2-lite", sizes: ["1K"], ratios: NANO_EXTENDED_RATIOS },
+  { id: "nano-banana-2-cl", sizes: ["1K"], ratios: NANO_EXTENDED_RATIOS, vipModeration: true },
+  { id: "nano-banana-2-2k-cl", sizes: ["2K"], ratios: NANO_EXTENDED_RATIOS, vipModeration: true },
+  { id: "nano-banana-2-4k-cl", sizes: ["4K"], ratios: NANO_EXTENDED_RATIOS, vipModeration: true },
+  { id: "nano-banana-pro", sizes: ["1K", "2K", "4K"], ratios: NANO_BASE_RATIOS },
+  { id: "nano-banana-pro-vt", sizes: ["1K", "2K", "4K"], ratios: NANO_BASE_RATIOS },
+  { id: "nano-banana-pro-cl", sizes: ["1K", "2K", "4K"], ratios: NANO_BASE_RATIOS, vipModeration: true },
+  { id: "nano-banana-pro-vip", sizes: ["1K", "2K"], ratios: NANO_BASE_RATIOS, vipModeration: true },
+  { id: "nano-banana-pro-4k-vip", sizes: ["4K"], ratios: NANO_BASE_RATIOS, vipModeration: true },
+];
+
+// ---- GPT Image 系列 ----
+
+export interface GptImageModelSpec {
+  /** 模型名，原样发给接口。 */
+  readonly id: string;
+  /** 可选比例。 */
+  readonly ratios: readonly string[];
+  /** 质量档位，请求里的 quality 只能取这里面的值。 */
+  readonly qualities: readonly string[];
   /** 只收像素值的 vip 系：比例和档位换算成像素值。 */
   readonly pixelOnly?: boolean;
   /** 支持透明背景。 */
   readonly transparent?: boolean;
-  /** 输出格式；不给表示接口没有这个参数，请求里不带。 */
+  /** 输出格式；不写表示接口没有这个参数，请求里不带。 */
   readonly outputFormats?: readonly string[];
   /** 因违规失败时默认不自动重试。 */
   readonly vipModeration?: boolean;
 }
 
-/** 图像模型。表里的顺序就是生成页下拉框的顺序。 */
-export const IMAGE_MODELS: readonly ImageModelSpec[] = [
-  // Banana 系列
-  { id: "nano-banana", family: "banana", sizes: ["1K"] },
-  { id: "nano-banana-fast", family: "banana", sizes: ["1K"] },
-  { id: "nano-banana-2", family: "banana", sizes: ["1K", "2K", "4K"], ratios: NANO_EXTENDED_RATIOS },
-  { id: "nano-banana-2.1", family: "banana", sizes: ["1K", "2K", "4K"], ratios: NANO_EXTENDED_RATIOS },
-  { id: "nano-banana-2-lite", family: "banana", sizes: ["1K"], ratios: NANO_EXTENDED_RATIOS },
-  { id: "nano-banana-2-cl", family: "banana", sizes: ["1K"], ratios: NANO_EXTENDED_RATIOS, vipModeration: true },
-  { id: "nano-banana-2-2k-cl", family: "banana", sizes: ["2K"], ratios: NANO_EXTENDED_RATIOS, vipModeration: true },
-  { id: "nano-banana-2-4k-cl", family: "banana", sizes: ["4K"], ratios: NANO_EXTENDED_RATIOS, vipModeration: true },
-  { id: "nano-banana-pro", family: "banana", sizes: ["1K", "2K", "4K"] },
-  { id: "nano-banana-pro-vt", family: "banana", sizes: ["1K", "2K", "4K"] },
-  { id: "nano-banana-pro-cl", family: "banana", sizes: ["1K", "2K", "4K"], vipModeration: true },
-  { id: "nano-banana-pro-vip", family: "banana", sizes: ["1K", "2K"], vipModeration: true },
-  { id: "nano-banana-pro-4k-vip", family: "banana", sizes: ["4K"], vipModeration: true },
-  // GPT Image 系列
-  { id: "gpt-image-2", family: "gpt" },
-  { id: "gpt-image-2-vip", family: "gpt", pixelOnly: true, transparent: true, qualities: ["auto", "low", "medium", "high"], vipModeration: true },
-  { id: "gpt-image-2.5", family: "gpt" },
-  { id: "gpt-image-2.5-flare", family: "gpt", pixelOnly: true, transparent: true, qualities: ["auto", "low", "medium", "high"] },
-  { id: "gpt-image-2.5-sunburst", family: "gpt", pixelOnly: true, transparent: true, qualities: ["auto", "low", "medium", "high", "xhigh", "max"] },
-  { id: "gpt-image-2.6", family: "gpt", outputFormats: ["png", "gif", "svg"] },
-  { id: "gpt-image-2.6-flare", family: "gpt", pixelOnly: true, transparent: true, qualities: ["auto", "low", "medium", "high"], outputFormats: ["gif"] },
-  { id: "gpt-image-2.6-sunburst", family: "gpt", pixelOnly: true, transparent: true, qualities: ["auto", "low", "medium", "high"], outputFormats: ["gif"] },
+/** 表里的顺序就是生成页下拉框的顺序。 */
+export const GPT_IMAGE_MODELS: readonly GptImageModelSpec[] = [
+  { id: "gpt-image-2", ratios: GPT_IMAGE_RATIOS, qualities: ["auto"] },
+  {
+    id: "gpt-image-2-vip",
+    ratios: GPT_VIP_RATIOS,
+    qualities: ["auto", "low", "medium", "high"],
+    pixelOnly: true,
+    transparent: true,
+    vipModeration: true,
+  },
+  { id: "gpt-image-2.5", ratios: GPT_IMAGE_RATIOS, qualities: ["auto"] },
+  {
+    id: "gpt-image-2.5-flare",
+    ratios: GPT_VIP_RATIOS,
+    qualities: ["auto", "low", "medium", "high"],
+    pixelOnly: true,
+    transparent: true,
+  },
+  {
+    id: "gpt-image-2.5-sunburst",
+    ratios: GPT_VIP_RATIOS,
+    qualities: ["auto", "low", "medium", "high", "xhigh", "max"],
+    pixelOnly: true,
+    transparent: true,
+  },
+  // png 是全局默认；svg 只有基座支持；flare 和 sunburst 只支持 gif
+  { id: "gpt-image-2.6", ratios: GPT_IMAGE_RATIOS, qualities: ["auto"], outputFormats: ["png", "gif", "svg"] },
+  {
+    id: "gpt-image-2.6-flare",
+    ratios: GPT_VIP_RATIOS,
+    qualities: ["auto", "low", "medium", "high"],
+    pixelOnly: true,
+    transparent: true,
+    outputFormats: ["gif"],
+  },
+  {
+    id: "gpt-image-2.6-sunburst",
+    ratios: GPT_VIP_RATIOS,
+    qualities: ["auto", "low", "medium", "high"],
+    pixelOnly: true,
+    transparent: true,
+    outputFormats: ["gif"],
+  },
 ];
+
+// ---- 图像模型的查询 ----
+
+export type ImageModelSpec = BananaModelSpec | GptImageModelSpec;
+
+/** 两张图像表合在一起，先是 Banana 再是 GPT Image。 */
+export const IMAGE_MODELS: readonly ImageModelSpec[] = [...BANANA_MODELS, ...GPT_IMAGE_MODELS];
 
 const IMAGE_BY_ID: ReadonlyMap<string, ImageModelSpec> = new Map(IMAGE_MODELS.map((spec) => [spec.id, spec]));
 
-const modelIds = (family: ImageFamily): readonly string[] =>
-  IMAGE_MODELS.filter((spec) => spec.family === family).map((spec) => spec.id);
+const modelIds = (specs: ReadonlyArray<{ readonly id: string }>): readonly string[] =>
+  specs.map((spec) => spec.id);
 
-const flagsOn = (flag: "pixelOnly" | "transparent" | "vipModeration"): readonly string[] =>
-  IMAGE_MODELS.filter((spec) => spec[flag] === true).map((spec) => spec.id);
+/** Banana 系的模型名，顺序与下拉框一致。 */
+export const BANANA_MODEL_IDS: readonly string[] = modelIds(BANANA_MODELS);
+/** GPT Image 系的模型名，顺序与下拉框一致。 */
+export const GPT_IMAGE_MODEL_IDS: readonly string[] = modelIds(GPT_IMAGE_MODELS);
 
-/** 按模型名取图像模型的条目；没有这个模型返回 null。旧模型名要先过 LEGACY_IMAGE_MODEL_ALIASES。 */
+/** 漫画页的出图模型：两个系列的图像模型都在里面。 */
+export const COMIC_IMAGE_MODELS: readonly string[] = [...BANANA_MODEL_IDS, ...GPT_IMAGE_MODEL_IDS];
+
+export const TAB_MODELS: Readonly<Record<string, readonly string[]>> = {
+  [TAB_BANANA_PRO]: BANANA_MODEL_IDS,
+  [TAB_GPT_IMAGE]: GPT_IMAGE_MODEL_IDS,
+};
+
+/** 按模型名取条目；没有这个模型返回 null。旧模型名要先过 LEGACY_IMAGE_MODEL_ALIASES。 */
 export function imageModelSpec(modelName: string | null | undefined): ImageModelSpec | null {
   return (modelName ? IMAGE_BY_ID.get(modelName) : undefined) ?? null;
 }
 
-/** 某个选项卡下的模型，顺序与下拉框一致。 */
-export const BANANA_PRO_MODELS: readonly string[] = modelIds("banana");
-export const GPT_IMAGE_MODELS: readonly string[] = modelIds("gpt");
+const isBanana = (spec: ImageModelSpec): spec is BananaModelSpec => "sizes" in spec;
 
-export const COMIC_IMAGE_MODELS: readonly string[] = [...BANANA_PRO_MODELS, ...GPT_IMAGE_MODELS];
+/** 模型排在生成页的哪个选项卡；没有这个模型返回 null。 */
+export function imageModelTab(modelName: string | null | undefined): string | null {
+  const spec = imageModelSpec(modelName);
+  if (!spec) return null;
+  return isBanana(spec) ? TAB_BANANA_PRO : TAB_GPT_IMAGE;
+}
 
-export const TAB_MODELS: Readonly<Record<string, readonly string[]>> = {
-  [TAB_BANANA_PRO]: BANANA_PRO_MODELS,
-  [TAB_GPT_IMAGE]: GPT_IMAGE_MODELS,
-};
+/** 两个系列的条目各有自己的开关，按名字取出来看是不是开了。 */
+const hasFlag = (spec: ImageModelSpec, flag: "pixelOnly" | "transparent" | "vipModeration"): boolean =>
+  (spec as unknown as Record<string, unknown>)[flag] === true;
+
+const flagsOn = (flag: "pixelOnly" | "transparent" | "vipModeration"): readonly string[] =>
+  IMAGE_MODELS.filter((spec) => hasFlag(spec, flag)).map((spec) => spec.id);
 
 /** 各 Banana 模型可选的尺寸。 */
 export const NANO_IMAGE_SIZE_OPTIONS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  IMAGE_MODELS.flatMap((spec) => (spec.sizes ? [[spec.id, spec.sizes] as const] : [])),
+  BANANA_MODELS.map((spec) => [spec.id, spec.sizes]),
 );
 
+/** 只收像素值的 GPT Image 模型。 */
 export const GPT_PIXEL_ONLY_MODELS: readonly string[] = flagsOn("pixelOnly");
+/** 支持透明背景的 GPT Image 模型。 */
 export const GPT_TRANSPARENT_MODELS: readonly string[] = flagsOn("transparent");
 
-/** 各 gpt 模型支持的质量档位。 */
+/** 各 GPT Image 模型支持的质量档位。 */
 export const GPT_IMAGE_QUALITY_OPTIONS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  GPT_IMAGE_MODELS.map((id) => [id, imageModelSpec(id)?.qualities ?? ["auto"]]),
+  GPT_IMAGE_MODELS.map((spec) => [spec.id, spec.qualities]),
 );
 
-/**
- * 各模型支持的输出格式（outputFormat）。png 是全局默认；gif 仅 2.6 系列支持，svg 仅基座 gpt-image-2.6 支持；
- * 2.6 的 sunburst 和 flare 只支持 gif。没列出的模型不支持这个参数，请求里不带。
- */
+/** 各模型支持的输出格式（outputFormat）。没列出的模型不支持这个参数，请求里不带。 */
 export const GPT_OUTPUT_FORMAT_OPTIONS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  IMAGE_MODELS.flatMap((spec) => (spec.outputFormats ? [[spec.id, spec.outputFormats] as const] : [])),
+  GPT_IMAGE_MODELS.flatMap((spec) => (spec.outputFormats ? [[spec.id, spec.outputFormats] as const] : [])),
 );
 
-/** 因违规失败时默认不自动重试的模型。 */
+/** 因违规失败时默认不自动重试的模型，先是 Banana 再是 GPT Image。 */
 export const VIP_MODELS: readonly string[] = flagsOn("vipModeration");
 
 export function nanoRatioOptions(modelName: string | null | undefined): string[] {
-  return [...(imageModelSpec(modelName)?.ratios ?? NANO_BASE_RATIOS)];
+  const spec = imageModelSpec(modelName);
+  return [...(spec && isBanana(spec) ? spec.ratios : NANO_BASE_RATIOS)];
 }
 
 export function isGptPixelOnly(modelName: string): boolean {
-  return imageModelSpec(modelName)?.pixelOnly === true;
+  const spec = imageModelSpec(modelName);
+  return spec !== null && !isBanana(spec) && spec.pixelOnly === true;
 }
 
 export function gptRatioOptions(modelName: string): string[] {
-  return [...(isGptPixelOnly(modelName) ? GPT_VIP_RATIOS : GPT_IMAGE_RATIOS)];
+  const spec = imageModelSpec(modelName);
+  return [...(spec && !isBanana(spec) ? spec.ratios : GPT_IMAGE_RATIOS)];
 }
 
 export function gptQualityOptions(modelName: string): string[] {
-  return [...(imageModelSpec(modelName)?.qualities ?? ["auto"])];
+  const spec = imageModelSpec(modelName);
+  return [...(spec && !isBanana(spec) ? spec.qualities : ["auto"])];
 }
 
 /** 模型支持的 outputFormat 选项；空数组表示不支持这个参数。 */
 export function gptOutputFormatOptions(modelName: string): string[] {
-  return [...(imageModelSpec(modelName)?.outputFormats ?? [])];
+  const spec = imageModelSpec(modelName);
+  return [...(spec && !isBanana(spec) ? (spec.outputFormats ?? []) : [])];
 }
 
-/** 把比例和档位换算成 vip 系模型需要的像素值；比例不在对照表里时原样返回。 */
+/** 把比例和档位换算成像素值；比例不在对照表里时原样返回。 */
 export function gptPixelValue(ratio: string | null | undefined, tier: string | null | undefined): string {
   if (ratio === null || ratio === undefined || ratio === "" || ratio === "auto") return "auto";
   const entries = lookup(GPT_PIXEL_MAP, ratio);
@@ -236,8 +303,8 @@ export interface VideoModelSpec {
   readonly hintKey?: string;
 }
 
-/** 视频模型。表里的顺序就是视频页下拉框的顺序；未知模型按第一条处理。 */
-export const VIDEO_MODEL_LIST: readonly VideoModelSpec[] = [
+/** 表里的顺序就是视频页下拉框的顺序。 */
+export const VIDEO_MODELS: readonly VideoModelSpec[] = [
   {
     id: "minimax-h3",
     aspects: ["portrait", "landscape", "square"],
@@ -289,16 +356,16 @@ export const VIDEO_MODEL_LIST: readonly VideoModelSpec[] = [
   },
 ];
 
+/** 视频模型名，顺序与下拉框一致。 */
+export const VIDEO_MODEL_IDS: readonly string[] = modelIds(VIDEO_MODELS);
+
 /** 各视频模型的可选参数集，界面与请求构造共用这一份。 */
 export const VIDEO_MODEL_SPECS: Readonly<Record<string, VideoModelSpec>> = Object.fromEntries(
-  VIDEO_MODEL_LIST.map((spec) => [spec.id, spec]),
+  VIDEO_MODELS.map((spec) => [spec.id, spec]),
 );
 
-/** 视频模型名，顺序与下拉框一致。 */
-export const VIDEO_MODELS: readonly string[] = VIDEO_MODEL_LIST.map((spec) => spec.id);
-
 function videoSpec(model: string): VideoModelSpec {
-  return lookup(VIDEO_MODEL_SPECS, model) ?? VIDEO_MODEL_LIST[0];
+  return lookup(VIDEO_MODEL_SPECS, model) ?? VIDEO_MODELS[0];
 }
 
 /** 视频模型的条目；不认识的模型按第一条（minimax-h3）处理，与源项目一致。 */
@@ -362,8 +429,11 @@ export function videoMaxVideos(model: string): number {
   return videoSpec(model).maxVideos;
 }
 
-// ---- 按家族判断用的集合 ----
+// ---- 对话模型和按大类判断用的集合 ----
 
-export const NANO_MODELS: ReadonlySet<string> = new Set(BANANA_PRO_MODELS);
-export const COMPLETION_MODELS: ReadonlySet<string> = new Set(GPT_IMAGE_MODELS);
-export const VIDEO_MODEL_SET: ReadonlySet<string> = new Set(VIDEO_MODELS);
+/** 剧情规划用的对话模型。 */
+export const CHAT_MODELS = ["gemini-3.1-pro", "gemini-3-pro", "gemini-2.5-pro"] as const;
+
+export const NANO_MODELS: ReadonlySet<string> = new Set(BANANA_MODEL_IDS);
+export const COMPLETION_MODELS: ReadonlySet<string> = new Set(GPT_IMAGE_MODEL_IDS);
+export const VIDEO_MODEL_SET: ReadonlySet<string> = new Set(VIDEO_MODEL_IDS);

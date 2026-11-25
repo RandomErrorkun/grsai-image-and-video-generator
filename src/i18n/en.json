@@ -206,5 +206,9 @@
   "task.status_submitted": "Attempt {attempt}: Submitted (task {taskId})",
   "task.delivery_unknown": "The request was sent but no answer came back. The server may have created the task, so it was not retried automatically.",
   "settings.submit_concurrency.title": "Submission concurrency",
-  "settings.submit_concurrency.content": "How many submissions may be in flight at once. Extra tasks wait in a queue, so this never reduces the number of tasks."
+  "settings.submit_concurrency.content": "How many submissions may be in flight at once. Extra tasks wait in a queue, so this never reduces the number of tasks.",
+  "history.open_result": "Open file",
+  "history.confirm_yes": "Yes",
+  "history.confirm_no": "No",
+  "drop.remove_image": "Remove image"
 }

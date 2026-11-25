@@ -206,5 +206,9 @@
   "task.status_submitted": "第 {attempt} 次尝试：已提交（任务 {taskId}）",
   "task.delivery_unknown": "请求已发出但没有收到答复，服务端可能已经建立了任务，所以没有自动重试。",
   "settings.submit_concurrency.title": "提交并发数",
-  "settings.submit_concurrency.content": "同时在途的提交请求上限，多出的任务排队等候，不会减少任务数量。"
+  "settings.submit_concurrency.content": "同时在途的提交请求上限，多出的任务排队等候，不会减少任务数量。",
+  "history.open_result": "打开文件",
+  "history.confirm_yes": "是",
+  "history.confirm_no": "否",
+  "drop.remove_image": "移除图片"
 }

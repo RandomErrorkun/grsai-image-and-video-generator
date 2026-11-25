@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  BANANA_PRO_MODELS,
+  BANANA_MODEL_IDS,
+  BANANA_MODELS,
+  GPT_IMAGE_MODEL_IDS,
   GPT_IMAGE_MODELS,
   GPT_IMAGE_QUALITY_OPTIONS,
   GPT_IMAGE_RATIOS,
@@ -12,12 +14,13 @@ import {
   NANO_BASE_RATIOS,
   NANO_EXTENDED_RATIOS,
   NANO_IMAGE_SIZE_OPTIONS,
-  VIDEO_MODEL_LIST,
+  VIDEO_MODEL_IDS,
   VIDEO_MODELS,
   VIP_MODELS,
   gptQualityOptions,
   gptRatioOptions,
   imageModelSpec,
+  imageModelTab,
   isGptPixelOnly,
   nanoRatioOptions,
   videoAspectOptions,
@@ -61,19 +64,37 @@ const SOURCE_GPT = [
   "gpt-image-2.6-sunburst",
 ];
 
-describe("image model table", () => {
-  it("keeps the source project's model order in both tabs", () => {
-    expect(BANANA_PRO_MODELS).toEqual(SOURCE_BANANA);
-    expect(GPT_IMAGE_MODELS).toEqual(SOURCE_GPT);
+describe("image model tables", () => {
+  it("keep the source project's model order in both tabs", () => {
+    expect(BANANA_MODEL_IDS).toEqual(SOURCE_BANANA);
+    expect(GPT_IMAGE_MODEL_IDS).toEqual(SOURCE_GPT);
   });
 
-  it("has exactly one entry per model, in table order", () => {
+  it("have exactly one entry per model", () => {
     const ids = IMAGE_MODELS.map((spec) => spec.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual([...SOURCE_BANANA, ...SOURCE_GPT]);
   });
 
-  it("matches the source project's option tables", () => {
+  it("keep every entry complete and infer nothing from a model name", () => {
+    for (const spec of BANANA_MODELS) {
+      expect(spec.sizes.length, spec.id).toBeGreaterThan(0);
+      expect(spec.ratios.length, spec.id).toBeGreaterThan(0);
+    }
+    for (const spec of GPT_IMAGE_MODELS) {
+      expect(spec.ratios.length, spec.id).toBeGreaterThan(0);
+      expect(spec.qualities.length, spec.id).toBeGreaterThan(0);
+    }
+    // 名字像同一个系列，但没登记就是没有，不会借用现有模型的配置
+    expect(imageModelSpec("nano-banana-2.2")).toBeNull();
+    expect(imageModelSpec("gpt-image-2.7")).toBeNull();
+    expect(imageModelSpec(null)).toBeNull();
+    expect(imageModelTab("nano-banana-2")).toBe("banana_pro");
+    expect(imageModelTab("gpt-image-2")).toBe("gpt_image");
+    expect(imageModelTab("no-such-model")).toBeNull();
+  });
+
+  it("match the source project's option tables", () => {
     expect(NANO_IMAGE_SIZE_OPTIONS).toEqual({
       "nano-banana": ["1K"],
       "nano-banana-fast": ["1K"],
@@ -114,7 +135,7 @@ describe("image model table", () => {
     expect(GPT_TRANSPARENT_MODELS).toEqual(GPT_PIXEL_ONLY_MODELS);
   });
 
-  it("names the same models the source keeps from auto-retry after a moderation failure", () => {
+  it("name the same models the source keeps from auto-retry after a moderation failure", () => {
     const source = [
       "nano-banana-2-cl",
       "nano-banana-2-2k-cl",
@@ -128,15 +149,13 @@ describe("image model table", () => {
     expect([...VIP_MODELS].sort()).toEqual([...source].sort());
   });
 
-  it("answers option questions from the entry", () => {
-    expect(imageModelSpec("no-such-model")).toBeNull();
-    expect(imageModelSpec(null)).toBeNull();
+  it("answer option questions from the entry", () => {
     expect(nanoRatioOptions("nano-banana-pro")).toEqual([...NANO_BASE_RATIOS]);
     expect(nanoRatioOptions("nano-banana-2-lite")).toEqual([...NANO_EXTENDED_RATIOS]);
-    expect(nanoRatioOptions("nano-banana-2-4k-cl")).toHaveLength(NANO_EXTENDED_RATIOS.length);
+    expect(nanoRatioOptions("nano-banana-2-4k-cl")).toEqual([...NANO_EXTENDED_RATIOS]);
     expect(gptRatioOptions("gpt-image-2.6")).toEqual([...GPT_IMAGE_RATIOS]);
     expect(gptRatioOptions("gpt-image-2.6-flare")).toEqual([...GPT_VIP_RATIOS]);
-    // 1:3 和 3:1 只有 vip 系的比例表里有
+    // 1:3 和 3:1 只有像素系的比例表里有
     expect(gptRatioOptions("gpt-image-2.6")).not.toContain("1:3");
     expect(gptRatioOptions("gpt-image-2.6-flare")).toContain("1:3");
     expect(isGptPixelOnly("gpt-image-2.6-flare")).toBe(true);
@@ -148,7 +167,7 @@ describe("image model table", () => {
 
 describe("video model table", () => {
   it("keeps the source project's order and specs", () => {
-    expect(VIDEO_MODELS).toEqual(["minimax-h3", "agnes-video-2.5", "wan-3.0"]);
+    expect(VIDEO_MODEL_IDS).toEqual(["minimax-h3", "agnes-video-2.5", "wan-3.0"]);
 
     expect(videoAspectOptions("minimax-h3")).toEqual(["portrait", "landscape", "square"]);
     expect(videoResolutions("minimax-h3")).toEqual(["480p", "768p", "1080p"]);
@@ -179,7 +198,7 @@ describe("video model table", () => {
   });
 
   it("treats an unknown model like the first one, as the source does", () => {
-    expect(videoModelSpec("no-such-model")).toBe(VIDEO_MODEL_LIST[0]);
+    expect(videoModelSpec("no-such-model")).toBe(VIDEO_MODELS[0]);
     expect(videoAspectOptions("no-such-model")).toEqual(videoAspectOptions("minimax-h3"));
   });
 
@@ -205,7 +224,7 @@ describe("video model table", () => {
   it("gives every entry a hint key that exists in both translation tables", async () => {
     const en = (await import("../i18n/en.json")).default as Record<string, string>;
     const zh = (await import("../i18n/zh.json")).default as Record<string, string>;
-    for (const spec of VIDEO_MODEL_LIST) {
+    for (const spec of VIDEO_MODELS) {
       if (!spec.hintKey) continue;
       expect(en[spec.hintKey], spec.hintKey).toBeTruthy();
       expect(zh[spec.hintKey], spec.hintKey).toBeTruthy();

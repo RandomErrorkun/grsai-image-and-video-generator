@@ -127,8 +127,11 @@ function orEmpty(value: readonly string[] | null | undefined): string[] {
 export function buildGeneratePayload(params: GenerateParams): Record<string, unknown> | null {
   const model = normalizeLegacyModel(params.model);
   const spec = typeof model === "string" ? imageModelSpec(model) : null;
+  // 条目属于哪张表，请求体就按哪个家族构造
+  const banana = spec && "sizes" in spec ? spec : null;
+  const gpt = spec && !("sizes" in spec) ? spec : null;
 
-  if (spec?.family === "banana") {
+  if (banana) {
     const payload: Record<string, unknown> = {
       model,
       prompt: params.prompt,
@@ -136,30 +139,30 @@ export function buildGeneratePayload(params: GenerateParams): Record<string, unk
     };
     // 源项目的 image_size 默认值是 "1K"，没给时也要带上
     const imageSize = params.imageSize === undefined ? "1K" : params.imageSize;
-    if (spec.sizes && imageSize) {
-      payload.imageSize = spec.sizes.includes(imageSize) ? imageSize : spec.sizes[0];
+    if (imageSize) {
+      payload.imageSize = banana.sizes.includes(imageSize) ? imageSize : banana.sizes[0];
     }
     if (truthy(params.refImageUrls)) payload.images = params.refImageUrls;
     return payload;
   }
 
-  // 源项目里同样按旧名处理的两个对话模型名，没有条目，按 gpt 系的默认值走
-  if (spec?.family === "gpt" || (typeof model === "string" && LEGACY_COMPLETION_MODELS.has(model))) {
+  // 源项目里同样按旧名处理的两个对话模型名，没有条目，按 GPT Image 系的默认值走
+  if (gpt || (typeof model === "string" && LEGACY_COMPLETION_MODELS.has(model))) {
     const payload: Record<string, unknown> = {
       model,
       prompt: params.prompt,
       aspectRatio: params.aspectRatio || "auto",
     };
-    const qualityOptions = spec?.qualities ?? ["auto"];
+    const qualityOptions = gpt?.qualities ?? ["auto"];
     payload.quality =
       params.quality !== null && (qualityOptions as readonly unknown[]).includes(params.quality)
         ? params.quality
         : qualityOptions[0];
-    if (params.background === "transparent" && spec?.transparent === true) {
+    if (params.background === "transparent" && gpt?.transparent === true) {
       payload.background = "transparent";
     }
-    // outputFormat 仅 2.6 系列支持；非法取值回退到该模型第一个可选格式
-    const formatOptions = spec?.outputFormats;
+    // 非法取值回退到该模型的第一个可选格式
+    const formatOptions = gpt?.outputFormats;
     if (formatOptions) {
       payload.outputFormat = formatOptions.includes(params.outputFormat ?? "")
         ? params.outputFormat

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { HistoryTask } from "../core/history";
-import { VIDEO_MODELS } from "../core/modelCatalog";
+import { VIDEO_MODEL_IDS } from "../core/modelCatalog";
 import { requestRestore, subscribeRestore, type RestoreRequest } from "./restore";
 
 const task = (model: string): HistoryTask => ({
@@ -30,7 +30,7 @@ describe("history restore route", () => {
     const seen: RestoreRequest[] = [];
     const unsubscribe = subscribeRestore((request) => seen.push(request));
     try {
-      const models = [...VIDEO_MODELS, "nano-banana-2-lite", "gpt-image-2", "no-such-model"];
+      const models = [...VIDEO_MODEL_IDS, "nano-banana-2-lite", "gpt-image-2", "no-such-model"];
       for (const model of models) requestRestore(task(model));
       expect(seen.map((request) => [request.task.model, request.page])).toEqual([
         ["minimax-h3", "video"],
