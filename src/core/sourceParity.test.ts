@@ -44,7 +44,15 @@ const sampleFiles = {
 };
 
 /** 重写版多出来的配置键，比对时剔掉。 */
-const REWRITE_ONLY_KEYS = ["submit_concurrency", "accent_color"];
+const REWRITE_ONLY_KEYS = [
+  "submit_concurrency",
+  "accent_color",
+  "comic_custom_chat_base_url",
+  "comic_custom_chat_endpoint",
+  "comic_custom_chat_api_key",
+  "comic_custom_chat_model",
+  "comic_custom_chat_body",
+];
 
 function withoutRewriteKeys(config: Record<string, unknown>): Record<string, unknown> {
   const copy = { ...config };
@@ -58,7 +66,9 @@ function withoutRewriteKeys(config: Record<string, unknown>): Record<string, unk
  */
 const KNOWN_DIVERGENCES: Array<{
   where: (params: Record<string, unknown>) => boolean;
-  patch: Record<string, unknown> | ((params: Record<string, unknown>) => Record<string, unknown>);
+  patch:
+    | Record<string, unknown>
+    | ((params: Record<string, unknown>, expected: Record<string, unknown>) => Record<string, unknown>);
   reason: string;
 }> = [
   {
@@ -70,12 +80,33 @@ const KNOWN_DIVERGENCES: Array<{
   },
   {
     where: (params) => params.model === "agnes-video-2.5" && Array.isArray(params.refVideos) && params.refVideos.length > 0,
-    patch: (params) => ({
+    patch: (params, expected) => ({
+      ...expected,
       videos: (params.refVideos as string[]).map((url) => ({ url, requireAudio: false })),
     }),
     reason:
       "agnes-video 接口文档（https://qmy27nhsd9.apifox.cn/523334530e0，2026-11-25 核对）：videos 是对象数组，每项带 url、startSeconds 和 requireAudio。" +
       "源项目预留的是字符串数组。",
+  },
+  {
+    where: (params) => params.model === "minimax-h3" && params.aspectRatio === "square",
+    patch: { aspectRatio: "landscape" },
+    reason:
+      "minimax-h3 接口文档（https://qmy27nhsd9.apifox.cn/514679297e0，2026-11-25 核对并经实机验证）：仅支持 portrait 与 landscape，不支持 square，服务端直接拒绝 square。",
+  },
+  {
+    where: (params) =>
+      params.model === "minimax-h3" && Boolean(params.firstFrame || params.lastFrame),
+    patch: (params, expected) => {
+      const next: Record<string, unknown> = { ...expected };
+      delete next.images;
+      delete next.audios;
+      if (params.firstFrame) next.firstFrame = params.firstFrame;
+      if (params.lastFrame) next.lastFrame = params.lastFrame;
+      return next;
+    },
+    reason:
+      "minimax-h3 接口文档（https://qmy27nhsd9.apifox.cn/514679297e0，2026-11-25 线上更新）：现已支持 firstFrame / lastFrame 且与 images/audios 互斥。",
   },
 ];
 
@@ -105,7 +136,10 @@ describe("request payloads match the source project", () => {
       }
       for (const divergence of KNOWN_DIVERGENCES) {
         if (!expected || !divergence.where(params)) continue;
-        expected = { ...expected, ...(typeof divergence.patch === "function" ? divergence.patch(params) : divergence.patch) };
+        expected =
+          typeof divergence.patch === "function"
+            ? divergence.patch(params, expected)
+            : { ...expected, ...divergence.patch };
       }
       expect(actual).toEqual(expected);
     });

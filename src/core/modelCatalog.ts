@@ -295,6 +295,8 @@ export interface VideoModelSpec {
   readonly defaultResolution: string;
   /** 接口是否提供 firstFrame / lastFrame（与 images、audios 互斥）。 */
   readonly supportsFrames: boolean;
+  /** 使用首尾帧模式时是否必须同时提供首帧和尾帧（如 minimax-h3）。 */
+  readonly requiresBothFrames?: boolean;
   /** 参考视频上限，0 表示不支持。 */
   readonly maxVideos: number;
   /** 每个参考视频除了 url 还带哪些字段：startSeconds 是从第几秒开始读，requireAudio 是是否必须有音轨。 */
@@ -314,7 +316,8 @@ export interface VideoModelSpec {
 export const VIDEO_MODELS: readonly VideoModelSpec[] = [
   {
     id: "minimax-h3",
-    aspects: ["portrait", "landscape", "square"],
+    // 按 2026-11-25 线上接口文档 514679297e0 与实测：仅支持 portrait 和 landscape，不支持 square
+    aspects: ["portrait", "landscape"],
     resolutions: ["480p", "768p", "1080p"],
     maxImages: 9,
     maxAudios: 3,
@@ -324,7 +327,9 @@ export const VIDEO_MODELS: readonly VideoModelSpec[] = [
     durationLimits: { "1080p": 10 },
     defaultAspect: "landscape",
     defaultResolution: "480p",
-    supportsFrames: false,
+    // 按 2026-11-25 线上接口文档 514679297e0：现已支持首尾帧，且首帧与尾帧必须同时填入
+    supportsFrames: true,
+    requiresBothFrames: true,
     maxVideos: 0,
     configKeys: { aspect: "video_aspect_ratio", resolution: "video_resolution", duration: "video_duration" },
     hintKey: "video.hint_minimax",

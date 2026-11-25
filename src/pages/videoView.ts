@@ -2,6 +2,8 @@
  * 视频页的取值、切换和任务参数（对应 ui/video_page.py）。
  * 不依赖 React 和平台层，可以直接单测。页面只认模型清单里的条目，不按模型名判断。
  */
+import type { VideoReference } from "../components/dropAreaTypes";
+import type { VideoReferenceOption } from "../core/api";
 import type { ConfigStore } from "../core/config";
 import type { HistoryTask } from "../core/history";
 import {
@@ -16,6 +18,7 @@ import {
   videoParamsKey,
   videoResolutions,
   videoSupportsFrames,
+  type VideoModelSpec,
 } from "../core/modelCatalog";
 import { pyInt } from "../core/py";
 
@@ -156,6 +159,26 @@ export function clampDuration(model: string, value: number): number {
   return Math.min(maxDuration, Math.max(minDuration, Math.trunc(value)));
 }
 
+/** 当前模型与分辨率下实际允许的时长范围 [min, max]。 */
+export function effectiveDurationBounds(model: string, resolution: string): [number, number] {
+  const [minDuration, maxDuration] = videoDurationBounds(model);
+  return [minDuration, Math.min(maxDuration, videoDurationLimit(model, resolution))];
+}
+
+export type DurationValidation =
+  | { ok: true; value: number }
+  | { ok: false; min: number; max: number };
+
+/** 校验用户输入的视频时长：必须是当前模型和分辨率允许范围内的整数。 */
+export function validateDurationInput(text: string, model: string, resolution: string): DurationValidation {
+  const [min, max] = effectiveDurationBounds(model, resolution);
+  const trimmed = text.trim();
+  if (!/^-?\d+$/.test(trimmed)) return { ok: false, min, max };
+  const value = Number(trimmed);
+  if (!Number.isSafeInteger(value) || value < min || value > max) return { ok: false, min, max };
+  return { ok: true, value };
+}
+
 export interface ResolutionChange {
   state: VideoState;
   /** 时长被封顶时的上限，界面据此给 video.duration_capped 提示；没封顶是 null。 */
@@ -212,6 +235,68 @@ export function refAudiosOf(task: HistoryTask): string[] {
   if (!raw) return [];
   const paths = Array.isArray(raw) ? raw : [raw];
   return paths.filter((path): path is string => typeof path === "string" && path !== "");
+}
+
+/** 历史记录里的参考视频路径列表。 */
+export function refVideosOf(task: HistoryTask): string[] {
+  const raw = task.ref_videos;
+  if (!raw) return [];
+  const paths = Array.isArray(raw) ? raw : [raw];
+  return paths.filter((path): path is string => typeof path === "string" && path !== "");
+}
+
+/** 历史记录里的参考视频附加参数列表，与 ref_videos 按下标对应。 */
+export function refVideoOptionsOf(task: HistoryTask): VideoReferenceOption[] {
+  const raw = task.ref_video_options;
+  return Array.isArray(raw) ? raw : [];
+}
+
+export type VideoRefValidation =
+  | { ok: true }
+  | { ok: false; kind: "total_too_long"; total: number; max: number }
+  | { ok: false; kind: "start_invalid"; max: number };
+
+/**
+ * 提交前的两道参考视频检查：
+ * 1. 有 maxVideoSeconds 的模型，已知时长的视频加起来不能超过上限；
+ * 2. 带 startSeconds 的模型，起始秒数必须是 >= 0 的整数，且不能大于视频总秒数。
+ */
+export function validateVideoRefs(
+  videos: readonly VideoReference[],
+  spec: Pick<VideoModelSpec, "maxVideos" | "maxVideoSeconds" | "videoFields">,
+): VideoRefValidation {
+  if (spec.maxVideos <= 0 || videos.length === 0) return { ok: true };
+  const active = videos.slice(0, spec.maxVideos);
+
+  if (spec.maxVideoSeconds !== undefined) {
+    let total = 0;
+    for (const item of active) {
+      if (typeof item.durationSeconds === "number" && Number.isFinite(item.durationSeconds) && item.durationSeconds > 0) {
+        total += item.durationSeconds;
+      }
+    }
+    if (total > spec.maxVideoSeconds) {
+      return { ok: false, kind: "total_too_long", total: Math.round(total * 10) / 10, max: spec.maxVideoSeconds };
+    }
+  }
+
+  if (spec.videoFields?.includes("startSeconds")) {
+    for (const item of active) {
+      if (item.startSeconds === null) continue;
+      const knownDuration =
+        typeof item.durationSeconds === "number" && Number.isFinite(item.durationSeconds) && item.durationSeconds > 0
+          ? Math.floor(item.durationSeconds)
+          : null;
+      if (!Number.isInteger(item.startSeconds) || item.startSeconds < 0) {
+        return { ok: false, kind: "start_invalid", max: knownDuration ?? 0 };
+      }
+      if (knownDuration !== null && item.startSeconds > knownDuration) {
+        return { ok: false, kind: "start_invalid", max: knownDuration };
+      }
+    }
+  }
+
+  return { ok: true };
 }
 
 export interface RestoreResult {

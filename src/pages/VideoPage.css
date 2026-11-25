@@ -27,6 +27,7 @@
 
 .video__side {
   flex: 1;
+  min-width: 220px;
   gap: 10px;
 }
 
@@ -136,9 +137,38 @@
   min-height: 120px;
 }
 
+.video__prompt-column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
 .video__prompt {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+}
+
+.video__video-refs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.video__video-refs--hidden {
+  display: none;
+}
+
+.video__video-drop {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .video__ref-column,

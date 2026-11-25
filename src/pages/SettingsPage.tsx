@@ -19,6 +19,7 @@ import {
   TextFont20Regular,
 } from "@fluentui/react-icons";
 import { notice } from "../components/Notice";
+import { buildModelsListRequest, parseModelsListResponse } from "../core/comicPlanner";
 import { DEFAULT_CONFIG } from "../core/config";
 import { VIP_MODELS } from "../core/modelCatalog";
 import { useAccentColor, useThemeMode } from "../hooks/useAppTheme";
@@ -153,9 +154,39 @@ export default function SettingsPage() {
   const [draft, setDraft] = useState(() => readSettings(cfg));
   // 输出文件夹不是草稿：卡片上显示的就是配置里的当前值
   const outputFolder = readText(useConfigValue("output_folder", DEFAULT_CONFIG.output_folder), DEFAULT_CONFIG.output_folder);
+  const [customModels, setCustomModels] = useState<string[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
 
   const update = <K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
+
+  const fetchCustomModels = async () => {
+    const baseUrl = draft.comic_custom_chat_base_url.trim();
+    if (!baseUrl) {
+      notice("warning", t("common.warning"), t("settings.comic_chat.base_url_required"));
+      return;
+    }
+    setFetchingModels(true);
+    try {
+      const outcome = await platform.http.request(buildModelsListRequest(baseUrl, draft.comic_custom_chat_api_key));
+      if (outcome.outcome !== "responded") {
+        notice("warning", t("common.warning"), outcome.message);
+        return;
+      }
+      const parsed = parseModelsListResponse(outcome.status, outcome.body);
+      if (!parsed.ok) {
+        notice("warning", t("common.warning"), parsed.message);
+        return;
+      }
+      setCustomModels(parsed.models);
+      if (!draft.comic_custom_chat_model.trim() && parsed.models.length > 0) {
+        update("comic_custom_chat_model", parsed.models[0]);
+      }
+      notice("success", t("common.success"), t("settings.comic_chat.models_loaded", { count: parsed.models.length }));
+    } finally {
+      setFetchingModels(false);
+    }
+  };
 
   const chooseFolder = async () => {
     const folder = await platform.dialog.pickDirectory({
@@ -366,6 +397,113 @@ export default function SettingsPage() {
                   onChange={(_event, data) => update("api_key", data.value)}
                 />
               </form>
+            </SettingCard>
+          </div>
+        </section>
+
+        <section className="settings-group">
+          <h2 className="settings-group__title">{t("settings.comic_chat")}</h2>
+          <div className="settings-group__cards">
+            <SettingCard
+              icon={Globe20Regular}
+              title={t("settings.comic_chat.base_url.title")}
+              content={t("settings.comic_chat.base_url.content")}
+            >
+              <Input
+                className="settings-card__input"
+                aria-label={t("settings.comic_chat.base_url.title")}
+                placeholder="https://api.openai.com/v1"
+                value={draft.comic_custom_chat_base_url}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(_event, data) => update("comic_custom_chat_base_url", data.value)}
+              />
+            </SettingCard>
+            <SettingCard
+              icon={Globe20Regular}
+              title={t("settings.comic_chat.endpoint.title")}
+              content={t("settings.comic_chat.endpoint.content")}
+            >
+              <Input
+                className="settings-card__input"
+                aria-label={t("settings.comic_chat.endpoint.title")}
+                placeholder="/chat/completions"
+                value={draft.comic_custom_chat_endpoint}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(_event, data) => update("comic_custom_chat_endpoint", data.value)}
+              />
+            </SettingCard>
+            <SettingCard
+              icon={ShieldKeyhole20Regular}
+              title={t("settings.comic_chat.api_key.title")}
+              content={t("settings.comic_chat.api_key.content")}
+            >
+              <form autoComplete="off" onSubmit={(event) => event.preventDefault()}>
+                <Input
+                  className="settings-card__input"
+                  type="password"
+                  aria-label={t("settings.comic_chat.api_key.title")}
+                  value={draft.comic_custom_chat_api_key}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(_event, data) => update("comic_custom_chat_api_key", data.value)}
+                />
+              </form>
+            </SettingCard>
+            <SettingCard
+              icon={Edit20Regular}
+              title={t("settings.comic_chat.model.title")}
+              content={t("settings.comic_chat.model.content")}
+            >
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {customModels.length > 0 ? (
+                  <Select
+                    className="settings-card__select"
+                    aria-label={t("settings.comic_chat.model.title")}
+                    value={customModels.includes(draft.comic_custom_chat_model) ? draft.comic_custom_chat_model : ""}
+                    onChange={(_event, data) => {
+                      if (data.value) update("comic_custom_chat_model", data.value);
+                    }}
+                  >
+                    {!customModels.includes(draft.comic_custom_chat_model) ? (
+                      <option value="">{draft.comic_custom_chat_model || "--"}</option>
+                    ) : null}
+                    {customModels.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input
+                    className="settings-card__select"
+                    aria-label={t("settings.comic_chat.model.title")}
+                    value={draft.comic_custom_chat_model}
+                    autoComplete="off"
+                    spellCheck={false}
+                    onChange={(_event, data) => update("comic_custom_chat_model", data.value)}
+                  />
+                )}
+                <Button disabled={fetchingModels} onClick={() => runAsync(fetchCustomModels())}>
+                  {t("settings.comic_chat.fetch_models")}
+                </Button>
+              </div>
+            </SettingCard>
+            <SettingCard
+              icon={Edit20Regular}
+              title={t("settings.comic_chat.body.title")}
+              content={t("settings.comic_chat.body.content")}
+            >
+              <Input
+                className="settings-card__input"
+                aria-label={t("settings.comic_chat.body.title")}
+                placeholder='{"temperature": 0.8}'
+                value={draft.comic_custom_chat_body}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(_event, data) => update("comic_custom_chat_body", data.value)}
+              />
             </SettingCard>
           </div>
         </section>

@@ -16,10 +16,18 @@ import { nodeSqliteExecutor } from "../testing/nodeSqlite";
 import { createMemoryDatabase } from "../platform/memoryDb";
 
 /** 源项目最早那版表还没有的列。 */
-const ADDED_LATER = new Set(["duration", "seed", "ref_audios", "first_frame", "last_frame", "ref_videos"]);
+const ADDED_LATER = new Set([
+  "duration",
+  "seed",
+  "ref_audios",
+  "first_frame",
+  "last_frame",
+  "ref_videos",
+  "ref_video_options",
+]);
 const ALL_COLUMNS = [
   "id", "prompt", "model", "aspect_ratio", "image_size", "ref_images", "duration", "seed", "ref_audios",
-  "first_frame", "last_frame", "ref_videos", "status", "created_at", "result_path", "preview_url",
+  "first_frame", "last_frame", "ref_videos", "ref_video_options", "status", "created_at", "result_path", "preview_url",
   "failure_reason", "error_message", "updated_at",
 ];
 
@@ -149,8 +157,8 @@ function historySuite(kit: ExecutorKit) {
     it(
       // 内存库不建索引，这一条在那里只管表
       kit.indexNamesSql
-        ? "creates the table with all 19 columns and the index"
-        : "creates the table with all 19 columns",
+        ? "creates the table with all 20 columns and the index"
+        : "creates the table with all 20 columns",
       async () => {
         const { store, executor } = open();
         await store.ensureSchema();
@@ -198,6 +206,7 @@ function historySuite(kit: ExecutorKit) {
         first_frame: null,
         last_frame: null,
         ref_videos: null,
+        ref_video_options: null,
       });
       executor.close();
     });
@@ -220,6 +229,8 @@ function historySuite(kit: ExecutorKit) {
         seed: 123,
         refAudios: ["C:\\in\\a.mp3"],
         firstFrame: "C:\\in\\first.png",
+        refVideos: ["C:\\in\\clip.mp4"],
+        refVideoOptions: [{ startSeconds: 2, requireAudio: true }],
       });
       expect(added).toMatchObject({
         status: "running",
@@ -228,6 +239,8 @@ function historySuite(kit: ExecutorKit) {
         result_path: null,
         preview_url: null,
         last_frame: null,
+        ref_videos: ["C:\\in\\clip.mp4"],
+        ref_video_options: [{ startSeconds: 2, requireAudio: true }],
       });
 
       tick(2);

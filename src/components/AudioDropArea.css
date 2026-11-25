@@ -1,16 +1,18 @@
-/* 参考音频区（源项目的 AudioDropArea）：空状态是一行 30 高的「点击添加」提示按钮；
-   有文件时是表格，表头 34（含上边线）、每行 30，高度按上限的行数留够，没放满也占着。
-   线色、表头字色、交替行底色取自组件库的 table_view 样式 */
+/* 参考音频区：对齐参考视频表格样式，支持纵横滚动且操作列固定在右侧，窗口缩小时随容器收缩不遮挡生成按钮 */
 
 .audio-drop-area {
   --audio-line: color-mix(in srgb, var(--text-primary) 5.9%, transparent);
   --audio-header-text: var(--text-secondary);
-  --audio-stripe: color-mix(in srgb, var(--text-primary) 2%, transparent);
+  /* 固定操作列必须用 100% 不透明底色，防止横向滚动时左侧文字透底 */
+  --audio-sticky-bg: var(--surface);
+  --audio-stripe: color-mix(in srgb, var(--text-primary) 2%, var(--surface));
+  --audio-hover: color-mix(in srgb, var(--text-primary) 5%, var(--surface));
   position: relative;
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   flex-direction: column;
   min-width: 0;
+  min-height: 32px;
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--surface-border);
@@ -20,18 +22,25 @@
   transition: border-color 120ms ease-out;
 }
 
+.audio-drop-area--filled {
+  flex: 1 1 auto;
+  max-height: 184px;
+}
+
 :root[data-theme="dark"] .audio-drop-area {
   --audio-line: color-mix(in srgb, var(--text-primary) 8.2%, transparent);
   --audio-header-text: color-mix(in srgb, var(--text-primary) 80%, transparent);
+  /* 深色主题下 --surface 是半透明，固定列基于不透明的 --window-bg 混合，确保完全不透明 */
+  --audio-sticky-bg: color-mix(in srgb, var(--text-primary) 9%, var(--window-bg));
+  --audio-stripe: color-mix(in srgb, var(--text-primary) 12%, var(--window-bg));
+  --audio-hover: color-mix(in srgb, var(--text-primary) 16%, var(--window-bg));
 }
 
-/* 拖着文件悬在上方：强调色描边 */
 .audio-drop-area--dragover {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
-/* 选择器带上外层，压过 Fluent 按钮自己的高度和圆角 */
 .audio-drop-area .audio-drop-area__hint {
   width: 100%;
   height: 30px;
@@ -41,40 +50,42 @@
   cursor: pointer;
 }
 
-/* 所有行共用的播放器，探时长也用它；只出声不出形 */
 .audio-drop-area__player {
   display: none;
 }
 
 .audio-drop-area__table-wrap {
-  overflow: hidden;
-  border-radius: 7px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  border-radius: 6px;
 }
 
 .audio-drop-area__table {
   width: 100%;
-  overflow: hidden;
+  min-width: 248px;
   border-spacing: 0;
-  /* 圆角要落在表格自己的边框上 */
   border-collapse: separate;
-  border: 1px solid var(--audio-line);
-  border-radius: 8px;
   font-size: 13px;
   table-layout: fixed;
 }
 
-/* 源项目里这两列的固定宽度没生效，实际渲染出来各是默认的 100 */
-.audio-drop-area__col-duration,
+.audio-drop-area__col-duration {
+  width: 56px;
+}
+
 .audio-drop-area__col-actions {
-  width: 100px;
+  width: 82px;
 }
 
 .audio-drop-area__table th {
-  height: 33px;
-  padding: 0 5px;
+  height: 32px;
+  padding: 0 4px;
   overflow: hidden;
   border-right: 1px solid var(--audio-line);
   border-bottom: 1px solid var(--audio-line);
+  background: var(--surface);
   color: var(--audio-header-text);
   font-weight: 400;
   text-align: center;
@@ -83,12 +94,17 @@
 }
 
 .audio-drop-area__table th:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
   border-right: 0;
+  border-left: 1px solid var(--audio-line);
+  background: var(--audio-sticky-bg);
 }
 
 .audio-drop-area__table td {
   height: 30px;
-  padding: 0 16px;
+  padding: 0 10px;
   white-space: nowrap;
 }
 
@@ -98,35 +114,42 @@
 }
 
 .audio-drop-area__table td:nth-child(2) {
-  padding: 0;
+  padding: 0 4px;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
 .audio-drop-area__table td:last-child {
-  padding: 0 0 0 6px;
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  padding: 0 4px;
+  border-left: 1px solid var(--audio-line);
+  background: var(--audio-sticky-bg);
 }
 
-/* 偶数行一层很淡的底色，悬停的行再深一点 */
-.audio-drop-area__table tbody tr:nth-child(odd) {
+.audio-drop-area__table tbody tr:nth-child(odd),
+.audio-drop-area__table tbody tr:nth-child(odd) td:last-child {
   background: var(--audio-stripe);
 }
 
-.audio-drop-area__table tbody tr:hover {
-  background: var(--surface-hover);
+.audio-drop-area__table tbody tr:hover,
+.audio-drop-area__table tbody tr:hover td:last-child {
+  background: var(--audio-hover);
 }
 
 .audio-drop-area__actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 1px;
 }
 
 .audio-drop-area .audio-drop-area__action {
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  min-height: 26px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
   padding: 0;
   border-radius: 4px;
   cursor: pointer;

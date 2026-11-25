@@ -1,0 +1,149 @@
+/* 漫画页（对应 ui/comic_page.py）：左 3 : 中 4 : 右 2，页边距 20，栏间距 20 */
+
+.comic {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  color: var(--text-primary);
+}
+
+.comic__left,
+.comic__center,
+.comic__right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.comic__left {
+  flex: 3;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.comic__center {
+  flex: 4;
+  gap: 10px;
+}
+
+.comic__right {
+  flex: 2;
+  min-width: 220px;
+  gap: 10px;
+}
+
+.comic__card {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+}
+
+.comic__card-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.comic__caption {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.comic__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.comic__row--between {
+  justify-content: space-between;
+}
+
+.comic__grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.comic__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.comic__textarea {
+  width: 100%;
+}
+
+.comic__tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.comic__refs-card {
+  min-height: 220px;
+}
+
+.comic__drop {
+  min-height: 180px;
+}
+
+.comic__empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.comic__pages-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.comic__page-card {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  transition: border-color 120ms ease-out;
+}
+
+.comic__page-card--over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.comic__page-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comic__drag-handle {
+  color: var(--text-secondary);
+  cursor: grab;
+}
+
+.comic__tasks {
+  flex: 1;
+}

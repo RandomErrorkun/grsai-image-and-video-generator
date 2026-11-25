@@ -4,6 +4,7 @@
  * 表结构、时间格式和排序都与源项目一致，旧数据库可以直接拿来用。
  * 全部 SQL 都集中在这个文件里，通过 SqlExecutor 执行；测试时换成 node:sqlite。
  */
+import type { VideoReferenceOption } from "./api";
 import { formatLocalTime } from "./py";
 
 export const HISTORY_DB_FILE = "grsai_history.db";
@@ -39,6 +40,8 @@ export interface HistoryTask {
   first_frame: string | null;
   last_frame: string | null;
   ref_videos: string[] | null;
+  /** 与 ref_videos 按下标对应的参考视频附加参数（起始秒数、音轨开关）；旧库和无参考视频时为 null。 */
+  ref_video_options: VideoReferenceOption[] | null;
   status: string;
   created_at: string;
   result_path: string | null;
@@ -61,6 +64,7 @@ export interface NewTaskInput {
   firstFrame?: string | null;
   lastFrame?: string | null;
   refVideos?: string[] | null;
+  refVideoOptions?: readonly VideoReferenceOption[] | null;
 }
 
 export interface TaskUpdate {
@@ -96,10 +100,11 @@ export interface HistoryStoreDeps {
   now?: () => Date;
 }
 
-type StoredTask = Omit<HistoryTask, "ref_images" | "ref_audios" | "ref_videos"> & {
+type StoredTask = Omit<HistoryTask, "ref_images" | "ref_audios" | "ref_videos" | "ref_video_options"> & {
   ref_images: string | null;
   ref_audios: string | null;
   ref_videos: string | null;
+  ref_video_options: string | null;
 };
 
 const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS history_tasks (
@@ -115,6 +120,7 @@ const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS history_tasks (
     first_frame TEXT,
     last_frame TEXT,
     ref_videos TEXT,
+    ref_video_options TEXT,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
     result_path TEXT,
@@ -132,6 +138,7 @@ const OPTIONAL_COLUMNS: ReadonlyArray<readonly [name: string, declaration: strin
   ["first_frame", "TEXT"],
   ["last_frame", "TEXT"],
   ["ref_videos", "TEXT"],
+  ["ref_video_options", "TEXT"],
 ];
 
 const CREATE_INDEX =
@@ -139,10 +146,10 @@ const CREATE_INDEX =
 
 const INSERT_TASK = `INSERT OR REPLACE INTO history_tasks (
     id, prompt, model, aspect_ratio, image_size, ref_images,
-    duration, seed, ref_audios, first_frame, last_frame, ref_videos,
+    duration, seed, ref_audios, first_frame, last_frame, ref_videos, ref_video_options,
     status, created_at, result_path, preview_url,
     failure_reason, error_message, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 const ORDER_BY = "ORDER BY created_at DESC, id DESC";
 
@@ -168,6 +175,7 @@ function toTask(row: StoredTask): HistoryTask {
     ref_images: deserializeJson(row.ref_images) as HistoryTask["ref_images"],
     ref_audios: deserializeJson(row.ref_audios) as string[] | null,
     ref_videos: deserializeJson(row.ref_videos) as string[] | null,
+    ref_video_options: deserializeJson(row.ref_video_options) as VideoReferenceOption[] | null,
   };
 }
 
@@ -227,6 +235,7 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
         null,
         null,
         null,
+        null,
         record.status ?? "running",
         record.created_at || timestamp(),
         optionalText(record.result_path),
@@ -250,6 +259,8 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
     const refImages = input.refImages ?? null;
     const refAudios = input.refAudios ?? null;
     const refVideos = input.refVideos ?? null;
+    const refVideoOptions =
+      input.refVideoOptions && input.refVideoOptions.length > 0 ? [...input.refVideoOptions] : null;
     await db.execute(INSERT_TASK, [
       input.id,
       input.prompt,
@@ -263,6 +274,7 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
       input.firstFrame ?? null,
       input.lastFrame ?? null,
       serializeJson(refVideos),
+      serializeJson(refVideoOptions),
       "running",
       createdAt,
       null,
@@ -284,6 +296,7 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
       first_frame: input.firstFrame ?? null,
       last_frame: input.lastFrame ?? null,
       ref_videos: refVideos,
+      ref_video_options: refVideoOptions,
       status: "running",
       created_at: createdAt,
       result_path: null,

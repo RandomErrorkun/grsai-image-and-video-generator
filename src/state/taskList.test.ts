@@ -298,4 +298,24 @@ describe("task cards", () => {
       vi.useRealTimers();
     }
   });
+
+  it("reports unfinished tasks while queued, running, or waiting for auto-retry", () => {
+    vi.useFakeTimers();
+    try {
+      const h = setup({ autoRetry: true });
+      expect(h.list.hasUnfinished()).toBe(false);
+      h.create();
+      expect(h.list.hasUnfinished()).toBe(true);
+      h.latest().emit({ type: "queued" });
+      expect(h.list.hasUnfinished()).toBe(true);
+      h.latest().emit(failed("boom", "Unknown"));
+      // 失败后正在等 1 秒自动重试，仍算未完成
+      expect(h.list.hasUnfinished()).toBe(true);
+      vi.advanceTimersByTime(1000);
+      h.latest().emit({ type: "succeeded", resultPath: "C:\\out\\a.png" });
+      expect(h.list.hasUnfinished()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

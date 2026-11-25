@@ -5,10 +5,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 220px;
   min-height: 0;
   padding: 5px;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
+  scrollbar-width: thin;
   border: 1px solid var(--surface-border);
   border-radius: 6px;
   background: var(--surface);
@@ -19,8 +21,11 @@
   flex: none;
   align-items: center;
   gap: 8px;
-  height: 120px;
-  padding: 10px;
+  width: 100%;
+  min-width: max-content;
+  box-sizing: border-box;
+  height: 74px;
+  padding: 8px 10px;
   border: 1px solid var(--task-border);
   border-radius: 8px;
   background: var(--task-bg);
@@ -142,18 +147,62 @@
 
 .task-card__body {
   display: flex;
-  flex: 1;
+  flex: 1 0 auto;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  align-items: flex-start;
+  gap: 6px;
 }
 
+/* 状态标签：固定宽度对齐最长的 Succeeded/Violation，居中不换行不缩放 */
+.task-card__tag {
+  display: inline-block;
+  flex: none;
+  width: 74px;
+  padding: 1px 6px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.task-card__tag--succeeded {
+  background: rgba(16, 124, 16, 0.14);
+  color: #107c10;
+}
+
+.task-card__tag--failed,
+.task-card__tag--violation {
+  background: rgba(196, 43, 28, 0.14);
+  color: #c42b1c;
+}
+
+.task-card__tag--running {
+  background: rgba(157, 93, 0, 0.15);
+  color: #9d5d00;
+}
+
+:root[data-theme="dark"] .task-card__tag--succeeded {
+  background: rgba(84, 176, 84, 0.22);
+  color: #6ccb5f;
+}
+
+:root[data-theme="dark"] .task-card__tag--failed,
+:root[data-theme="dark"] .task-card__tag--violation {
+  background: rgba(255, 153, 164, 0.2);
+  color: #ff99a4;
+}
+
+:root[data-theme="dark"] .task-card__tag--running {
+  background: rgba(252, 225, 0, 0.18);
+  color: #fce100;
+}
+
+/* 第二行原始文字提示：严格单行，超出由任务列表横向滚动 */
 .task-card__status {
-  overflow-wrap: anywhere;
-}
-
-.task-card__hint {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.35;
+  white-space: nowrap;
+  font-size: 13px;
 }

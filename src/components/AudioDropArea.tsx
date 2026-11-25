@@ -3,7 +3,7 @@
  * 所有行共用一个 audio 元素，所以同时只有一行在响；时长是排队逐个加载元数据探出来的，探不到显示 --:--。
  * 标题栏上的添加、清空按钮在源项目里属于页面，这里对应 openFileDialog 和 clearAudios。
  */
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type SyntheticEvent } from "react";
 import { Button, Tooltip } from "@fluentui/react-components";
 import { Delete20Regular, Dismiss20Regular, MusicNote220Regular, Pause20Regular, Play20Regular } from "@fluentui/react-icons";
 import { tr } from "../i18n";
@@ -18,9 +18,6 @@ import "./AudioDropArea.css";
 
 /** 单个文件的时长探测超时兜底，与源项目一致。 */
 const PROBE_TIMEOUT_MS = 4000;
-/** 表格的表头高（含表格自己的上边线）和每行高，取自源项目。 */
-const TABLE_HEADER_HEIGHT = 34;
-const ROW_HEIGHT = 30;
 
 /**
  * 让共用播放器去加载一个文件的元数据，返回时长（秒）；出错、被打断或超时返回 null。
@@ -319,13 +316,18 @@ export default function AudioDropArea({ ref, maxFiles, onChange, className }: Au
   };
 
   const hint = t("audio.add_hint", { max: maxFiles });
-  const rows = Math.max(0, Math.trunc(maxFiles) || 0);
-  const tableStyle: CSSProperties = { height: TABLE_HEADER_HEIGHT + ROW_HEIGHT * rows };
 
   return (
     <div
       ref={rootRef}
-      className={["audio-drop-area", dragOver ? "audio-drop-area--dragover" : "", className ?? ""].filter(Boolean).join(" ")}
+      className={[
+        "audio-drop-area",
+        paths.length > 0 ? "audio-drop-area--filled" : "",
+        dragOver ? "audio-drop-area--dragover" : "",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       {paths.length === 0 ? (
         <Button
@@ -338,7 +340,7 @@ export default function AudioDropArea({ ref, maxFiles, onChange, className }: Au
           {hint}
         </Button>
       ) : (
-        <div className="audio-drop-area__table-wrap" style={tableStyle}>
+        <div className="audio-drop-area__table-wrap">
           <table className="audio-drop-area__table">
             <colgroup>
               <col />

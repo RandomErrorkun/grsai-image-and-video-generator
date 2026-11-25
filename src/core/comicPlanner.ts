@@ -4,6 +4,7 @@
  */
 import {
   buildChatRequest,
+  CHAT_TIMEOUT_SECS,
   normalizeChatMessages,
   parseChatResponse,
   type ApiSettings,
@@ -284,12 +285,107 @@ export async function buildPlanningMessages(
 
 export type PlanResult = { ok: true; plan: ComicPlan } | { ok: false; message: string };
 
+/** 漫画页可选的自定义 OpenAI 兼容对话接口配置；baseUrl 为空时走 Grsai 中转。 */
+export interface CustomChatConfig {
+  baseUrl: string;
+  endpoint: string;
+  apiKey: string;
+  model: string;
+  /** 可选的附加 JSON 请求体字段。 */
+  extraBody: string;
+}
+
+/** 构造自定义对话服务的 /models 请求，用于取可用模型列表和测连通性。 */
+export function buildModelsListRequest(baseUrl: string, apiKey: string): HttpRequest {
+  const base = baseUrl.trim().replace(/\/+$/, "");
+  const headers: Record<string, string> = {};
+  if (apiKey.trim()) headers.Authorization = `Bearer ${apiKey.trim()}`;
+  return {
+    method: "GET",
+    url: `${base}/models`,
+    headers,
+    connectTimeoutSecs: 15,
+    readTimeoutSecs: 30,
+  };
+}
+
+/** 解析 /models 响应，返回去重排序后的模型 ID 列表。 */
+export function parseModelsListResponse(
+  status: number,
+  body: string,
+): { ok: true; models: string[] } | { ok: false; message: string } {
+  if (status < 200 || status >= 300) {
+    return { ok: false, message: `HTTP ${status}: ${body.slice(0, 200)}` };
+  }
+  try {
+    const parsed: unknown = JSON.parse(body);
+    const list =
+      typeof parsed === "object" && parsed !== null && Array.isArray((parsed as Record<string, unknown>).data)
+        ? ((parsed as Record<string, unknown>).data as unknown[])
+        : Array.isArray(parsed)
+          ? parsed
+          : [];
+    const ids = new Set<string>();
+    for (const item of list) {
+      if (typeof item === "string" && item.trim()) ids.add(item.trim());
+      else if (typeof item === "object" && item !== null && typeof (item as Record<string, unknown>).id === "string") {
+        const id = ((item as Record<string, unknown>).id as string).trim();
+        if (id) ids.add(id);
+      }
+    }
+    return { ok: true, models: [...ids].sort() };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : pyStr(error) };
+  }
+}
+
 export interface PlanComicDeps {
   settings: ApiSettings;
   files: LocalFiles;
   language: string;
   /** 发出 chat completions 请求。 */
   sendChat(request: HttpRequest): Promise<HttpOutcome>;
+  /** 可选的自定义 OpenAI 兼容对话接口；baseUrl 非空时覆盖默认的 Grsai 中转。 */
+  customChat?: CustomChatConfig | null;
+}
+
+function buildCustomChatRequest(
+  custom: CustomChatConfig,
+  fallbackModel: string,
+  normalizedMessages: unknown[],
+): HttpRequest {
+  const base = custom.baseUrl.trim().replace(/\/+$/, "");
+  const rawEndpoint = custom.endpoint.trim();
+  const endpoint = rawEndpoint
+    ? rawEndpoint.startsWith("/")
+      ? rawEndpoint
+      : `/${rawEndpoint}`
+    : "/chat/completions";
+  let extra: Record<string, unknown> = {};
+  if (custom.extraBody.trim()) {
+    const parsed: unknown = JSON.parse(custom.extraBody.trim());
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new Error("Custom request body must be a JSON object.");
+    }
+    extra = parsed as Record<string, unknown>;
+  }
+  const payload: Record<string, unknown> = {
+    ...extra,
+    model: custom.model.trim() || fallbackModel,
+    messages: normalizedMessages,
+    stream: false,
+    temperature: "temperature" in extra ? extra.temperature : 0.8,
+  };
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (custom.apiKey.trim()) headers.Authorization = `Bearer ${custom.apiKey.trim()}`;
+  return {
+    method: "POST",
+    url: `${base}${endpoint}`,
+    headers,
+    body: JSON.stringify(payload),
+    connectTimeoutSecs: CHAT_TIMEOUT_SECS,
+    readTimeoutSecs: CHAT_TIMEOUT_SECS,
+  };
 }
 
 /** 生成漫画分页脚本：组装消息、调用剧情模型、解析回复。失败时带一条可直接显示的说明。 */
@@ -312,13 +408,12 @@ export async function planComic(
       deps.files,
       deps.language,
     );
+    const normalized = await normalizeChatMessages(messages, deps.files);
     // 消息里的本地参考图要先转成 data URI，与 chat_completion 的做法一致
-    const request = buildChatRequest(
-      input.storyModel,
-      await normalizeChatMessages(messages, deps.files),
-      { stream: false, temperature: 0.8 },
-      deps.settings,
-    );
+    const request =
+      deps.customChat && deps.customChat.baseUrl.trim()
+        ? buildCustomChatRequest(deps.customChat, input.storyModel, normalized)
+        : buildChatRequest(input.storyModel, normalized, { stream: false, temperature: 0.8 }, deps.settings);
     const outcome = await deps.sendChat(request);
     const response =
       outcome.outcome === "responded"

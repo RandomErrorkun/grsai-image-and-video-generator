@@ -195,6 +195,18 @@ export class TaskList {
     this.handles.clear();
   }
 
+  /** 是否还有没做完的任务：启动中、排队中、提交中、运行中，或者失败后正等着自动重试。 */
+  hasUnfinished(): boolean {
+    if (this.timers.size > 0) return true;
+    return this.cards.some(
+      (card) =>
+        card.status === "starting" ||
+        card.status === "queued" ||
+        card.status === "submitting" ||
+        card.status === "running",
+    );
+  }
+
   private notify(): void {
     for (const listener of [...this.listeners]) listener();
   }

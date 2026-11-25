@@ -11,7 +11,7 @@ import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
 import { MediaThumb } from "./MediaThumb";
-import { taskStatusText, type TaskCard, type TaskList as TaskListModel } from "../state/taskList";
+import { MODERATION_FAILURE_REASONS, taskStatusText, type TaskCard, type TaskList as TaskListModel } from "../state/taskList";
 import "./TaskList.css";
 
 interface TaskListViewProps {
@@ -157,7 +157,21 @@ interface TaskCardViewProps {
 function TaskCardView({ card, onRetry, onRegenerate }: TaskCardViewProps) {
   const t = useTr();
   const tone = card.status === "succeeded" ? "success" : card.status === "failed" ? "failed" : "normal";
+  const isViolation =
+    card.status === "failed" && card.failureReason !== null && MODERATION_FAILURE_REASONS.has(card.failureReason);
+  const tagKind =
+    card.status === "succeeded"
+      ? "succeeded"
+      : isViolation
+        ? "violation"
+        : card.status === "failed"
+          ? "failed"
+          : "running";
   const statusText = taskStatusText(card, t);
+  const lineText =
+    card.status === "failed" && card.delivery === "unknown"
+      ? `${statusText} — ${t("task.delivery_unknown")}`
+      : statusText;
   const reason = card.error ?? "";
 
   return (
@@ -181,12 +195,13 @@ function TaskCardView({ card, onRetry, onRegenerate }: TaskCardViewProps) {
         )}
       </div>
       <div className="task-card__body">
-        <span className="task-card__status" title={card.taskId ? `Task ${card.taskId}` : undefined}>
-          {statusText}
+        <span className={`task-card__tag task-card__tag--${tagKind}`}>{t(`task.tag.${tagKind}`)}</span>
+        <span
+          className="task-card__status"
+          title={card.taskId ? `Task ${card.taskId} — ${lineText}` : lineText}
+        >
+          {lineText}
         </span>
-        {card.status === "failed" && card.delivery === "unknown" ? (
-          <span className="task-card__hint">{t("task.delivery_unknown")}</span>
-        ) : null}
       </div>
     </div>
   );

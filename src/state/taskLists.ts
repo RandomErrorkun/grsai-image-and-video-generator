@@ -24,7 +24,12 @@ export const generatorTasks = create();
 export const videoTasks = create();
 export const comicTasks = create();
 
-/** 关闭窗口时停掉所有任务，没有确认，与源项目一致。 */
+/** 任何一个任务列表里是否还有没做完的任务。 */
+export function hasUnfinishedTasks(): boolean {
+  return generatorTasks.hasUnfinished() || videoTasks.hasUnfinished() || comicTasks.hasUnfinished();
+}
+
+/** 停掉所有任务。 */
 export function stopAllTasks(): void {
   generatorTasks.stopAll();
   videoTasks.stopAll();

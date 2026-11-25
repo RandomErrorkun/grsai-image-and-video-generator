@@ -150,7 +150,7 @@ function Thumbnail({ path, video }: ThumbnailProps) {
 
   useEffect(() => {
     const element = host.current;
-    if (video || !element) return;
+    if (!element) return;
     if (typeof IntersectionObserver === "undefined") {
       setNear(true);
       return;
@@ -163,7 +163,7 @@ function Thumbnail({ path, video }: ThumbnailProps) {
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [video]);
+  }, []);
 
   useEffect(() => {
     if (!near) return;

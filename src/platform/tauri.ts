@@ -131,6 +131,7 @@ export const tauriPlatform: Platform = {
     minimize: () => getCurrentWindow().minimize(),
     toggleMaximize: () => getCurrentWindow().toggleMaximize(),
     close: () => getCurrentWindow().close(),
+    destroy: () => getCurrentWindow().destroy(),
     isMaximized: () => getCurrentWindow().isMaximized(),
     setTitle: (title: string) => getCurrentWindow().setTitle(title),
     setTheme: (theme: NativeTheme | null) => getCurrentWindow().setTheme(theme),
@@ -139,6 +140,20 @@ export const tauriPlatform: Platform = {
       let disposed = false;
       void getCurrentWindow()
         .onResized(() => listener())
+        .then((stop) => {
+          if (disposed) stop();
+          else unlisten = stop;
+        });
+      return () => {
+        disposed = true;
+        unlisten?.();
+      };
+    },
+    onCloseRequested: (listener) => {
+      let unlisten: (() => void) | undefined;
+      let disposed = false;
+      void getCurrentWindow()
+        .onCloseRequested((event) => listener(event))
         .then((stop) => {
           if (disposed) stop();
           else unlisten = stop;

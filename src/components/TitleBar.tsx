@@ -3,8 +3,6 @@ import logo from "../assets/logo.png";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
-import { cfg } from "../state/config";
-import { stopAllTasks } from "../state/taskLists";
 
 function MinimizeGlyph() {
   return (
@@ -40,18 +38,8 @@ function CloseGlyph() {
 }
 
 /**
- * 与源项目一致：关窗口时直接停掉所有任务，没有确认。
- * 配置是异步落盘的，先等没写完的写完再关，免得刚改的设置丢掉。
- */
-async function closeWindow(): Promise<void> {
-  stopAllTasks();
-  await cfg.flush();
-  await platform.window.close();
-}
-
-/**
- * 自定义标题栏：应用图标、标题和窗口控制按钮。
- * 整条可拖动窗口，双击最大化（由 Tauri 的 data-tauri-drag-region 接管）。
+ * 标题栏的 × 走平台层的 close()，与系统关闭（Alt+F4、任务栏关闭）统一进入 App.tsx 的 onCloseRequested，
+ * 由那里检查是否有未完成任务并决定直接退出还是弹确认框。
  */
 export function TitleBar({ title }: { title: string }) {
   const t = useTr();
@@ -103,7 +91,7 @@ export function TitleBar({ title }: { title: string }) {
             className="caption-button caption-button--close"
             title={t("window.close")}
             aria-label={t("window.close")}
-            onClick={() => runAsync(closeWindow())}
+            onClick={() => runAsync(platform.window.close())}
           >
             <CloseGlyph />
           </button>

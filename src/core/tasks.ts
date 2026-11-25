@@ -255,6 +255,7 @@ export class TaskScheduler {
           firstFrame: spec.firstFrame ?? null,
           lastFrame: spec.lastFrame ?? null,
           refVideos: spec.refVideos ?? null,
+          refVideoOptions: spec.videoOptions && spec.videoOptions.length > 0 ? [...spec.videoOptions] : null,
         });
       } catch (error) {
         if (error instanceof TaskCancelled || token.stopped) return;

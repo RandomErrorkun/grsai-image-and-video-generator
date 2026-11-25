@@ -35,6 +35,11 @@ export type SettingsDraft = Pick<
   | "text_font_size"
   | "text_font_family"
   | "text_auto_wrap"
+  | "comic_custom_chat_base_url"
+  | "comic_custom_chat_endpoint"
+  | "comic_custom_chat_api_key"
+  | "comic_custom_chat_model"
+  | "comic_custom_chat_body"
 >;
 
 /** 只用到 cfg.get 的「键在就返回原值、缺键才给默认值」这一条，单测里可以换成普通对象。 */
@@ -77,7 +82,16 @@ export function parseDigits(text: string | undefined): number | null {
 
 /** 页面打开时从配置里读出各字段的初值。开关按真值取，与页面外读取这些键的地方一致。 */
 export function readSettings(store: SettingsReader): SettingsDraft {
-  const text = (key: "api_base_url" | "api_key") => readText(store.get(key, DEFAULT_CONFIG[key]), DEFAULT_CONFIG[key]);
+  const text = (
+    key:
+      | "api_base_url"
+      | "api_key"
+      | "comic_custom_chat_base_url"
+      | "comic_custom_chat_endpoint"
+      | "comic_custom_chat_api_key"
+      | "comic_custom_chat_model"
+      | "comic_custom_chat_body",
+  ) => readText(store.get(key, DEFAULT_CONFIG[key]), DEFAULT_CONFIG[key]);
   const number = (key: "max_retries" | "submit_concurrency" | "history_items_per_page" | "text_font_size") =>
     readNumber(store.get(key, DEFAULT_CONFIG[key]), DEFAULT_CONFIG[key]);
   return {
@@ -91,11 +105,16 @@ export function readSettings(store: SettingsReader): SettingsDraft {
     text_font_size: number("text_font_size"),
     text_font_family: readFontFamily(store.get("text_font_family", DEFAULT_CONFIG.text_font_family)),
     text_auto_wrap: Boolean(store.get("text_auto_wrap", DEFAULT_CONFIG.text_auto_wrap)),
+    comic_custom_chat_base_url: text("comic_custom_chat_base_url"),
+    comic_custom_chat_endpoint: text("comic_custom_chat_endpoint"),
+    comic_custom_chat_api_key: text("comic_custom_chat_api_key"),
+    comic_custom_chat_model: text("comic_custom_chat_model"),
+    comic_custom_chat_body: text("comic_custom_chat_body"),
   };
 }
 
 /**
- * 保存时实际写回的内容。两个文本去掉首尾空白（源项目保存前先 strip），数值钳到区间。
+ * 保存时实际写回的内容。文本去掉首尾空白（源项目保存前先 strip），数值钳到区间。
  * 输出文件夹不在这里：源项目的 save_settings 从不写它。
  */
 export function settingsToSave(draft: SettingsDraft): SettingsDraft {
@@ -110,5 +129,10 @@ export function settingsToSave(draft: SettingsDraft): SettingsDraft {
     text_font_size: clampToRange(draft.text_font_size, FONT_SIZE_RANGE),
     text_font_family: readFontFamily(draft.text_font_family),
     text_auto_wrap: draft.text_auto_wrap,
+    comic_custom_chat_base_url: draft.comic_custom_chat_base_url.trim(),
+    comic_custom_chat_endpoint: draft.comic_custom_chat_endpoint.trim(),
+    comic_custom_chat_api_key: draft.comic_custom_chat_api_key.trim(),
+    comic_custom_chat_model: draft.comic_custom_chat_model.trim(),
+    comic_custom_chat_body: draft.comic_custom_chat_body.trim(),
   };
 }

@@ -5,11 +5,17 @@ import type { PathTools } from "../core/paths";
 
 export type NativeTheme = "light" | "dark";
 
+export interface CloseRequestEvent {
+  preventDefault(): void;
+}
+
 /** 应用窗口的原生能力。浏览器 mock 下都是空操作。 */
 export interface WindowApi {
   minimize(): Promise<void>;
   toggleMaximize(): Promise<void>;
   close(): Promise<void>;
+  /** 直接销毁窗口，不再触发 onCloseRequested。 */
+  destroy(): Promise<void>;
   /** 窗口是否处于最大化；mock 下恒为 false。 */
   isMaximized(): Promise<boolean>;
   setTitle(title: string): Promise<void>;
@@ -20,6 +26,8 @@ export interface WindowApi {
   setTheme(theme: NativeTheme | null): Promise<void>;
   /** 订阅窗口尺寸变化，返回取消订阅函数。 */
   onResized(listener: () => void): () => void;
+  /** 订阅窗口关闭请求（标题栏 × 和系统关闭都会走到这里），返回取消订阅函数。 */
+  onCloseRequested(listener: (event: CloseRequestEvent) => void | Promise<void>): () => void;
 }
 
 /** 文件操作。读不了、写不了、不存在（除了 exists、isFile、isDir）都要抛错。 */

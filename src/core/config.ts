@@ -61,6 +61,12 @@ export const DEFAULT_CONFIG = {
   comic_aspect_ratio: "3:4",
   comic_image_size: "1K",
   comic_last_project: "",
+  // 漫画页自定义 OpenAI 兼容对话接口（重写版新增，留空时走 Grsai 中转）
+  comic_custom_chat_base_url: "",
+  comic_custom_chat_endpoint: "",
+  comic_custom_chat_api_key: "",
+  comic_custom_chat_model: "",
+  comic_custom_chat_body: "",
   // History page settings
   history_items_per_page: 5,
   last_tab: "banana_pro",

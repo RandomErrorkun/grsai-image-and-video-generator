@@ -170,13 +170,14 @@ describe("video model table", () => {
   it("keeps the source project's order and specs", () => {
     expect(VIDEO_MODEL_IDS).toEqual(["minimax-h3", "agnes-video-2.5", "wan-3.0"]);
 
-    expect(videoAspectOptions("minimax-h3")).toEqual(["portrait", "landscape", "square"]);
+    expect(videoAspectOptions("minimax-h3")).toEqual(["portrait", "landscape"]);
     expect(videoResolutions("minimax-h3")).toEqual(["480p", "768p", "1080p"]);
     expect([videoMaxImages("minimax-h3"), videoMaxAudios("minimax-h3")]).toEqual([9, 3]);
     expect(videoDurationBounds("minimax-h3")).toEqual([1, 15]);
     expect(videoDefaultAspect("minimax-h3")).toBe("landscape");
     expect(videoDefaultResolution("minimax-h3")).toBe("480p");
-    expect(videoSupportsFrames("minimax-h3")).toBe(false);
+    expect(videoSupportsFrames("minimax-h3")).toBe(true);
+    expect(videoModelSpec("minimax-h3").requiresBothFrames).toBe(true);
     expect(videoResolutions("minimax-h3").map((r) => videoDurationLimit("minimax-h3", r))).toEqual([15, 15, 10]);
 
     expect(videoAspectOptions("agnes-video-2.5")).toEqual(["16:9", "9:16", "21:9", "4:3", "1:1", "3:4"]);

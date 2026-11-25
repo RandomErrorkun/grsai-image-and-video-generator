@@ -5,13 +5,18 @@ import {
   changeModel,
   changeResolution,
   clampDuration,
+  effectiveDurationBounds,
   initialState,
   parallelTasksOf,
   parseSeed,
   refAudiosOf,
   refModeOf,
+  refVideoOptionsOf,
+  refVideosOf,
   restoreTask,
   taskParams,
+  validateDurationInput,
+  validateVideoRefs,
   aspectLabelKey,
 } from "./videoView";
 
@@ -36,6 +41,7 @@ function historyTask(overrides: Partial<HistoryTask> = {}): HistoryTask {
     first_frame: null,
     last_frame: null,
     ref_videos: null,
+    ref_video_options: null,
     status: "succeeded",
     created_at: "2026-11-25 01:24:11",
     result_path: null,
@@ -98,14 +104,14 @@ describe("videoView", () => {
     let state = changeModel(initialState(cfg), "future-video", cfg);
     expect(state).toMatchObject({ model: "future-video", aspect: "landscape", resolution: "480p", duration: 5 });
 
-    const params = taskParams({ ...state, aspect: "square", resolution: "768p", duration: 8 }, "", cfg);
-    expect(params).toEqual({ model: "future-video", aspectRatio: "square", imageSize: "768p", duration: 8, seed: null });
+    const params = taskParams({ ...state, aspect: "portrait", resolution: "768p", duration: 8 }, "", cfg);
+    expect(params).toEqual({ model: "future-video", aspectRatio: "portrait", imageSize: "768p", duration: 8, seed: null });
     expect(JSON.parse(String(cfg.get("video_model_params_future-video", "")))).toEqual({
-      aspect: "square",
+      aspect: "portrait",
       resolution: "768p",
       duration: 8,
     });
-    expect(changeModel(state, "future-video", cfg)).toMatchObject({ aspect: "square", resolution: "768p", duration: 8 });
+    expect(changeModel(state, "future-video", cfg)).toMatchObject({ aspect: "portrait", resolution: "768p", duration: 8 });
 
     // 存坏了按没存过处理
     cfg.set("video_model_params_future-video", "{not json");
@@ -180,16 +186,27 @@ describe("videoView", () => {
     expect(capped.state).toEqual({ model: "minimax-h3", aspect: "landscape", resolution: "1080p", duration: 5 });
     expect(capped.cappedAt).toBe(10);
 
-    // 认不出的模型按第一个；不支持首尾帧的模型不切到首尾帧模式
+    // 认不出的模型按第一个（minimax-h3 现已支持首尾帧）
     const unknown = restoreTask(start, historyTask({ model: "retired-video", duration: 3, last_frame: "C:\\frames\\b.png" }), cfg);
     expect(unknown.state).toMatchObject({ model: "minimax-h3", duration: 3 });
-    expect(unknown.framesMode).toBe(false);
+    expect(unknown.framesMode).toBe(true);
   });
 
-  it("falls back from frame mode for a model without frames support", () => {
+  it("checks frame mode and validates duration per model and resolution", () => {
     expect(refModeOf("wan-3.0", true)).toBe("frames");
     expect(refModeOf("wan-3.0", false)).toBe("refs");
-    expect(refModeOf("minimax-h3", true)).toBe("refs");
+    expect(refModeOf("minimax-h3", true)).toBe("frames");
+
+    expect(effectiveDurationBounds("minimax-h3", "480p")).toEqual([1, 15]);
+    expect(effectiveDurationBounds("minimax-h3", "1080p")).toEqual([1, 10]);
+    expect(effectiveDurationBounds("agnes-video-2.5", "720p")).toEqual([4, 12]);
+    expect(effectiveDurationBounds("wan-3.0", "1080p")).toEqual([2, 30]);
+
+    expect(validateDurationInput("10", "minimax-h3", "1080p")).toEqual({ ok: true, value: 10 });
+    expect(validateDurationInput("11", "minimax-h3", "1080p")).toEqual({ ok: false, min: 1, max: 10 });
+    expect(validateDurationInput("3", "agnes-video-2.5", "720p")).toEqual({ ok: false, min: 4, max: 12 });
+    expect(validateDurationInput("1", "wan-3.0", "720p")).toEqual({ ok: false, min: 2, max: 30 });
+    expect(validateDurationInput("5.5", "wan-3.0", "720p")).toEqual({ ok: false, min: 2, max: 30 });
   });
 
   it("labels only the named aspects and reads old audio records", () => {
@@ -212,5 +229,52 @@ describe("videoView", () => {
     expect(parallelTasksOf(99, 1)).toBe(10);
     expect(parallelTasksOf(0, 1)).toBe(1);
     expect(parallelTasksOf("3", 1)).toBe(1);
+  });
+
+  it("reads reference videos and validates total duration and startSeconds", () => {
+    expect(refVideosOf(historyTask())).toEqual([]);
+    expect(refVideosOf(historyTask({ ref_videos: ["C:\\a.mp4", "", "C:\\b.mp4"] }))).toEqual(["C:\\a.mp4", "C:\\b.mp4"]);
+    expect(refVideoOptionsOf(historyTask({ ref_video_options: [{ startSeconds: 2, requireAudio: true }] }))).toEqual([
+      { startSeconds: 2, requireAudio: true },
+    ]);
+
+    // wan-3.0 总时长超过 15 秒时拦截
+    const wanSpec = { maxVideos: 5, maxVideoSeconds: 15 };
+    expect(
+      validateVideoRefs(
+        [
+          { path: "C:\\a.mp4", startSeconds: 0, requireAudio: false, durationSeconds: 10 },
+          { path: "C:\\b.mp4", startSeconds: 0, requireAudio: false, durationSeconds: 6 },
+        ],
+        wanSpec,
+      ),
+    ).toEqual({ ok: false, kind: "total_too_long", total: 16, max: 15 });
+    expect(
+      validateVideoRefs(
+        [
+          { path: "C:\\a.mp4", startSeconds: 0, requireAudio: false, durationSeconds: 10 },
+          { path: "C:\\b.mp4", startSeconds: 0, requireAudio: false, durationSeconds: null },
+        ],
+        wanSpec,
+      ),
+    ).toEqual({ ok: true });
+
+    // agnes-video-2.5 校验 startSeconds：负数、非整数、大于视频时长都拦，留空（null）放行
+    const agnesSpec = { maxVideos: 5, videoFields: ["startSeconds", "requireAudio"] as const };
+    expect(
+      validateVideoRefs([{ path: "C:\\a.mp4", startSeconds: null, requireAudio: false, durationSeconds: 8 }], agnesSpec),
+    ).toEqual({ ok: true });
+    expect(
+      validateVideoRefs([{ path: "C:\\a.mp4", startSeconds: 8, requireAudio: true, durationSeconds: 8.4 }], agnesSpec),
+    ).toEqual({ ok: true });
+    expect(
+      validateVideoRefs([{ path: "C:\\a.mp4", startSeconds: 9, requireAudio: false, durationSeconds: 8.4 }], agnesSpec),
+    ).toEqual({ ok: false, kind: "start_invalid", max: 8 });
+    expect(
+      validateVideoRefs([{ path: "C:\\a.mp4", startSeconds: -1, requireAudio: false, durationSeconds: 8 }], agnesSpec),
+    ).toEqual({ ok: false, kind: "start_invalid", max: 8 });
+    expect(
+      validateVideoRefs([{ path: "C:\\a.mp4", startSeconds: Number.NaN, requireAudio: false, durationSeconds: 8 }], agnesSpec),
+    ).toEqual({ ok: false, kind: "start_invalid", max: 8 });
   });
 });

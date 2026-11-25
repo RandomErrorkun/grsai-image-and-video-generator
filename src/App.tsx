@@ -1,5 +1,14 @@
 import { useEffect, useState, type ComponentType } from "react";
 import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+} from "@fluentui/react-components";
+import {
   ALL_PAGES,
   DEFAULT_PAGE,
   NAV_MIN_EXPAND_WIDTH,
@@ -23,6 +32,7 @@ import { platform } from "./platform";
 import { runAsync } from "./platform/async";
 import { cfg } from "./state/config";
 import { subscribeRestore } from "./state/restore";
+import { hasUnfinishedTasks, stopAllTasks } from "./state/taskLists";
 
 /** 当前页面和返回栈；返回栈按顺序记着经过的页面，最后一项是上一页。 */
 interface Location {
@@ -55,6 +65,7 @@ function Shell() {
   const viewportWidth = useWindowWidth();
   const [location, setLocation] = useState<Location>({ page: DEFAULT_PAGE, backStack: [] });
   const [navMode, setNavMode] = useState<NavMode>("compact");
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   const title = t("main.title");
 
@@ -109,6 +120,26 @@ function Shell() {
   // 历史页的「重新生成」：外壳只管切到目标页面，页面自己监听同一个请求回填参数
   useEffect(() => subscribeRestore((request) => navigate(request.page)), []);
 
+  const finishClose = async () => {
+    setCloseConfirmOpen(false);
+    stopAllTasks();
+    await cfg.flush();
+    await platform.window.destroy();
+  };
+
+  // 拦下所有关闭请求（标题栏 ×、Alt+F4、任务栏关闭）：有未完成任务时先弹确认框
+  useEffect(() => {
+    if (!platform.isTauri) return;
+    return platform.window.onCloseRequested((event) => {
+      event.preventDefault();
+      if (hasUnfinishedTasks()) {
+        setCloseConfirmOpen(true);
+        return;
+      }
+      runAsync(finishClose());
+    });
+  }, []);
+
   const goBack = () => {
     setLocation((current) => {
       if (current.backStack.length === 0) return current;
@@ -161,6 +192,27 @@ function Shell() {
         })}
       </main>
       <TitleBar title={title} />
+      <Dialog
+        open={closeConfirmOpen}
+        onOpenChange={(_event, data) => {
+          if (!data.open) setCloseConfirmOpen(false);
+        }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>{t("window.close_confirm_title")}</DialogTitle>
+            <DialogContent>{t("window.close_confirm_body")}</DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" autoFocus onClick={() => setCloseConfirmOpen(false)}>
+                {t("window.close_confirm_back")}
+              </Button>
+              <Button appearance="primary" onClick={() => runAsync(finishClose())}>
+                {t("window.close_confirm_exit")}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }

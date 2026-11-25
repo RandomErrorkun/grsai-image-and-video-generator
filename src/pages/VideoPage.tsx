@@ -8,15 +8,17 @@ import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type 
 import { Button, Checkbox, Input, Select, Slider, SpinButton, Tooltip } from "@fluentui/react-components";
 import { Add20Regular, ClipboardPaste20Regular, Delete20Regular } from "@fluentui/react-icons";
 import AudioDropArea from "../components/AudioDropArea";
-import type { AudioDropAreaHandle, ImageDropAreaHandle } from "../components/dropAreaTypes";
+import type { AudioDropAreaHandle, ImageDropAreaHandle, VideoDropAreaHandle } from "../components/dropAreaTypes";
 import ImageDropArea from "../components/ImageDropArea";
 import { notice } from "../components/Notice";
 import PromptWidget, { type PromptWidgetHandle } from "../components/PromptWidget";
 import { SegmentedHeader } from "../components/SegmentedHeader";
 import { TaskListView } from "../components/TaskList";
+import VideoDropArea from "../components/VideoDropArea";
+import type { VideoReferenceOption } from "../core/api";
 import { DEFAULT_CONFIG } from "../core/config";
 import type { HistoryTask } from "../core/history";
-import { VIDEO_MODEL_IDS, VIDEO_MODELS, videoDurationBounds, videoModelSpec } from "../core/modelCatalog";
+import { VIDEO_MODEL_IDS, VIDEO_MODELS, videoModelSpec } from "../core/modelCatalog";
 import { useConfigValue } from "../hooks/useConfigValue";
 import { useTr } from "../hooks/useLanguage";
 import { runAsync } from "../platform/async";
@@ -33,13 +35,17 @@ import {
   aspectLabelKey,
   changeModel,
   changeResolution,
-  clampDuration,
+  effectiveDurationBounds,
   initialState,
   parallelTasksOf,
   refAudiosOf,
   refModeOf,
+  refVideoOptionsOf,
+  refVideosOf,
   restoreTask,
   taskParams,
+  validateDurationInput,
+  validateVideoRefs,
   type VideoState,
 } from "./videoView";
 import "./VideoPage.css";
@@ -62,15 +68,16 @@ async function firstPath(paths: readonly string[]): Promise<string | null> {
   return path;
 }
 
-/** 素材区的引用：恢复历史参数时要往这四个区里加东西。 */
+/** 素材区的引用：恢复历史参数时要往这五个区里加东西。 */
 interface MaterialSlots {
   drop: RefObject<ImageDropAreaHandle | null>;
   firstFrame: RefObject<ImageDropAreaHandle | null>;
   lastFrame: RefObject<ImageDropAreaHandle | null>;
   audio: RefObject<AudioDropAreaHandle | null>;
+  video: RefObject<VideoDropAreaHandle | null>;
 }
 
-/** 对应 apply_history_task 的后半段：参考图、音频和首尾帧按记录里的顺序加回来。 */
+/** 对应 apply_history_task 的后半段：参考图、音频、视频和首尾帧按记录里的顺序加回来。 */
 async function restoreMaterials(task: HistoryTask, slots: MaterialSlots): Promise<void> {
   // 对应源项目：先清空，再按记录里的顺序加回来
   slots.drop.current?.clearImages();
@@ -79,6 +86,15 @@ async function restoreMaterials(task: HistoryTask, slots: MaterialSlots): Promis
   slots.audio.current?.clearAudios();
   const audios = refAudiosOf(task);
   if (audios.length > 0) await slots.audio.current?.addFiles(audios, { showLimitWarning: false });
+
+  slots.video.current?.clearVideos();
+  const videos = refVideosOf(task);
+  if (videos.length > 0) {
+    await slots.video.current?.addVideos(videos, {
+      showLimitWarning: false,
+      itemOptions: refVideoOptionsOf(task),
+    });
+  }
 
   slots.firstFrame.current?.clearImages();
   slots.lastFrame.current?.clearImages();
@@ -149,6 +165,7 @@ function FrameSlot({ title, placeholderKey, areaRef, pasteLabel, clearLabel, onP
 export default function VideoPage() {
   const t = useTr();
   const [form, setForm] = useState<VideoState>(() => initialState(cfg));
+  const [durationText, setDurationText] = useState(() => String(initialState(cfg).duration));
   const [seedText, setSeedText] = useState("");
   const [autoRetry, setAutoRetry] = useState(
     () => cfg.get("auto_retry_on_failure", DEFAULT_CONFIG.auto_retry_on_failure) === true,
@@ -164,15 +181,16 @@ export default function VideoPage() {
   const firstFrameRef = useRef<ImageDropAreaHandle>(null);
   const lastFrameRef = useRef<ImageDropAreaHandle>(null);
   const audioRef = useRef<AudioDropAreaHandle>(null);
+  const videoRef = useRef<VideoDropAreaHandle>(null);
 
   const spec = videoModelSpec(form.model);
-  const [minDuration, maxDuration] = videoDurationBounds(form.model);
+  const [minDuration, maxDuration] = effectiveDurationBounds(form.model, form.resolution);
   const refMode = refModeOf(form.model, framesPreferred);
 
   // 恢复请求和生成都要按表单最新的一份来算，所以每次渲染后更新这个引用
-  const latest = useRef({ form, seedText });
+  const latest = useRef({ form, seedText, durationText });
   useEffect(() => {
-    latest.current = { form, seedText };
+    latest.current = { form, seedText, durationText };
   });
 
   // 历史页的「重新生成」：只回填，不提交
@@ -181,6 +199,7 @@ export default function VideoPage() {
       if (request.page !== "video") return;
       const restored = restoreTask(latest.current.form, request.task, cfg);
       setForm(restored.state);
+      setDurationText(String(restored.state.duration));
       setSeedText(restored.seedText);
       promptRef.current?.setPrompt(request.task.prompt);
       if (restored.cappedAt !== null) {
@@ -194,18 +213,25 @@ export default function VideoPage() {
           firstFrame: firstFrameRef,
           lastFrame: lastFrameRef,
           audio: audioRef,
+          video: videoRef,
         }),
       );
     }), []);
 
   const generate = async () => {
-    const { form: current, seedText: currentSeed } = latest.current;
+    const { form: current, seedText: currentSeed, durationText: currentDurationText } = latest.current;
     const prompt = promptRef.current?.getPrompt() ?? "";
     if (!prompt) {
       notice("warning", t("common.warning"), t("video.enter_prompt_warning"));
       return;
     }
-    const params = taskParams(current, currentSeed, cfg);
+    const durationCheck = validateDurationInput(currentDurationText, current.model, current.resolution);
+    if (!durationCheck.ok) {
+      notice("warning", t("common.warning"), t("video.duration_invalid", { min: durationCheck.min, max: durationCheck.max }));
+      return;
+    }
+    const validatedForm = current.duration === durationCheck.value ? current : { ...current, duration: durationCheck.value };
+    const params = taskParams(validatedForm, currentSeed, cfg);
     if (params === "seed_invalid") {
       notice("warning", t("common.warning"), t("video.seed_invalid"));
       return;
@@ -216,32 +242,64 @@ export default function VideoPage() {
     const paths = {
       refImages: dropRef.current?.getPaths() ?? [],
       refAudios: audioRef.current?.getPaths() ?? [],
+      refVideos: videoRef.current?.getVideos() ?? [],
       firstFrame: firstFrameRef.current?.getPaths() ?? [],
       lastFrame: lastFrameRef.current?.getPaths() ?? [],
     };
     const currentSpec = videoModelSpec(params.model);
     const inFramesMode = refModeOf(params.model, cfg.get("video_frames_mode", false)) === REF_MODE_FRAMES;
-    // 素材模式互斥：首尾帧模式只带 firstFrame/lastFrame，参考图模式只带 images/audios
+    // 素材模式互斥：首尾帧模式只带 firstFrame/lastFrame，参考图模式只带 images/audios/videos
     let refImageUrls: string[] = [];
     let refAudios: string[] = [];
+    let refVideos: string[] | undefined;
+    let videoOptions: VideoReferenceOption[] | undefined;
     let firstFrame: string | null = null;
     let lastFrame: string | null = null;
     if (inFramesMode) {
       [firstFrame, lastFrame] = await Promise.all([firstPath(paths.firstFrame), firstPath(paths.lastFrame)]);
+      if (currentSpec.requiresBothFrames && (firstFrame === null || lastFrame === null)) {
+        notice("warning", t("common.warning"), t("video.frames_both_required"));
+        return;
+      }
       if (firstFrame === null && lastFrame === null) {
         notice("warning", t("common.warning"), t("video.frames_empty_warning"));
         return;
       }
     } else {
       // 只带还在磁盘上的本地文件，并按模型的上限截断，与源项目一致
-      const [imageExists, audioExists] = await Promise.all([existFlags(paths.refImages), existFlags(paths.refAudios)]);
+      const [imageExists, audioExists, videoExists] = await Promise.all([
+        existFlags(paths.refImages),
+        existFlags(paths.refAudios),
+        existFlags(paths.refVideos.map((v) => v.path)),
+      ]);
       refImageUrls = paths.refImages.filter((_path, index) => imageExists[index]).slice(0, currentSpec.maxImages);
       refAudios = paths.refAudios.filter((_path, index) => audioExists[index]).slice(0, currentSpec.maxAudios);
+      if (currentSpec.maxVideos > 0) {
+        const existingVideos = paths.refVideos
+          .filter((_video, index) => videoExists[index])
+          .slice(0, currentSpec.maxVideos);
+        const check = validateVideoRefs(existingVideos, currentSpec);
+        if (!check.ok) {
+          if (check.kind === "total_too_long") {
+            notice("warning", t("common.warning"), t("video.msg.video_total_too_long", { total: check.total, max: check.max }));
+          } else {
+            notice("warning", t("common.warning"), t("video.msg.video_start_invalid", { max: check.max }));
+          }
+          return;
+        }
+        if (existingVideos.length > 0) {
+          refVideos = existingVideos.map((item) => item.path);
+          videoOptions = existingVideos.map((item) => ({
+            startSeconds: item.startSeconds,
+            requireAudio: item.requireAudio,
+          }));
+        }
+      }
     }
     for (let index = 0; index < parallel; index += 1) {
       videoTasks.create({
         prompt,
-        spec: { prompt, ...params, refImageUrls, refAudios, firstFrame, lastFrame },
+        spec: { prompt, ...params, refImageUrls, refAudios, refVideos, videoOptions, firstFrame, lastFrame },
         mediaType: "video",
         autoRetry,
       });
@@ -255,9 +313,16 @@ export default function VideoPage() {
     return key === null ? aspect : t(key);
   };
 
+  const onModelChange = (model: string) => {
+    const next = changeModel(form, model, cfg);
+    setForm(next);
+    setDurationText(String(next.duration));
+  };
+
   const onResolutionChange = (resolution: string) => {
     const changed = changeResolution(form, resolution);
     setForm(changed.state);
+    setDurationText(String(changed.state.duration));
     if (changed.cappedAt !== null) notice("info", t("common.note"), t("video.duration_capped", { max: changed.cappedAt }));
   };
 
@@ -281,7 +346,7 @@ export default function VideoPage() {
               <Select
                 value={form.model}
                 aria-label={t("video.model")}
-                onChange={(_event, data) => setForm(changeModel(form, data.value, cfg))}
+                onChange={(_event, data) => onModelChange(data.value)}
               >
                 {VIDEO_MODEL_IDS.map((model) => (
                   <option key={model} value={model}>
@@ -321,21 +386,33 @@ export default function VideoPage() {
             </div>
 
             <div className="video__row">
-              <InlineField caption={t("video.duration")}>
-                {/* 换模型时整个重建：输入框里还没提交的文字不会盖住刚恢复的时长，与源项目重设 SpinBox 一致 */}
+              <InlineField caption={`${t("video.duration")} (${minDuration}~${maxDuration})`}>
+                {/* 换模型或分辨率上限变动时同步范围，支持上下微调和手动输入校验 */}
                 <SpinButton
-                  key={form.model}
+                  key={`${form.model}:${maxDuration}`}
                   value={form.duration}
+                  displayValue={durationText}
                   min={minDuration}
                   max={maxDuration}
                   step={1}
                   aria-label={t("video.duration")}
+                  onInput={(event) => setDurationText((event.target as HTMLInputElement).value)}
                   onChange={(_event, data) => {
-                    // 键入后移开焦点提交的值只带在 displayValue 里，受控的 SpinButton 就是这样回传的；
-                    // 不是数字或清空了的按没改处理，沿用上一次的值
-                    const typed = data.value ?? (data.displayValue?.trim() ? Number(data.displayValue) : NaN);
-                    if (!Number.isFinite(typed)) return;
-                    update({ duration: clampDuration(form.model, typed) });
+                    if (data.value !== undefined && data.value !== null) {
+                      const bounded = Math.min(maxDuration, Math.max(minDuration, Math.trunc(data.value)));
+                      update({ duration: bounded });
+                      setDurationText(String(bounded));
+                      return;
+                    }
+                    const raw = data.displayValue ?? "";
+                    setDurationText(raw);
+                    const check = validateDurationInput(raw, form.model, form.resolution);
+                    if (check.ok) {
+                      update({ duration: check.value });
+                      setDurationText(String(check.value));
+                    } else {
+                      notice("warning", t("common.warning"), t("video.duration_invalid", { min: check.min, max: check.max }));
+                    }
                   }}
                 />
               </InlineField>
@@ -441,7 +518,34 @@ export default function VideoPage() {
             </div>
           </div>
 
-          <PromptWidget ref={promptRef} className="video__prompt" />
+          <div className="video__prompt-column">
+            <PromptWidget ref={promptRef} className="video__prompt" />
+            <div
+              className={
+                spec.maxVideos > 0 && refMode === REF_MODE_REFS
+                  ? "video__video-refs"
+                  : "video__video-refs video__video-refs--hidden"
+              }
+            >
+              <div className="video__section-header">
+                <span className="video__section-title">{t("video.reference_videos")}</span>
+                <div className="video__tools">
+                  <ToolButton
+                    icon={<Add20Regular />}
+                    label={t("video.dialog.open_videos")}
+                    onClick={() => runAsync(videoRef.current?.openFileDialog() ?? Promise.resolve())}
+                  />
+                  <ToolButton icon={<Delete20Regular />} label={clearLabel} onClick={() => videoRef.current?.clearVideos()} />
+                </div>
+              </div>
+              <VideoDropArea
+                ref={videoRef}
+                maxVideos={spec.maxVideos > 0 ? spec.maxVideos : 5}
+                fields={spec.videoFields}
+                className="video__video-drop"
+              />
+            </div>
+          </div>
         </div>
 
         <Button appearance="primary" size="large" className="video__generate" onClick={() => runAsync(generate())}>

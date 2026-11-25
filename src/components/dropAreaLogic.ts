@@ -6,6 +6,7 @@ import type { FileFilter } from "../platform/types";
 
 export const IMAGE_EXTENSIONS: readonly string[] = [".png", ".jpg", ".jpeg", ".webp", ".bmp"];
 export const AUDIO_EXTENSIONS: readonly string[] = [".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"];
+export const VIDEO_EXTENSIONS: readonly string[] = [".mp4"];
 
 /** 对应 _is_supported_image / _is_supported_audio：空串不算，按整个路径的小写后缀判断。 */
 function endsWithAny(path: string, extensions: readonly string[]): boolean {
@@ -19,6 +20,10 @@ export function isSupportedImage(path: string): boolean {
 
 export function isSupportedAudio(path: string): boolean {
   return endsWithAny(path, AUDIO_EXTENSIONS);
+}
+
+export function isSupportedVideo(path: string): boolean {
+  return endsWithAny(path, VIDEO_EXTENSIONS);
 }
 
 /**

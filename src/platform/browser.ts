@@ -285,10 +285,12 @@ export const browserPlatform: Platform = {
     minimize: noop,
     toggleMaximize: noop,
     close: noop,
+    destroy: noop,
     isMaximized: () => Promise.resolve(false),
     setTitle: noop,
     setTheme: noop,
     onResized: () => () => {},
+    onCloseRequested: () => () => {},
   },
   fs,
   http: createMockHttp({

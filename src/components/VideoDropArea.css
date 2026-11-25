@@ -1,0 +1,177 @@
+/* 参考视频区：支持纵横滚动且操作列固定在右侧，按钮紧凑排列 */
+
+.video-drop-area {
+  --video-line: color-mix(in srgb, var(--text-primary) 5.9%, transparent);
+  --video-header-text: var(--text-secondary);
+  /* 固定操作列必须用 100% 不透明底色，防止横向滚动时左侧文字透底 */
+  --video-sticky-bg: var(--surface);
+  --video-stripe: color-mix(in srgb, var(--text-primary) 2%, var(--surface));
+  --video-hover: color-mix(in srgb, var(--text-primary) 5%, var(--surface));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 120ms ease-out;
+}
+
+:root[data-theme="dark"] .video-drop-area {
+  --video-line: color-mix(in srgb, var(--text-primary) 8.2%, transparent);
+  --video-header-text: color-mix(in srgb, var(--text-primary) 80%, transparent);
+  /* 深色主题下 --surface 是半透明，固定列基于不透明的 --window-bg 混合，确保完全不透明 */
+  --video-sticky-bg: color-mix(in srgb, var(--text-primary) 9%, var(--window-bg));
+  --video-stripe: color-mix(in srgb, var(--text-primary) 12%, var(--window-bg));
+  --video-hover: color-mix(in srgb, var(--text-primary) 16%, var(--window-bg));
+}
+
+.video-drop-area--dragover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.video-drop-area .video-drop-area__hint {
+  width: 100%;
+  flex: 1;
+  min-height: 30px;
+  padding: 0 6px;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.video-drop-area__probe {
+  display: none;
+}
+
+.video-drop-area__table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  border-radius: 6px;
+}
+
+.video-drop-area__table {
+  width: 100%;
+  min-width: 230px;
+  border-spacing: 0;
+  border-collapse: separate;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.video-drop-area__table--wide {
+  min-width: 340px;
+}
+
+.video-drop-area__col-duration {
+  width: 56px;
+}
+
+.video-drop-area__col-start {
+  width: 64px;
+}
+
+.video-drop-area__col-audio {
+  width: 48px;
+}
+
+.video-drop-area__col-actions {
+  width: 58px;
+}
+
+.video-drop-area__table th {
+  height: 32px;
+  padding: 0 4px;
+  overflow: hidden;
+  border-right: 1px solid var(--video-line);
+  border-bottom: 1px solid var(--video-line);
+  background: var(--surface);
+  color: var(--video-header-text);
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.video-drop-area__table th:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  border-right: 0;
+  border-left: 1px solid var(--video-line);
+  background: var(--video-sticky-bg);
+}
+
+.video-drop-area__table td {
+  height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.video-drop-area__table td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-drop-area__cell-duration {
+  padding: 0 4px !important;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.video-drop-area__cell-center {
+  padding: 0 4px !important;
+  text-align: center;
+}
+
+.video-drop-area__cell-actions {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  padding: 0 4px !important;
+  border-left: 1px solid var(--video-line);
+  background: var(--video-sticky-bg);
+}
+
+.video-drop-area__start-input {
+  width: 52px;
+  min-width: 0;
+}
+
+.video-drop-area__start-input input {
+  text-align: center;
+  padding-inline: 4px;
+}
+
+.video-drop-area__table tbody tr:nth-child(odd),
+.video-drop-area__table tbody tr:nth-child(odd) .video-drop-area__cell-actions {
+  background: var(--video-stripe);
+}
+
+.video-drop-area__table tbody tr:hover,
+.video-drop-area__table tbody tr:hover .video-drop-area__cell-actions {
+  background: var(--video-hover);
+}
+
+.video-drop-area__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.video-drop-area .video-drop-area__action {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}

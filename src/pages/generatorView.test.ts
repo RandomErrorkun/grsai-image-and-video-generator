@@ -34,6 +34,7 @@ function historyTask(overrides: Partial<HistoryTask> = {}): HistoryTask {
     first_frame: null,
     last_frame: null,
     ref_videos: null,
+    ref_video_options: null,
     status: "succeeded",
     created_at: "2026-11-25 01:21:29",
     result_path: null,

@@ -98,6 +98,11 @@ describe("readSettings", () => {
       text_font_size: DEFAULT_CONFIG.text_font_size,
       text_font_family: DEFAULT_CONFIG.text_font_family,
       text_auto_wrap: DEFAULT_CONFIG.text_auto_wrap,
+      comic_custom_chat_base_url: DEFAULT_CONFIG.comic_custom_chat_base_url,
+      comic_custom_chat_endpoint: DEFAULT_CONFIG.comic_custom_chat_endpoint,
+      comic_custom_chat_api_key: DEFAULT_CONFIG.comic_custom_chat_api_key,
+      comic_custom_chat_model: DEFAULT_CONFIG.comic_custom_chat_model,
+      comic_custom_chat_body: DEFAULT_CONFIG.comic_custom_chat_body,
     });
   });
 
@@ -165,9 +170,14 @@ describe("settingsToSave", () => {
     text_font_size: 200,
     text_font_family: "KaiTi",
     text_auto_wrap: false,
+    comic_custom_chat_base_url: "  https://api.example.invalid/v1  ",
+    comic_custom_chat_endpoint: "  /chat/completions  ",
+    comic_custom_chat_api_key: "  k-test  ",
+    comic_custom_chat_model: "  gpt-4o  ",
+    comic_custom_chat_body: '  {"temperature":0.7}  ',
   };
 
-  it("十个键一个不少，也没有输出文件夹", () => {
+  it("所有草稿键一个不少，也没有输出文件夹", () => {
     const keys = Object.keys(settingsToSave(touched)).sort();
     expect(keys).toEqual(Object.keys(touched).sort());
     expect(keys).not.toContain("output_folder");
@@ -185,6 +195,11 @@ describe("settingsToSave", () => {
       text_font_size: 72,
       text_font_family: "KaiTi",
       text_auto_wrap: false,
+      comic_custom_chat_base_url: "https://api.example.invalid/v1",
+      comic_custom_chat_endpoint: "/chat/completions",
+      comic_custom_chat_api_key: "k-test",
+      comic_custom_chat_model: "gpt-4o",
+      comic_custom_chat_body: '{"temperature":0.7}',
     });
   });
 

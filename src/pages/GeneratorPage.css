@@ -28,6 +28,7 @@
 
 .generator__side {
   flex: 1;
+  min-width: 220px;
   gap: 10px;
 }
 
