@@ -12,6 +12,7 @@ import { notice } from "../components/Notice";
 import { createMemoryFs } from "./memoryFs";
 import { createMemoryDatabase } from "./memoryDb";
 import { createMockHttp } from "./mockApi";
+import { encodePng } from "./png";
 import type { ClipboardSnapshot, DragDropEvent, Platform } from "./types";
 
 const DATA_DIR = "C:\\mock-data";
@@ -336,6 +337,15 @@ export const browserPlatform: Platform = {
 
   clipboard: {
     read: readClipboard,
+    async writeImage(rgba, width, height) {
+      const png = await encodePng(rgba, width, height);
+      const copy = new Uint8Array(png);
+      if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": new Blob([copy], { type: "image/png" }) })]);
+        return;
+      }
+      notice("info", "Browser mock", `copied image ${width}x${height}`);
+    },
   },
 
   dragDrop: {

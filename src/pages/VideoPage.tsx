@@ -107,17 +107,7 @@ async function restoreMaterials(task: HistoryTask, slots: MaterialSlots): Promis
   }
 }
 
-/** 标题加上编辑控件，模型的标题在控件上方。 */
-function Field({ caption, children }: { caption: string; children: ReactNode }) {
-  return (
-    <div className="video__field">
-      <span className="video__caption">{caption}</span>
-      {children}
-    </div>
-  );
-}
-
-/** 参数行里的一格：标题在左，控件占满剩下的宽度，与源项目的 param_row 一致。 */
+/** 参数行里的一格：标题在左，控件占满剩下的宽度。 */
 function InlineField({ caption, children }: { caption: string; children: ReactNode }) {
   return (
     <div className="video__inline">
@@ -342,19 +332,21 @@ export default function VideoPage() {
           <SegmentedHeader items={[{ key: "video", label: "nav.video" }]} />
 
           <div className="video__card">
-            <Field caption={t("video.model")}>
-              <Select
-                value={form.model}
-                aria-label={t("video.model")}
-                onChange={(_event, data) => onModelChange(data.value)}
-              >
-                {VIDEO_MODEL_IDS.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            <div className="video__row">
+              <InlineField caption={t("video.model")}>
+                <Select
+                  value={form.model}
+                  aria-label={t("video.model")}
+                  onChange={(_event, data) => onModelChange(data.value)}
+                >
+                  {VIDEO_MODEL_IDS.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </Select>
+              </InlineField>
+            </div>
 
             <div className="video__row">
               <InlineField caption={t("video.aspect_ratio")}>
@@ -428,6 +420,7 @@ export default function VideoPage() {
 
             <div className="video__row video__row--retry">
               <Checkbox
+                className="video__retry"
                 label={t("generator.auto_retry")}
                 checked={autoRetry}
                 onChange={(_event, data) => setAutoRetry(data.checked === true)}
@@ -492,7 +485,7 @@ export default function VideoPage() {
                     <ToolButton icon={<Delete20Regular />} label={clearLabel} onClick={() => audioRef.current?.clearAudios()} />
                   </div>
                 </div>
-                <AudioDropArea ref={audioRef} maxFiles={MAX_AUDIOS} />
+                <AudioDropArea ref={audioRef} maxFiles={MAX_AUDIOS} className="video__audio-drop" />
               </div>
 
               <div className="video__frames">

@@ -39,6 +39,8 @@ function historyTask(overrides: Partial<HistoryTask> = {}): HistoryTask {
     created_at: "2026-11-25 01:21:29",
     result_path: null,
     preview_url: null,
+    thumbnail: null,
+    result_sha256: null,
     failure_reason: null,
     error_message: null,
     updated_at: "2026-11-25 01:21:29",

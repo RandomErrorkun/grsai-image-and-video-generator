@@ -46,6 +46,10 @@ export interface HistoryTask {
   created_at: string;
   result_path: string | null;
   preview_url: string | null;
+  /** 缓存在库里的低画质方形缩略图（data:image/webp|jpeg;base64,...），原文件删/移后仍可预览参考。 */
+  thumbnail: string | null;
+  /** 结果文件落盘时计算的 SHA-256（小写 64 位十六进制），点击打开前用于校验文件未被替换。 */
+  result_sha256: string | null;
   failure_reason: string | null;
   error_message: string | null;
   updated_at: string;
@@ -70,8 +74,12 @@ export interface NewTaskInput {
 export interface TaskUpdate {
   resultPath?: string | null;
   previewUrl?: string | null;
+  thumbnail?: string | null;
+  resultSha256?: string | null;
   failureReason?: string | null;
   errorMessage?: string | null;
+  /** 为真时显式清空 failure_reason 和 error_message（如失败任务经再获取恢复为成功时）。 */
+  clearFailure?: boolean;
 }
 
 export interface HistoryStore {
@@ -80,7 +88,9 @@ export interface HistoryStore {
   /** 把旧版的 history.json 或 grsai_history.json 迁进来，迁完把原文件改名为 .bak。 */
   migrateLegacyJson(): Promise<void>;
   addTask(input: NewTaskInput): Promise<HistoryTask>;
-  /** 只有给了值（非空）的字段才会写进去。任务不存在时返回 null。 */
+  /** 按任务 id 读取单条记录，不存在返回 null。 */
+  getTask(taskId: string): Promise<HistoryTask | null>;
+  /** 只有给了值（非空）的字段才会写进去；clearFailure 为真时清空失败信息。任务不存在时返回 null。 */
   updateTask(taskId: string, status: string, update?: TaskUpdate): Promise<HistoryTask | null>;
   getAllTasks(): Promise<HistoryTask[]>;
   getTaskCount(): Promise<number>;
@@ -125,12 +135,14 @@ const CREATE_TABLE = `CREATE TABLE IF NOT EXISTS history_tasks (
     created_at TEXT NOT NULL,
     result_path TEXT,
     preview_url TEXT,
+    thumbnail TEXT,
+    result_sha256 TEXT,
     failure_reason TEXT,
     error_message TEXT,
     updated_at TEXT NOT NULL
 )`;
 
-/** 旧版本数据库缺的视频任务相关列。 */
+/** 旧版本数据库缺的扩展列（启动时按需自动补齐，不影响旧数据与源项目按列名读取）。 */
 const OPTIONAL_COLUMNS: ReadonlyArray<readonly [name: string, declaration: string]> = [
   ["duration", "INTEGER"],
   ["seed", "INTEGER"],
@@ -139,6 +151,8 @@ const OPTIONAL_COLUMNS: ReadonlyArray<readonly [name: string, declaration: strin
   ["last_frame", "TEXT"],
   ["ref_videos", "TEXT"],
   ["ref_video_options", "TEXT"],
+  ["thumbnail", "TEXT"],
+  ["result_sha256", "TEXT"],
 ];
 
 const CREATE_INDEX =
@@ -147,9 +161,9 @@ const CREATE_INDEX =
 const INSERT_TASK = `INSERT OR REPLACE INTO history_tasks (
     id, prompt, model, aspect_ratio, image_size, ref_images,
     duration, seed, ref_audios, first_frame, last_frame, ref_videos, ref_video_options,
-    status, created_at, result_path, preview_url,
+    status, created_at, result_path, preview_url, thumbnail, result_sha256,
     failure_reason, error_message, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 const ORDER_BY = "ORDER BY created_at DESC, id DESC";
 
@@ -189,146 +203,190 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
   const now = deps.now ?? (() => new Date());
   const timestamp = () => formatLocalTime(now());
 
-  async function ensureSchema(): Promise<void> {
-    await db.execute(CREATE_TABLE);
-    const columns = await db.select<{ name: string }>("PRAGMA table_info(history_tasks)");
-    const existing = new Set(columns.map((column) => column.name));
-    for (const [column, declaration] of OPTIONAL_COLUMNS) {
-      if (!existing.has(column)) {
-        await db.execute(`ALTER TABLE history_tasks ADD COLUMN ${column} ${declaration}`);
+  // 进程内写操作串行队列：多任务同时落盘或高频点击时依次写入，避免 SQLITE_BUSY 锁冲突
+  let writeChain: Promise<void> = Promise.resolve();
+  function enqueueWrite<T>(work: () => Promise<T>): Promise<T> {
+    const run = writeChain.then(work, work);
+    writeChain = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  function ensureSchema(): Promise<void> {
+    return enqueueWrite(async () => {
+      await db.execute(CREATE_TABLE);
+      const columns = await db.select<{ name: string }>("PRAGMA table_info(history_tasks)");
+      const existing = new Set(columns.map((column) => column.name));
+      for (const [column, declaration] of OPTIONAL_COLUMNS) {
+        if (!existing.has(column)) {
+          await db.execute(`ALTER TABLE history_tasks ADD COLUMN ${column} ${declaration}`);
+        }
       }
-    }
-    await db.execute(CREATE_INDEX);
+      await db.execute(CREATE_INDEX);
+    });
   }
 
-  async function migrateLegacyJson(): Promise<void> {
-    const legacyPath = join(deps.dataDir, LEGACY_HISTORY_FILE);
-    const oldPath = join(deps.dataDir, OLD_HISTORY_FILE);
-    const legacyExists = await files.exists(legacyPath);
-    const oldExists = await files.exists(oldPath);
-    if (!legacyExists && !oldExists) return;
+  function migrateLegacyJson(): Promise<void> {
+    return enqueueWrite(async () => {
+      const legacyPath = join(deps.dataDir, LEGACY_HISTORY_FILE);
+      const oldPath = join(deps.dataDir, OLD_HISTORY_FILE);
+      const legacyExists = await files.exists(legacyPath);
+      const oldExists = await files.exists(oldPath);
+      if (!legacyExists && !oldExists) return;
 
-    // 先迁 grsai_history.json，没有再迁 history.json
-    const sourcePath = oldExists ? oldPath : legacyPath;
-    let legacyTasks: unknown;
-    try {
-      legacyTasks = JSON.parse(await files.readText(sourcePath));
-    } catch {
-      legacyTasks = [];
-    }
-    if (!Array.isArray(legacyTasks) || legacyTasks.length === 0) return;
+      // 先迁 grsai_history.json，没有再迁 history.json
+      const sourcePath = oldExists ? oldPath : legacyPath;
+      let legacyTasks: unknown;
+      try {
+        legacyTasks = JSON.parse(await files.readText(sourcePath));
+      } catch {
+        legacyTasks = [];
+      }
+      if (!Array.isArray(legacyTasks) || legacyTasks.length === 0) return;
 
-    for (const task of legacyTasks) {
-      if (typeof task !== "object" || task === null || Array.isArray(task)) continue;
-      const record = task as Record<string, unknown>;
-      if (!record.id) continue;
+      for (const task of legacyTasks) {
+        if (typeof task !== "object" || task === null || Array.isArray(task)) continue;
+        const record = task as Record<string, unknown>;
+        if (!record.id) continue;
+        await db.execute(INSERT_TASK, [
+          record.id,
+          record.prompt ?? "",
+          record.model ?? "",
+          record.aspect_ratio ?? "auto",
+          record.image_size ?? "1K",
+          serializeJson(record.ref_images ?? null),
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          record.status ?? "running",
+          record.created_at || timestamp(),
+          optionalText(record.result_path),
+          optionalText(record.preview_url),
+          optionalText(record.thumbnail),
+          optionalText(record.result_sha256),
+          optionalText(record.failure_reason),
+          optionalText(record.error_message),
+          timestamp(),
+        ]);
+      }
+
+      // 迁完改名留底；改不成也不影响使用，与源项目一致
+      try {
+        await files.replaceWithBackup(sourcePath, `${sourcePath}.bak`);
+      } catch {
+        // 备份失败就算了
+      }
+    });
+  }
+
+  function addTask(input: NewTaskInput): Promise<HistoryTask> {
+    return enqueueWrite(async () => {
+      const createdAt = timestamp();
+      const refImages = input.refImages ?? null;
+      const refAudios = input.refAudios ?? null;
+      const refVideos = input.refVideos ?? null;
+      const refVideoOptions =
+        input.refVideoOptions && input.refVideoOptions.length > 0 ? [...input.refVideoOptions] : null;
       await db.execute(INSERT_TASK, [
-        record.id,
-        record.prompt ?? "",
-        record.model ?? "",
-        record.aspect_ratio ?? "auto",
-        record.image_size ?? "1K",
-        serializeJson(record.ref_images ?? null),
+        input.id,
+        input.prompt,
+        input.model,
+        input.aspectRatio,
+        input.imageSize,
+        serializeJson(refImages),
+        input.duration ?? null,
+        input.seed ?? null,
+        serializeJson(refAudios),
+        input.firstFrame ?? null,
+        input.lastFrame ?? null,
+        serializeJson(refVideos),
+        serializeJson(refVideoOptions),
+        "running",
+        createdAt,
         null,
         null,
         null,
         null,
         null,
         null,
-        null,
-        record.status ?? "running",
-        record.created_at || timestamp(),
-        optionalText(record.result_path),
-        optionalText(record.preview_url),
-        optionalText(record.failure_reason),
-        optionalText(record.error_message),
-        timestamp(),
+        createdAt,
       ]);
-    }
-
-    // 迁完改名留底；改不成也不影响使用，与源项目一致
-    try {
-      await files.replaceWithBackup(sourcePath, `${sourcePath}.bak`);
-    } catch {
-      // 备份失败就算了
-    }
+      return {
+        id: input.id,
+        prompt: input.prompt,
+        model: input.model,
+        aspect_ratio: input.aspectRatio,
+        image_size: input.imageSize,
+        ref_images: refImages,
+        duration: input.duration ?? null,
+        seed: input.seed ?? null,
+        ref_audios: refAudios,
+        first_frame: input.firstFrame ?? null,
+        last_frame: input.lastFrame ?? null,
+        ref_videos: refVideos,
+        ref_video_options: refVideoOptions,
+        status: "running",
+        created_at: createdAt,
+        result_path: null,
+        preview_url: null,
+        thumbnail: null,
+        result_sha256: null,
+        failure_reason: null,
+        error_message: null,
+        updated_at: createdAt,
+      };
+    });
   }
 
-  async function addTask(input: NewTaskInput): Promise<HistoryTask> {
-    const createdAt = timestamp();
-    const refImages = input.refImages ?? null;
-    const refAudios = input.refAudios ?? null;
-    const refVideos = input.refVideos ?? null;
-    const refVideoOptions =
-      input.refVideoOptions && input.refVideoOptions.length > 0 ? [...input.refVideoOptions] : null;
-    await db.execute(INSERT_TASK, [
-      input.id,
-      input.prompt,
-      input.model,
-      input.aspectRatio,
-      input.imageSize,
-      serializeJson(refImages),
-      input.duration ?? null,
-      input.seed ?? null,
-      serializeJson(refAudios),
-      input.firstFrame ?? null,
-      input.lastFrame ?? null,
-      serializeJson(refVideos),
-      serializeJson(refVideoOptions),
-      "running",
-      createdAt,
-      null,
-      null,
-      null,
-      null,
-      createdAt,
-    ]);
-    return {
-      id: input.id,
-      prompt: input.prompt,
-      model: input.model,
-      aspect_ratio: input.aspectRatio,
-      image_size: input.imageSize,
-      ref_images: refImages,
-      duration: input.duration ?? null,
-      seed: input.seed ?? null,
-      ref_audios: refAudios,
-      first_frame: input.firstFrame ?? null,
-      last_frame: input.lastFrame ?? null,
-      ref_videos: refVideos,
-      ref_video_options: refVideoOptions,
-      status: "running",
-      created_at: createdAt,
-      result_path: null,
-      preview_url: null,
-      failure_reason: null,
-      error_message: null,
-      updated_at: createdAt,
-    };
+  async function getTask(taskId: string): Promise<HistoryTask | null> {
+    const rows = await db.select<StoredTask>("SELECT * FROM history_tasks WHERE id = ?", [taskId]);
+    return rows[0] ? toTask(rows[0]) : null;
   }
 
-  async function updateTask(
+  function updateTask(
     taskId: string,
     status: string,
     update: TaskUpdate = {},
   ): Promise<HistoryTask | null> {
-    const fields: string[] = ["status = ?", "updated_at = ?"];
-    const params: unknown[] = [status, timestamp()];
-    // 与源项目一致：空值不覆盖已有内容
-    for (const [column, value] of [
-      ["result_path", update.resultPath],
-      ["preview_url", update.previewUrl],
-      ["failure_reason", update.failureReason],
-      ["error_message", update.errorMessage],
-    ] as const) {
-      if (value) {
-        fields.push(`${column} = ?`);
-        params.push(value);
+    return enqueueWrite(async () => {
+      const fields: string[] = ["status = ?", "updated_at = ?"];
+      const params: unknown[] = [status, timestamp()];
+      // 与源项目一致：空值不覆盖已有内容；显式指定 clearFailure 时把失败原因清为 null
+      for (const [column, value] of [
+        ["result_path", update.resultPath],
+        ["preview_url", update.previewUrl],
+        ["thumbnail", update.thumbnail],
+        ["result_sha256", update.resultSha256],
+      ] as const) {
+        if (value) {
+          fields.push(`${column} = ?`);
+          params.push(value);
+        }
       }
-    }
-    await db.execute(`UPDATE history_tasks SET ${fields.join(", ")} WHERE id = ?`, [...params, taskId]);
-    const rows = await db.select<StoredTask>("SELECT * FROM history_tasks WHERE id = ?", [taskId]);
-    return rows[0] ? toTask(rows[0]) : null;
+      if (update.clearFailure) {
+        fields.push("failure_reason = ?", "error_message = ?");
+        params.push(null, null);
+      } else {
+        for (const [column, value] of [
+          ["failure_reason", update.failureReason],
+          ["error_message", update.errorMessage],
+        ] as const) {
+          if (value) {
+            fields.push(`${column} = ?`);
+            params.push(value);
+          }
+        }
+      }
+      await db.execute(`UPDATE history_tasks SET ${fields.join(", ")} WHERE id = ?`, [...params, taskId]);
+      const rows = await db.select<StoredTask>("SELECT * FROM history_tasks WHERE id = ?", [taskId]);
+      return rows[0] ? toTask(rows[0]) : null;
+    });
   }
 
   async function getAllTasks(): Promise<HistoryTask[]> {
@@ -341,17 +399,21 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
     return Number(rows[0]?.cnt ?? 0);
   }
 
-  async function clearAllTasks(): Promise<number> {
-    const deleted = await getTaskCount();
-    await db.execute("DELETE FROM history_tasks");
-    await db.execute("VACUUM");
-    return deleted;
+  function clearAllTasks(): Promise<number> {
+    return enqueueWrite(async () => {
+      const deleted = await getTaskCount();
+      await db.execute("DELETE FROM history_tasks");
+      await db.execute("VACUUM");
+      return deleted;
+    });
   }
 
-  async function clearByStatus(status: string): Promise<number> {
-    const result = await db.execute("DELETE FROM history_tasks WHERE status = ?", [status]);
-    await db.execute("VACUUM");
-    return Math.max(result.rowsAffected ?? 0, 0);
+  function clearByStatus(status: string): Promise<number> {
+    return enqueueWrite(async () => {
+      const result = await db.execute("DELETE FROM history_tasks WHERE status = ?", [status]);
+      await db.execute("VACUUM");
+      return Math.max(result.rowsAffected ?? 0, 0);
+    });
   }
 
   async function getTasksPage(page: number, pageSize: number): Promise<HistoryTask[]> {
@@ -368,6 +430,7 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
     ensureSchema,
     migrateLegacyJson,
     addTask,
+    getTask,
     updateTask,
     getAllTasks,
     getTaskCount,

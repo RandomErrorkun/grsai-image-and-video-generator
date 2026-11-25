@@ -9,6 +9,7 @@ import { TaskScheduler } from "../core/tasks";
 import { platform } from "../platform";
 import { diag } from "../platform/diagnostics";
 import { cfg } from "./config";
+import { computeResultArtifacts } from "./thumbnail";
 
 export function apiSettings(): ApiSettings {
   return { apiBaseUrl: cfg.get("api_base_url", DEFAULT_API_BASE_URL), apiKey: cfg.get("api_key", "") };
@@ -54,6 +55,20 @@ export function openHistory(): Promise<HistoryStore> {
   return historyPromise;
 }
 
+const historyListeners = new Set<() => void>();
+
+/** 订阅历史库变更通知（如任务完成、接续任务结束、再获取更新状态时刷新历史页）。 */
+export function subscribeHistoryChanged(listener: () => void): () => void {
+  historyListeners.add(listener);
+  return () => {
+    historyListeners.delete(listener);
+  };
+}
+
+export function notifyHistoryChanged(): void {
+  for (const listener of [...historyListeners]) listener();
+}
+
 let scheduler: TaskScheduler | null = null;
 
 /** 全应用只有一个调度器，提交和轮询都从它这里走。 */
@@ -72,15 +87,27 @@ export function taskScheduler(): TaskScheduler {
         join: platform.paths.join,
       },
       history: {
-        addTask: (input) => openHistory().then((history) => history.addTask(input)),
+        addTask: (input) =>
+          openHistory()
+            .then((history) => history.addTask(input))
+            .then((task) => {
+              notifyHistoryChanged();
+              return task;
+            }),
         updateTask: (taskId, status, update) =>
-          openHistory().then((history) => history.updateTask(taskId, status, update)),
+          openHistory()
+            .then((history) => history.updateTask(taskId, status, update))
+            .then((task) => {
+              notifyHistoryChanged();
+              return task;
+            }),
       },
       http: {
         submit: (request) => platform.http.request(request),
         query: (request) => platform.http.request(request),
         download: (url, destPath) => platform.http.download(url, destPath),
       },
+      artifacts: computeResultArtifacts,
       // 调度器只在轮询出错和下载出错时写日志，实机测试时要能在日志文件里看到
       log: diag,
     },

@@ -24,11 +24,13 @@ const ADDED_LATER = new Set([
   "last_frame",
   "ref_videos",
   "ref_video_options",
+  "thumbnail",
+  "result_sha256",
 ]);
 const ALL_COLUMNS = [
   "id", "prompt", "model", "aspect_ratio", "image_size", "ref_images", "duration", "seed", "ref_audios",
   "first_frame", "last_frame", "ref_videos", "ref_video_options", "status", "created_at", "result_path", "preview_url",
-  "failure_reason", "error_message", "updated_at",
+  "thumbnail", "result_sha256", "failure_reason", "error_message", "updated_at",
 ];
 
 const realFiles: HistoryFiles = {
@@ -157,8 +159,8 @@ function historySuite(kit: ExecutorKit) {
     it(
       // 内存库不建索引，这一条在那里只管表
       kit.indexNamesSql
-        ? "creates the table with all 20 columns and the index"
-        : "creates the table with all 20 columns",
+        ? "creates the table with all 22 columns and the index"
+        : "creates the table with all 22 columns",
       async () => {
         const { store, executor } = open();
         await store.ensureSchema();

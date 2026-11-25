@@ -83,6 +83,16 @@
   width: 100%;
 }
 
+.comic__textarea textarea,
+.comic__page-card textarea {
+  min-height: 76px;
+}
+
+.comic__card-title,
+.comic__caption {
+  white-space: nowrap;
+}
+
 .comic__tools {
   display: flex;
   align-items: center;

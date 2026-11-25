@@ -10,6 +10,7 @@ import { tr } from "../i18n";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
+import { openPreview } from "../state/preview";
 import { formatDuration, isDragOver, isSupportedVideo, normalizePath, parseFileFilter, pickOnce, planSlots } from "./dropAreaLogic";
 import type { VideoDropAreaProps, VideoReference } from "./dropAreaTypes";
 import { MarqueeText } from "./MarqueeText";
@@ -321,7 +322,7 @@ export default function VideoDropArea({ ref, maxVideos, fields, onChange, classN
                             className="video-drop-area__action"
                             icon={<Play20Regular />}
                             aria-label={t("video.tooltip.preview_video")}
-                            onClick={() => runAsync(platform.opener.openPath(item.path))}
+                            onClick={() => openPreview(item.path)}
                           />
                         </Tooltip>
                         <Tooltip content={t("video.tooltip.remove_video")} relationship="label">

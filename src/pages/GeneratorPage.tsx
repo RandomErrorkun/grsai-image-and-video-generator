@@ -43,12 +43,12 @@ import "./GeneratorPage.css";
 /** 参考图上限，与源项目一致。 */
 const MAX_REF_IMAGES = 14;
 
-/** 标题加上编辑控件，对应源项目的 _make_field。 */
+/** 标题在左、控件占满剩余宽度，与视频页的参数行保持一致。 */
 function Field({ caption, children }: { caption: string; children: ReactNode }) {
   return (
     <div className="generator__field">
       <span className="generator__caption">{caption}</span>
-      {children}
+      <div className="generator__control">{children}</div>
     </div>
   );
 }
@@ -218,9 +218,9 @@ export default function GeneratorPage() {
                 </Field>
               ) : null}
               {controls.transparent ? (
-                // 这一行没有标题，贴着底边排，和另一侧的下拉框对齐
-                <div className="generator__field generator__field--end">
+                <div className="generator__field">
                   <Checkbox
+                    className="generator__checkbox"
                     label={t("generator.transparent_bg")}
                     checked={form.transparent}
                     onChange={(_event, data) => update({ transparent: data.checked === true })}
@@ -246,6 +246,7 @@ export default function GeneratorPage() {
 
           <div className="generator__row generator__row--retry">
             <Checkbox
+              className="generator__retry"
               label={t("generator.auto_retry")}
               checked={autoRetry}
               onChange={(_event, data) => setAutoRetry(data.checked === true)}

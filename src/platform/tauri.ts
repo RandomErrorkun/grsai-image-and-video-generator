@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { Image as TauriImage } from "@tauri-apps/api/image";
 import { resourceDir } from "@tauri-apps/api/path";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -16,7 +17,7 @@ import {
   readTextFile,
 } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readImage, readText } from "@tauri-apps/plugin-clipboard-manager";
+import { readImage, readText, writeImage as writeClipboardImage } from "@tauri-apps/plugin-clipboard-manager";
 import Database from "@tauri-apps/plugin-sql";
 import { DOWNLOAD_TIMEOUT_SECS, type HttpOutcome, type HttpRequest } from "../core/api";
 import { CONFIG_FILE_NAME, type ConfigStorage } from "../core/config";
@@ -190,6 +191,7 @@ export const tauriPlatform: Platform = {
       if (await exists(backup)) await remove(backup);
       await rename(path, backup);
     },
+    sha256: (path) => invoke<string>("file_sha256", { path }),
   },
 
   http: {
@@ -223,6 +225,8 @@ export const tauriPlatform: Platform = {
     // 先放一个空库文件再加载：这样插件不会去系统的应用数据目录里另建文件夹
     if (!(await exists(path))) await writeFile(path, new Uint8Array(0));
     const db = await Database.load(`sqlite:${path}`, { autoCreate: false });
+    // 并发读写时等待锁释放而非立刻报 SQLITE_BUSY
+    await db.execute("PRAGMA busy_timeout = 5000").catch(() => {});
     return {
       select: <T>(sql: string, params: unknown[] = []) => db.select<T[]>(sql, params),
       execute: async (sql: string, params: unknown[] = []) => ({
@@ -263,6 +267,15 @@ export const tauriPlatform: Platform = {
 
   clipboard: {
     read: readClipboard,
+    async writeImage(rgba, width, height) {
+      const image = await TauriImage.new(rgba, width, height);
+      try {
+        await writeClipboardImage(image);
+        diag(`clipboard: wrote image ${width}x${height}`);
+      } finally {
+        await image.close();
+      }
+    },
   },
 
   dragDrop: {

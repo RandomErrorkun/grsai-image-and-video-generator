@@ -17,6 +17,8 @@ import {
   Tooltip,
 } from "@fluentui/react-components";
 import {
+  ArrowClockwise20Regular,
+  ArrowDownload20Regular,
   ArrowLeft20Regular,
   ArrowRight20Regular,
   ArrowSync20Regular,
@@ -33,8 +35,12 @@ import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { MediaThumb } from "../components/MediaThumb";
 import { runAsync } from "../platform/async";
+import { historyRefetcher, type RefetchOutcome } from "../state/historyRefetch";
+import { openPreview } from "../state/preview";
 import { requestRestore } from "../state/restore";
-import { openHistory } from "../state/services";
+import { openHistory, subscribeHistoryChanged } from "../state/services";
+import { comicTasks, generatorTasks, isTaskIdActive, videoTasks } from "../state/taskLists";
+import { computeResultArtifacts, verifyHistoryResultFile } from "../state/thumbnail";
 import {
   CLEAR_ACTIONS,
   CLEAR_ORDER,
@@ -119,34 +125,92 @@ function DetailsContent({ task }: { task: HistoryTask }) {
   );
 }
 
+/** 正在为老历史记录补齐缩略图/SHA-256 的任务集合，防止重复计算。 */
+const backfillingIds = new Set<string>();
+
+/** 后台为尚无缓存缩略图或 SHA-256 的历史成功记录补齐并写入 SQLite；不打扰界面交互。 */
+async function backfillArtifacts(task: HistoryTask): Promise<void> {
+  if (task.status !== "succeeded" || !task.result_path) return;
+  if (task.thumbnail && task.result_sha256) return;
+  if (backfillingIds.has(task.id)) return;
+  backfillingIds.add(task.id);
+  try {
+    const check = await verifyHistoryResultFile(task);
+    if (!check.ok) return;
+    const artifacts = await computeResultArtifacts(check.path);
+    const patch: { thumbnail?: string; resultSha256?: string } = {};
+    if (!task.thumbnail && artifacts.thumbnail) patch.thumbnail = artifacts.thumbnail;
+    if (!task.result_sha256 && artifacts.resultSha256) patch.resultSha256 = artifacts.resultSha256;
+    if (patch.thumbnail || patch.resultSha256) {
+      const history = await openHistory();
+      await history.updateTask(task.id, task.status, patch);
+    }
+  } catch {
+    // 静默兜底
+  } finally {
+    backfillingIds.delete(task.id);
+  }
+}
+
 interface ThumbnailProps {
-  path: string;
-  video: boolean;
+  task: HistoryTask;
+  onOpenResult(task: HistoryTask): void;
 }
 
 /**
- * 缩略图位。先查结果文件还在不在，不在就写「无图片」。
- * 视频任务放一个标记，点一下交给系统播放器；图片进了视野才放行、取图。
+ * 缩略图位：
+ * - 若 SQLite 里已存低画质缩略图（task.thumbnail），无论原文件是否被删/移都直接显示小图；
+ * - 若老记录尚无缓存缩略图，则从本地原文件渲染并在后台自动回填缩略图与 SHA-256 到库里；
+ * - 点击缩略图时校验原文件存在且 SHA-256 一致后才打开，缺失或被同名替换时弹提示。
  */
-function Thumbnail({ path, video }: ThumbnailProps) {
+function Thumbnail({ task, onOpenResult }: ThumbnailProps) {
   const t = useTr();
   const host = useRef<HTMLDivElement>(null);
+  const path = task.result_path;
+  const video = isVideoResult(path);
+  const cachedThumb = task.thumbnail;
   // checking 期间先照常显示占位，查完文件不在才换成「无图片」
-  const [presence, setPresence] = useState<"checking" | "present" | "missing">("checking");
+  const [presence, setPresence] = useState<"checking" | "present" | "missing">(cachedThumb ? "present" : "checking");
   const [near, setNear] = useState(false);
-  const [allowed, setAllowed] = useState(false);
+  const [allowed, setAllowed] = useState(Boolean(cachedThumb));
   const [broken, setBroken] = useState(false);
 
   useEffect(() => {
+    // 已有库内缩略图：无需碰磁盘即可立刻展示；若缺 SHA-256 则后台尝试补齐
+    if (cachedThumb) {
+      setPresence("present");
+      setAllowed(true);
+      setBroken(false);
+      if (path && !task.result_sha256) runAsync(backfillArtifacts(task));
+      return;
+    }
+    if (!path) {
+      setPresence("missing");
+      return;
+    }
     let cancelled = false;
+    setPresence("checking");
+    setAllowed(false);
+    setBroken(false);
     const settle = (exists: boolean) => {
-      if (!cancelled) setPresence(exists ? "present" : "missing");
+      if (!cancelled) {
+        setAllowed(true);
+        setPresence(exists ? "present" : "missing");
+        if (exists) runAsync(backfillArtifacts(task));
+      }
     };
-    runAsync(platform.fs.exists(path).then(settle, () => settle(false)));
+    // 先放行再查存在：若结果文件在程序目录之外的自定义输出目录里，未放行前 exists 会被权限作用域拦截
+    runAsync(
+      platform.media
+        .allow([path])
+        .catch(() => {})
+        .then(() => platform.fs.exists(path))
+        .then(settle, () => settle(false)),
+    );
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [cachedThumb, path, task.id, task.result_sha256]);
 
   useEffect(() => {
     const element = host.current;
@@ -165,28 +229,16 @@ function Thumbnail({ path, video }: ThumbnailProps) {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!near) return;
-    let cancelled = false;
-    const settle = () => {
-      if (!cancelled) setAllowed(true);
-    };
-    // Tauri 里本地文件要先放行才读得到
-    runAsync(platform.media.allow([path]).then(settle, settle));
-    return () => {
-      cancelled = true;
-    };
-  }, [near, path]);
-
   const noImage = <span className="history-item__thumb-text">{t("history.no_image")}</span>;
   let content: ReactNode;
-  if (presence === "missing") {
+  if (cachedThumb && !broken) {
+    content = <img src={cachedThumb} alt="" className="history-item__image" onError={() => setBroken(true)} />;
+  } else if (presence === "missing" || !path) {
     content = noImage;
   } else if (presence === "present" && near && allowed) {
-    // gif 只显示第一帧，视频显示第一帧
+    // 老记录无缓存缩略图时现场渲染首帧
     content = broken ? noImage : <MediaThumb path={path} className="history-item__image" onBroken={() => setBroken(true)} />;
   } else {
-    // 还没滚到附近或者还没放行：视频先用图标占位，其余用省略号
     content = video ? (
       <Video20Regular className="history-item__video" />
     ) : (
@@ -194,17 +246,18 @@ function Thumbnail({ path, video }: ThumbnailProps) {
     );
   }
 
+  const clickable = Boolean(path) && (Boolean(cachedThumb) || presence === "present");
+
   return (
     <div ref={host} className="history-item__thumb">
       {content}
-      {/* 点击层单独放一层，图片节点不用跟着「文件在不在」重挂 */}
-      {presence === "present" ? (
+      {clickable ? (
         video ? (
           <Tooltip content={t("history.play_video")} relationship="label">
             <button
               type="button"
               className="history-item__thumb-hit"
-              onClick={() => runAsync(platform.opener.openPath(path))}
+              onClick={() => onOpenResult(task)}
             />
           </Tooltip>
         ) : (
@@ -212,7 +265,7 @@ function Thumbnail({ path, video }: ThumbnailProps) {
             type="button"
             className="history-item__thumb-hit"
             aria-label={t("history.open_result")}
-            onClick={() => runAsync(platform.opener.openPath(path))}
+            onClick={() => onOpenResult(task)}
           />
         )
       ) : null}
@@ -222,23 +275,25 @@ function Thumbnail({ path, video }: ThumbnailProps) {
 
 interface HistoryItemProps {
   task: HistoryTask;
+  refetching: boolean;
+  tracking: boolean;
+  onRefetch(task: HistoryTask): void;
+  onOpenResult(task: HistoryTask): void;
+  onOpenFolder(task: HistoryTask): void;
   onShowDetails(task: HistoryTask): void;
 }
 
-function HistoryItem({ task, onShowDetails }: HistoryItemProps) {
+function HistoryItem({ task, refetching, tracking, onRefetch, onOpenResult, onOpenFolder, onShowDetails }: HistoryItemProps) {
   const t = useTr();
   const path = task.result_path;
   const result = hasResult(task);
+  const showThumb = Boolean(task.thumbnail) || (result && Boolean(path));
   const tone = statusTone(task.status);
-
-  const openFolder = () => {
-    if (path) runAsync(platform.opener.openPath(platform.paths.dirname(path)));
-  };
 
   return (
     <article className="history-item" role="listitem">
-      {result && path ? (
-        <Thumbnail path={path} video={isVideoResult(path)} />
+      {showThumb ? (
+        <Thumbnail task={task} onOpenResult={onOpenResult} />
       ) : (
         <div className="history-item__thumb">
           <span className="history-item__thumb-text">{t("history.no_image")}</span>
@@ -260,8 +315,22 @@ function HistoryItem({ task, onShowDetails }: HistoryItemProps) {
         </span>
       </div>
       <div className="history-item__side">
-        <span className={`history-item__status history-item__status--${tone}`}>{capitalize(task.status)}</span>
+        <div className="history-item__status-row">
+          {tracking ? <span className="history-item__tracking">{t("history.tracking")}</span> : null}
+          <span className={`history-item__status history-item__status--${tone}`}>{capitalize(task.status)}</span>
+        </div>
         <div className="history-item__actions">
+          <Tooltip content={t("history.refetch_tooltip")} relationship="description">
+            <Button
+              appearance="transparent"
+              className="history__button"
+              icon={<ArrowDownload20Regular />}
+              disabled={refetching}
+              onClick={() => onRefetch(task)}
+            >
+              {t("history.refetch")}
+            </Button>
+          </Tooltip>
           <Tooltip content={t("history.regenerate")} relationship="description">
             <Button
               appearance="transparent"
@@ -274,7 +343,7 @@ function HistoryItem({ task, onShowDetails }: HistoryItemProps) {
           </Tooltip>
           {result && path ? (
             <Tooltip content={t("history.open_folder")} relationship="description">
-              <Button appearance="transparent" className="history__button" icon={<Folder20Regular />} onClick={openFolder}>
+              <Button appearance="transparent" className="history__button" icon={<Folder20Regular />} onClick={() => onOpenFolder(task)}>
                 {t("history.open_folder")}
               </Button>
             </Tooltip>
@@ -306,15 +375,19 @@ export default function HistoryPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [detailsTask, setDetailsTask] = useState<HistoryTask | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [pageRefetching, setPageRefetching] = useState(false);
+  // 用来在再获取在途状态或任务列表活跃状态变化时触发重绘
+  const [, setSyncTick] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const noButtonRef = useRef<HTMLButtonElement>(null);
+  const visibleRef = useRef(false);
   // 当前页码和读取凭证放在 ref 里，事件处理函数和异步回调拿到的都是最新值
   const pageRef = useRef(1);
   const loadToken = useRef(0);
 
   const load = useCallback(
-    async (page: number) => {
+    async (page: number, options: { keepScroll?: boolean } = {}) => {
       const token = ++loadToken.current;
       const history = await openHistory();
       const totalPages = pageCount(await history.getTaskCount(), pageSize);
@@ -324,8 +397,8 @@ export default function HistoryPage() {
       if (token !== loadToken.current) return;
       pageRef.current = target;
       setData({ tasks, page: target, totalPages });
-      // 与源项目重建列表一致：翻页、刷新后回到顶部
-      listRef.current?.scrollTo(0, 0);
+      // 与源项目重建列表一致：翻页、手动刷新后回到顶部；后台任务变更触发的原地刷新保持滚动位置
+      if (!options.keepScroll) listRef.current?.scrollTo(0, 0);
     },
     [pageSize],
   );
@@ -336,12 +409,14 @@ export default function HistoryPage() {
     const element = rootRef.current;
     const reload = () => runAsync(load(pageRef.current));
     if (!element || typeof IntersectionObserver === "undefined") {
+      visibleRef.current = true;
       reload();
       return;
     }
     let shown = false;
     const observer = new IntersectionObserver((entries) => {
       const visible = entries.some((entry) => entry.isIntersecting);
+      visibleRef.current = visible;
       if (visible && !shown) reload();
       shown = visible;
     });
@@ -349,9 +424,115 @@ export default function HistoryPage() {
     return () => observer.disconnect();
   }, [load]);
 
+  // 订阅在途再获取、任务列表活跃状态和历史库变更，保持按钮状态与列表实时同步
+  useEffect(() => {
+    const bump = () => setSyncTick((n) => n + 1);
+    const unsubs = [
+      historyRefetcher.subscribe(bump),
+      generatorTasks.subscribe(bump),
+      videoTasks.subscribe(bump),
+      comicTasks.subscribe(bump),
+      subscribeHistoryChanged(() => {
+        if (visibleRef.current) runAsync(load(pageRef.current, { keepScroll: true }));
+      }),
+    ];
+    return () => {
+      for (const unsub of unsubs) unsub();
+    };
+  }, [load]);
+
   const showPage = (page: number) => {
     pageRef.current = page;
     runAsync(load(page));
+  };
+
+  const announceRefetch = (outcome: RefetchOutcome) => {
+    switch (outcome.kind) {
+      case "in_flight":
+        return;
+      case "already_tracking":
+        notice("info", t("common.note"), t("history.refetch_already_tracking"));
+        return;
+      case "already_complete":
+        notice("info", t("common.note"), t("history.refetch_already_complete"));
+        return;
+      case "resumed":
+        notice("info", t("common.note"), t("history.refetch_resumed", { progress: outcome.progress }));
+        return;
+      case "updated_succeeded":
+        notice("success", t("common.success"), t(outcome.downloaded ? "history.refetch_downloaded" : "history.refetch_updated_succeeded"));
+        return;
+      case "updated_failed":
+        notice("warning", t("common.warning"), t("history.refetch_updated_failed", { status: outcome.status, reason: outcome.reason }));
+        return;
+      case "marked_expired":
+        notice("warning", t("common.warning"), t("history.refetch_marked_expired"));
+        return;
+      case "expired_unchanged":
+        notice("info", t("common.note"), t("history.refetch_expired_unchanged"));
+        return;
+      case "download_failed":
+      case "network_error":
+        notice("warning", t("common.warning"), t("history.refetch_failed", { reason: outcome.message }));
+        return;
+    }
+  };
+
+  const openVerifiedResult = async (task: HistoryTask) => {
+    const fresh = (await openHistory().then((history) => history.getTask(task.id))) ?? task;
+    const check = await verifyHistoryResultFile(fresh);
+    if (!check.ok) {
+      notice("warning", t("common.warning"), t(check.reason === "mismatch" ? "history.file_mismatch" : "history.file_missing"));
+      return;
+    }
+    openPreview(check.path);
+    if (check.needsBackfill) runAsync(backfillArtifacts(fresh));
+  };
+
+  const openVerifiedFolder = async (task: HistoryTask) => {
+    const fresh = (await openHistory().then((history) => history.getTask(task.id))) ?? task;
+    const check = await verifyHistoryResultFile(fresh);
+    if (!check.ok) {
+      notice("warning", t("common.warning"), t(check.reason === "mismatch" ? "history.file_mismatch" : "history.file_missing"));
+      return;
+    }
+    await platform.opener.openPath(platform.paths.dirname(check.path));
+  };
+
+  const refetchOne = async (task: HistoryTask) => {
+    const outcome = await historyRefetcher.refetchTask(task);
+    await load(pageRef.current, { keepScroll: true });
+    announceRefetch(outcome);
+  };
+
+  const refetchCurrentPage = async () => {
+    if (pageRefetching || data.tasks.length === 0) return;
+    setPageRefetching(true);
+    try {
+      const summary = await historyRefetcher.refetchPage(data.tasks);
+      await load(pageRef.current, { keepScroll: true });
+      const failed = summary.updatedFailed + summary.markedExpired;
+      const skipped =
+        summary.alreadyComplete +
+        summary.alreadyTracking +
+        summary.skippedInFlight +
+        summary.expiredUnchanged +
+        (summary.updatedSucceeded - summary.downloaded);
+      notice(
+        summary.errors > 0 ? "warning" : "success",
+        summary.errors > 0 ? t("common.warning") : t("common.success"),
+        t("history.refetch_page_done", {
+          total: summary.total,
+          resumed: summary.resumed,
+          downloaded: summary.downloaded,
+          failed,
+          skipped,
+          errors: summary.errors,
+        }),
+      );
+    } finally {
+      setPageRefetching(false);
+    }
   };
 
   // 源项目的提示框默认落在「否」上，回车不会确认。Fluent 的对话框打开时会把焦点交给
@@ -409,6 +590,17 @@ export default function HistoryPage() {
             {t(CLEAR_ACTIONS[kind].titleKey)}
           </Button>
         ))}
+        <Tooltip content={t("history.refetch_page_tooltip")} relationship="description">
+          <Button
+            appearance="transparent"
+            className="history__button"
+            icon={<ArrowClockwise20Regular />}
+            disabled={pageRefetching || data.tasks.length === 0}
+            onClick={() => runAsync(refetchCurrentPage())}
+          >
+            {t("history.refetch_page")}
+          </Button>
+        </Tooltip>
         <Button appearance="transparent" className="history__button" icon={<ArrowSync20Regular />} onClick={() => showPage(1)}>
           {t("history.refresh")}
         </Button>
@@ -421,6 +613,11 @@ export default function HistoryPage() {
             <HistoryItem
               key={task.id}
               task={task}
+              refetching={historyRefetcher.isInFlight(task.id)}
+              tracking={isTaskIdActive(task.id)}
+              onRefetch={(selected) => runAsync(refetchOne(selected))}
+              onOpenResult={(selected) => runAsync(openVerifiedResult(selected))}
+              onOpenFolder={(selected) => runAsync(openVerifiedFolder(selected))}
               onShowDetails={(selected) => {
                 setDetailsTask(selected);
                 setDetailsOpen(true);

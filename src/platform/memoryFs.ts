@@ -94,5 +94,11 @@ export function createMemoryFs(paths: PathTools, root: string): FileSystemApi {
       directories.delete(target);
     },
     replaceWithBackup,
+    async sha256(path) {
+      const bytes = await read(path);
+      const copy = new Uint8Array(bytes);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", copy));
+      return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    },
   };
 }

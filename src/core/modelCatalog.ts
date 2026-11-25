@@ -143,7 +143,7 @@ export const GPT_IMAGE_MODELS: readonly GptImageModelSpec[] = [
     pixelOnly: true,
     transparent: true,
   },
-  // png 是全局默认；svg 只有基座支持；flare 和 sunburst 只支持 gif
+  // png 是全局默认；svg 只有基座支持；flare 和 sunburst 支持 png 和 gif
   { id: "gpt-image-2.6", ratios: GPT_IMAGE_RATIOS, qualities: ["auto"], outputFormats: ["png", "gif", "svg"] },
   {
     id: "gpt-image-2.6-flare",

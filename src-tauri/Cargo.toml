@@ -30,6 +30,7 @@ tauri-plugin-sql = { version = "2.6.0", features = ["sqlite"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-clipboard-manager = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "http2", "system-proxy"] }
+sha2 = "0.10"
 tokio = { version = "1", features = ["fs", "io-util"] }
 
 # 读剪贴板里的文件列表要直接调系统接口，剪贴板插件没有这一项

@@ -91,10 +91,10 @@
 }
 
 /* 选择器带上外层，压过 Fluent 按钮自己的最小宽度 */
-.image-drop-area .image-thumb__remove {
+.image-drop-area .image-thumb__remove,
+.image-drop-area .image-thumb__preview {
   position: absolute;
   top: 6px;
-  left: 6px;
   width: 24px;
   height: 24px;
   min-width: 24px;
@@ -103,4 +103,12 @@
   border-radius: 4px;
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.image-drop-area .image-thumb__remove {
+  left: 6px;
+}
+
+.image-drop-area .image-thumb__preview {
+  right: 6px;
 }

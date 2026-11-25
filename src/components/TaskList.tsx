@@ -11,6 +11,7 @@ import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
 import { MediaThumb } from "./MediaThumb";
+import { openPreview } from "../state/preview";
 import { MODERATION_FAILURE_REASONS, taskStatusText, type TaskCard, type TaskList as TaskListModel } from "../state/taskList";
 import "./TaskList.css";
 
@@ -105,7 +106,7 @@ function ResultButton({ card, onRegenerate }: { card: TaskCard; onRegenerate: ()
   }, [menu]);
 
   const openResult = () => {
-    if (path) runAsync(platform.opener.openPath(path));
+    if (path) openPreview(path);
   };
   const openMenu = (event: ReactMouseEvent) => {
     event.preventDefault();

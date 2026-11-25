@@ -18,6 +18,7 @@
     "dialog:default",
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-read-image",
+    "clipboard-manager:allow-write-image",
     "fs:allow-copy-file",
     "fs:allow-exists",
     "fs:allow-lstat",

@@ -81,6 +81,16 @@ export interface NewTaskInput {
   hooks?: TaskHooks;
 }
 
+export interface AttachTaskInput {
+  taskId: string;
+  prompt: string;
+  spec: TaskSpec;
+  mediaType?: TaskMediaType;
+  progress?: number;
+  serverStatus?: string | null;
+  hooks?: TaskHooks;
+}
+
 type FailedEvent = Extract<TaskEvent, { type: "failed" }>;
 
 const isVipRestricted = (card: TaskCard, failureReason: string | null, vipModerationRetry: boolean): boolean =>
@@ -166,6 +176,60 @@ export class TaskList {
     this.cards = [card, ...this.cards];
     this.start(card);
     return this.cards[0] ?? card;
+  }
+
+  /** 接续一个已在服务端运行的历史任务：不重新提交，直接以 running 状态挂载轮询；关闭自动重试以免误触发二次扣费。 */
+  attach(input: AttachTaskInput): TaskCard {
+    const existing = this.cards.find(
+      (card) =>
+        card.taskId === input.taskId &&
+        (card.status === "starting" ||
+          card.status === "queued" ||
+          card.status === "submitting" ||
+          card.status === "running"),
+    );
+    if (existing) return existing;
+
+    this.counter += 1;
+    const card: TaskCard = {
+      index: this.counter,
+      prompt: input.prompt,
+      spec: input.spec,
+      mediaType: input.mediaType ?? (VIDEO_MODEL_SET.has(input.spec.model) ? "video" : "image"),
+      autoRetry: false,
+      maxRetries: this.deps.settings().maxRetries,
+      retries: 0,
+      status: "running",
+      serverStatus: input.serverStatus ?? "running",
+      progress: input.progress ?? 0,
+      taskId: input.taskId,
+      resultPath: null,
+      error: null,
+      failureReason: null,
+      delivery: null,
+      autoRetryBlocked: false,
+    };
+    if (input.hooks) this.hooks.set(card.index, input.hooks);
+    this.cards = [card, ...this.cards];
+    this.notify();
+    const handle = this.deps.scheduler().resume(input.taskId, card.spec, (event) => this.onEvent(card.index, event));
+    this.handles.set(card.index, handle);
+    void handle.done.then(() => {
+      if (this.handles.get(card.index) === handle) this.handles.delete(card.index);
+    });
+    return this.cards[0] ?? card;
+  }
+
+  /** 指定服务端 taskId 是否正被本列表活跃跟踪中。 */
+  hasActiveTaskId(taskId: string): boolean {
+    return this.cards.some(
+      (card) =>
+        card.taskId === taskId &&
+        (card.status === "starting" ||
+          card.status === "queued" ||
+          card.status === "submitting" ||
+          card.status === "running"),
+    );
   }
 
   /** 手动重试：换一个新的服务端任务，重试次数加一。次数用完了也照样能手动重试。 */

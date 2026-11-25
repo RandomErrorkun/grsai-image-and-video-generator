@@ -320,14 +320,7 @@ export default function AudioDropArea({ ref, maxFiles, onChange, className }: Au
   return (
     <div
       ref={rootRef}
-      className={[
-        "audio-drop-area",
-        paths.length > 0 ? "audio-drop-area--filled" : "",
-        dragOver ? "audio-drop-area--dragover" : "",
-        className ?? "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={["audio-drop-area", dragOver ? "audio-drop-area--dragover" : "", className ?? ""].filter(Boolean).join(" ")}
     >
       {paths.length === 0 ? (
         <Button

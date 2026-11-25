@@ -11,7 +11,6 @@ import {
 import {
   ALL_PAGES,
   DEFAULT_PAGE,
-  NAV_MIN_EXPAND_WIDTH,
   type NavMode,
   type PageKey,
 } from "./app/navigation";
@@ -21,7 +20,6 @@ import { TitleBar } from "./components/TitleBar";
 import { useResolvedTheme, useThemeMode } from "./hooks/useAppTheme";
 import { useConfigValue } from "./hooks/useConfigValue";
 import { useTr } from "./hooks/useLanguage";
-import { useWindowWidth } from "./hooks/useWindowWidth";
 import { normalizeLanguage, setLanguage } from "./i18n";
 import ComicPage from "./pages/ComicPage";
 import GeneratorPage from "./pages/GeneratorPage";
@@ -62,7 +60,6 @@ function Shell() {
   const themeMode = useThemeMode();
   const resolvedTheme = useResolvedTheme();
   const language = normalizeLanguage(useConfigValue("language", "en"));
-  const viewportWidth = useWindowWidth();
   const [location, setLocation] = useState<Location>({ page: DEFAULT_PAGE, backStack: [] });
   const [navMode, setNavMode] = useState<NavMode>("compact");
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
@@ -88,14 +85,7 @@ function Shell() {
     }
   }, [themeMode]);
 
-  // 窗口变窄时把原地展开的导航收回去（对应原件的 minimumExpandWidth 逻辑）
-  useEffect(() => {
-    if (navMode === "expanded" && viewportWidth < NAV_MIN_EXPAND_WIDTH) {
-      setNavMode("compact");
-    }
-  }, [navMode, viewportWidth]);
-
-  // 浮层式导航：点到面板外面就收起
+  // 浮层式导航：点到面板外面或按 Esc 就收起
   useEffect(() => {
     if (navMode !== "menu") return;
     const onPointerDown = (event: PointerEvent) => {
@@ -103,18 +93,25 @@ function Shell() {
         setNavMode("compact");
       }
     };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNavMode("compact");
+    };
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [navMode]);
 
-  // 与原件的导航历史一致：换页才入栈，返回键退回上一页，栈空时禁用
-  // 换页才入栈；返回键退回上一页
+  // 换页才入栈；通过浮层导航切页后顺手收起导航
   const navigate = (next: PageKey) => {
     setLocation((current) =>
       current.page === next
         ? current
         : { page: next, backStack: [...current.backStack, current.page] },
     );
+    setNavMode("compact");
   };
 
   // 历史页的「重新生成」：外壳只管切到目标页面，页面自己监听同一个请求回填参数
@@ -148,15 +145,9 @@ function Shell() {
     });
   };
 
-  // 窗口够宽就原地展开，否则展开成盖在页面上的浮层
+  // 始终以浮层方式展开在子页面之上，不挤压右侧子页面排版
   const toggleNav = () => {
-    setNavMode((mode) =>
-      mode === "compact"
-        ? viewportWidth >= NAV_MIN_EXPAND_WIDTH
-          ? "expanded"
-          : "menu"
-        : "compact",
-    );
+    setNavMode((mode) => (mode === "compact" ? "menu" : "compact"));
   };
 
   // 与原件一致：在亮暗之间切换；当前看到暗的就切亮，反之切暗
@@ -191,6 +182,12 @@ function Shell() {
           );
         })}
       </main>
+      {/* 右侧子页面在左侧导航展开时的深色渐显遮罩 */}
+      <div
+        className={navMode === "menu" ? "nav-backdrop nav-backdrop--open" : "nav-backdrop"}
+        aria-hidden="true"
+        onClick={() => setNavMode("compact")}
+      />
       <TitleBar title={title} />
       <Dialog
         open={closeConfirmOpen}

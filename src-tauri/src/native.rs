@@ -39,6 +39,33 @@ pub fn clipboard_files() -> Vec<String> {
     clipboard::file_list().unwrap_or_default()
 }
 
+/// 流式计算本地文件的 SHA-256（小写 64 位十六进制），即使大视频也只占用固定 64 KB 缓冲。
+#[tauri::command]
+pub async fn file_sha256(path: String) -> Result<String, String> {
+    use sha2::{Digest, Sha256};
+    use std::fmt::Write;
+    use tokio::io::AsyncReadExt;
+
+    let mut file = tokio::fs::File::open(&path)
+        .await
+        .map_err(|error| error.to_string())?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let count = file.read(&mut buf).await.map_err(|error| error.to_string())?;
+        if count == 0 {
+            break;
+        }
+        hasher.update(&buf[..count]);
+    }
+    let digest = hasher.finalize();
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        let _ = write!(&mut hex, "{byte:02x}");
+    }
+    Ok(hex)
+}
+
 mod clipboard {
     /// Windows 剪贴板里的文件列表格式代号（CF_HDROP）。
     #[cfg(windows)]

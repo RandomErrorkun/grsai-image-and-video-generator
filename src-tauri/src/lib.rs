@@ -25,7 +25,8 @@ pub fn run() {
             api::api_download,
             native::allow_paths,
             native::open_path,
-            native::clipboard_files
+            native::clipboard_files,
+            native::file_sha256
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

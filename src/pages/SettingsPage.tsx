@@ -9,6 +9,7 @@ import {
   ArrowUpload20Regular,
   Color20Regular,
   Edit20Regular,
+  Eye20Regular,
   Folder20Regular,
   FolderOpen20Regular,
   Globe20Regular,
@@ -29,6 +30,7 @@ import { languageItems, normalizeLanguage, translate } from "../i18n";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
 import { cfg } from "../state/config";
+import { normalizePreviewMode } from "../state/preview";
 import { resolveOutputFolder } from "../state/services";
 import { ACCENT_PALETTE } from "../theme";
 import {
@@ -148,6 +150,7 @@ export default function SettingsPage() {
   const language = normalizeLanguage(useConfigValue("language", "en"));
   const themeMode = useThemeMode();
   const accent = useAccentColor();
+  const previewMode = normalizePreviewMode(useConfigValue("preview_mode", DEFAULT_CONFIG.preview_mode));
   // useAccentColor 给的是小写的 #rrggbb，调色板里写的是大写，比较前先统一
   const inPalette = ACCENT_PALETTE.some((color) => color.toLowerCase() === accent);
   // 草稿只在页面建起来的时候从配置里读一次；外壳里页面常驻，和源项目一样不会自己跟着别处变
@@ -279,6 +282,21 @@ export default function SettingsPage() {
                   />
                 </label>
               </div>
+            </SettingCard>
+            <SettingCard
+              icon={Eye20Regular}
+              title={t("settings.preview_mode.title")}
+              content={t("settings.preview_mode.content")}
+            >
+              <Select
+                className="settings-card__select"
+                value={previewMode}
+                aria-label={t("settings.preview_mode.title")}
+                onChange={(_event, data) => cfg.set("preview_mode", normalizePreviewMode(data.value))}
+              >
+                <option value="internal">{t("settings.preview_mode.internal")}</option>
+                <option value="system">{t("settings.preview_mode.system")}</option>
+              </Select>
             </SettingCard>
             <SettingCard icon={ArrowSync20Regular} title={t("settings.retries.title")} content={t("settings.retries.content")}>
               <SliderField

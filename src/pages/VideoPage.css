@@ -60,14 +60,6 @@
   gap: 12px;
 }
 
-/* 模型的标题在控件上方 */
-.video__field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
 /* 参数行里的一格：标题在左不换行，控件占满剩下的宽度 */
 .video__inline {
   display: flex;
@@ -94,23 +86,29 @@
   white-space: nowrap;
 }
 
-/* 窗口不够宽时并行任务那一组换到下一行，不截字 */
+.video__retry,
+.video__retry label {
+  flex: none;
+  white-space: nowrap;
+}
+
 .video__row--retry {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  row-gap: 6px;
 }
 
 .video__parallel {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .video__slider {
   flex: none;
-  width: 200px;
+  width: 180px;
 }
 
 .video__parallel-value {
@@ -133,8 +131,9 @@
   display: flex;
   flex: 1;
   gap: 15px;
-  /* 不跟着窗口一直缩下去，留出一个还能用的最小高度，与源项目在最小窗口下的高度相当 */
-  min-height: 120px;
+  /* 保证上下两块（提示词至少三行 + 参考视频/音频区）都有可用高度，窗口过矮时交由 .video__main 纵向滚动 */
+  min-height: 260px;
+  overflow: hidden;
 }
 
 .video__prompt-column {
@@ -149,7 +148,6 @@
 .video__prompt {
   flex: 1;
   min-width: 0;
-  min-height: 0;
 }
 
 .video__video-refs {
@@ -200,6 +198,7 @@
 .video__section-title {
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .video__tools {
@@ -207,9 +206,10 @@
   gap: 2px;
 }
 
-/* 参考图区占剩下的高度（伸展系数 2），参考音频区在下面按内容定高度 */
-.video__drop {
-  flex: 2;
+/* 参考图区与参考音频区按 1:1 上下平分，与右栏的提示词/参考视频对齐，均随容器收缩、内部滚动 */
+.video__drop,
+.video__audio-drop {
+  flex: 1;
   min-width: 0;
   min-height: 0;
 }

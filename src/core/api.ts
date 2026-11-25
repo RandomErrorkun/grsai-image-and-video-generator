@@ -215,7 +215,6 @@ export function buildGeneratePayload(params: GenerateParams): Record<string, unk
       if (params.firstFrame) payload.firstFrame = params.firstFrame;
       if (params.lastFrame) payload.lastFrame = params.lastFrame;
     }
-    // 参考视频：上游开放后按文档接入，目前所有模型的上限都是 0
     // 参考视频：每个视频是一个对象，url 必带；agnes-video-2.5 另带起始秒数和是否必须有音轨，
     // wan-3.0 只有 url。两项接口文档（2026-11-25）都是这么写的，源项目预留的是字符串数组。
     const refVideos = orEmpty(params.refVideos);
@@ -485,6 +484,26 @@ export function parseTaskResult(status: number, text: string): TaskResultQuery {
   }
   const summary = pyStr(data).slice(0, 200);
   return { code: -1, error: status === 200 ? summary : `HTTP ${status}: ${summary}` };
+}
+
+/**
+ * 判定 /v1/api/result 响应是否表明任务不存在或已过期（超过 2 小时查询有效期）。
+ * 404 直接视为任务不存在/过期；400 且未带任务状态/id 时若提示不存在或过期也视为过期。
+ */
+export function isTaskNotFoundResponse(status: number, text: string): boolean {
+  if (status === 404) return true;
+  if (status !== 400) return false;
+  const data = parseJsonObject(text);
+  if (data && data.id && data.status) return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("not exist") ||
+    lower.includes("not found") ||
+    lower.includes("expired") ||
+    lower.includes("不存在") ||
+    lower.includes("过期") ||
+    !data
+  );
 }
 
 const REASON_PHRASES: Readonly<Record<number, string>> = {

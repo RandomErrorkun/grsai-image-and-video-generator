@@ -1,0 +1,291 @@
+/* 软件内媒体预览灯箱：全窗口半透明暗底浮层，顶部文件名与关闭键，底部居中悬浮工具栏 */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.84);
+  color: #f3f3f3;
+  user-select: none;
+}
+
+.lightbox__header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 14px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.lightbox__filename {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightbox__stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lightbox__canvas-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transform-origin: center center;
+}
+
+.lightbox__canvas-wrap:active {
+  cursor: grabbing;
+}
+
+.lightbox__media {
+  display: block;
+  max-width: 88vw;
+  max-height: calc(100vh - 130px);
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.lightbox__video {
+  display: block;
+  max-width: 90vw;
+  max-height: calc(100vh - 130px);
+  border-radius: 4px;
+  background: #000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.lightbox__toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  align-self: center;
+  max-width: calc(100vw - 24px);
+  margin: 10px 12px 14px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(28, 28, 28, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.lightbox__toolbar--video {
+  width: min(780px, calc(100vw - 24px));
+}
+
+.lightbox .lightbox__icon-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  color: #f3f3f3;
+}
+
+.lightbox .lightbox__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.lightbox__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.lightbox__badge,
+.lightbox__time {
+  padding: 0 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #e0e0e0;
+}
+
+.lightbox__fps {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  padding: 0 3px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: #e0e0e0;
+}
+
+.lightbox__fps-step {
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #f3f3f3;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox__fps-step:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.lightbox__fps-input {
+  width: 46px;
+  padding: 0 2px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.lightbox__fps-input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.lightbox__fps-preset-btn {
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0 3px 3px 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lightbox__fps-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.lightbox__fps-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 1020;
+  display: flex;
+  flex-direction: column;
+  min-width: 96px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(32, 32, 32, 0.96);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.lightbox__fps-option {
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #f3f3f3;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lightbox__fps-option:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lightbox__fps-option--active {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.lightbox__zoom-badge {
+  min-width: 48px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #f3f3f3;
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.lightbox__zoom-badge:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lightbox__seek {
+  flex: 1;
+  min-width: 80px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lightbox__volume {
+  width: 72px;
+  flex: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lightbox__menu {
+  position: fixed;
+  z-index: 1010;
+  min-width: 196px;
+  padding: 4px;
+  border: 1px solid var(--nav-menu-border);
+  border-radius: 6px;
+  background: var(--nav-menu-bg);
+  color: var(--text-primary);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.32);
+}
+
+.lightbox__menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lightbox__menu-item:hover {
+  background: var(--nav-hover);
+}

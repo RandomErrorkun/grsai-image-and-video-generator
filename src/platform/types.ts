@@ -48,6 +48,8 @@ export interface FileSystemApi {
   remove(path: string): Promise<void>;
   /** 把 path 改名为 backup；backup 已存在时先删掉它。 */
   replaceWithBackup(path: string, backup: string): Promise<void>;
+  /** 计算本地文件的 SHA-256（小写十六进制），用于校验历史结果文件是否被替换。 */
+  sha256(path: string): Promise<string>;
 }
 
 export interface HttpApi {
@@ -87,6 +89,8 @@ export type ClipboardSnapshot =
 
 export interface ClipboardApi {
   read(): Promise<ClipboardSnapshot>;
+  /** 把 RGBA 像素数据写入系统剪贴板。 */
+  writeImage(rgba: Uint8Array, width: number, height: number): Promise<void>;
 }
 
 export interface DragDropEvent {

@@ -49,6 +49,8 @@ export const DEFAULT_CONFIG = {
   submit_concurrency: 3,
   // 主题色，#RRGGBB。源项目写死 #0078D4，这里做成可调，重写版新增的键
   accent_color: "#0078D4",
+  // 媒体预览方式："internal" 软件内部灯箱预览（默认） | "system" 系统默认程序打开。重写版新增的键
+  preview_mode: "internal",
   theme: "auto",
   language: "en",
   text_format_enabled: true,

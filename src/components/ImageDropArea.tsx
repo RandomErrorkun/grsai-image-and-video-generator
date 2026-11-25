@@ -4,13 +4,14 @@
  * 标题栏上的粘贴、清空按钮在源项目里属于页面，这里只提供 pasteFromClipboard 和 clearImages 两个动作。
  */
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type MouseEvent } from "react";
-import { Button } from "@fluentui/react-components";
-import { Dismiss20Regular } from "@fluentui/react-icons";
+import { Button, Tooltip } from "@fluentui/react-components";
+import { Dismiss20Regular, Eye20Regular } from "@fluentui/react-icons";
 import { tr } from "../i18n";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
 import type { ClipboardSnapshot } from "../platform/types";
+import { openPreview } from "../state/preview";
 import { isDragOver, isPasteShortcut, isSupportedImage, parseFileFilter, pickOnce, pickPasteTarget, planSlots } from "./dropAreaLogic";
 import type { ImageDropAreaProps } from "./dropAreaTypes";
 import { MediaThumb, isAnimatedImage } from "./MediaThumb";
@@ -222,6 +223,11 @@ function ImageThumbnail({ path, onRemove }: ImageThumbnailProps) {
     onRemove(path);
   };
 
+  const onPreviewClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    openPreview(path);
+  };
+
   return (
     <div className="image-thumb" role="listitem">
       <div className="image-thumb__frame" style={{ aspectRatio: String(image?.ratio ?? 1) }}>
@@ -253,6 +259,16 @@ function ImageThumbnail({ path, onRemove }: ImageThumbnailProps) {
         aria-label={t("drop.remove_image")}
         onClick={onRemoveClick}
       />
+      <Tooltip content={t("preview.tooltip_preview")} relationship="label">
+        <Button
+          appearance="transparent"
+          size="small"
+          className="image-thumb__preview"
+          icon={<Eye20Regular />}
+          aria-label={t("preview.tooltip_preview")}
+          onClick={onPreviewClick}
+        />
+      </Tooltip>
     </div>
   );
 }

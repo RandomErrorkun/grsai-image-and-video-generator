@@ -57,38 +57,53 @@
 .generator__field {
   display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
-/* 透明背景的勾选框没有标题，贴着这一行的底边排，与另一侧的下拉框对齐 */
-.generator__field--end {
-  justify-content: flex-end;
+.generator__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.generator__control > * {
+  width: 100%;
+  min-width: 0;
 }
 
 .generator__caption {
+  flex: none;
   color: var(--text-secondary);
   font-size: 12px;
+  white-space: nowrap;
 }
 
-/* 窗口不够宽时并行任务那一组换到下一行，不截字 */
+.generator__checkbox,
+.generator__retry,
+.generator__checkbox label,
+.generator__retry label {
+  flex: none;
+  white-space: nowrap;
+}
+
 .generator__row--retry {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  row-gap: 6px;
 }
 
 .generator__parallel {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .generator__slider {
   flex: none;
-  width: 200px;
+  width: 180px;
 }
 
 .generator__parallel-value {
@@ -107,8 +122,8 @@
   display: flex;
   flex: 1;
   gap: 15px;
-  /* 不跟着窗口一直缩下去，留出一个还能用的最小高度，与源项目在最小窗口下的高度相当 */
-  min-height: 120px;
+  /* 保证提示词至少有三行文字高度，窗口过矮时交由 .generator__main 纵向滚动 */
+  min-height: 150px;
 }
 
 .generator__images {
@@ -130,6 +145,7 @@
 .generator__section-title {
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .generator__tools {

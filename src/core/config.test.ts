@@ -29,6 +29,7 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 const REWRITE_ONLY_KEYS = [
   "submit_concurrency",
   "accent_color",
+  "preview_mode",
   "comic_custom_chat_base_url",
   "comic_custom_chat_endpoint",
   "comic_custom_chat_api_key",

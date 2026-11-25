@@ -27,14 +27,10 @@ export const NAV_LABEL_KEY: Record<PageKey, string> = {
 
 /**
  * 导航栏的显示方式：
- * compact  是默认的 48 像素纯图标栏；
- * expanded 是窗口够宽时原地展开，把页面内容往右推；
- * menu     是窗口不够宽时展开成盖在页面上的浮层，点外面收起。
+ * compact 是默认的 48 像素纯图标栏；
+ * menu    是展开成盖在页面上的浮层，点外面或按 Esc 收起。
  */
-export type NavMode = "compact" | "expanded" | "menu";
-
-/** 窗口宽度达到这个值，导航才能原地展开（对应原件的 minimumExpandWidth + expandWidth - 322）。 */
-export const NAV_MIN_EXPAND_WIDTH = 1008;
+export type NavMode = "compact" | "menu";
 
 export type ThemeMode = "auto" | "light" | "dark";
 
