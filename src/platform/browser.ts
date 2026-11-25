@@ -22,9 +22,11 @@ const noop = (): Promise<void> => Promise.resolve();
 const SAMPLES = {
   image: ["ref_01.png", "ref_02.png", "ref_03.png"],
   audio: ["voice_01.wav", "voice_02.wav"],
+  video: ["clip_01.mp4", "clip_02.mp4"],
 };
 const AUDIO_EXTENSIONS = new Set(["mp3", "wav", "m4a", "aac", "flac", "ogg"]);
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg"]);
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov", "m4v", "mkv"]);
 
 const fs = createMemoryFs(paths, DATA_DIR);
 
@@ -36,7 +38,7 @@ function mimeForPath(path: string): string {
   const extension = paths.splitExt(path)[1].replace(/^\./, "").toLowerCase();
   if (extension === "jpg") return "image/jpeg";
   if (IMAGE_EXTENSIONS.has(extension)) return `image/${extension}`;
-  if (extension === "mp4") return "video/mp4";
+  if (VIDEO_EXTENSIONS.has(extension)) return `video/${extension === "mov" ? "quicktime" : extension}`;
   if (extension === "mp3") return "audio/mpeg";
   if (AUDIO_EXTENSIONS.has(extension)) return `audio/${extension}`;
   return "application/octet-stream";
@@ -186,13 +188,19 @@ function placeholderUrl(path: string): string {
   return "";
 }
 
-async function ensureSamples(kind: "image" | "audio"): Promise<string[]> {
+async function ensureSamples(kind: "image" | "audio" | "video"): Promise<string[]> {
   const result: string[] = [];
   for (const name of SAMPLES[kind]) {
     const path = paths.join(DATA_DIR, "samples", name);
     result.push(path);
     if (mediaUrls.has(mediaKey(path))) continue;
-    const bytes = kind === "audio" ? sampleWav() : await sampleImage(paths.splitExt(name)[0]);
+    const bytes =
+      kind === "audio"
+        ? sampleWav()
+        : kind === "video"
+          ? // 假视频放一段说明文字，浏览器解不了码，界面会走它的占位分支
+            new TextEncoder().encode("mock video for the browser preview")
+          : await sampleImage(paths.splitExt(name)[0]);
     await storeBytes(bytes, path);
   }
   return result;
@@ -301,7 +309,12 @@ export const browserPlatform: Platform = {
   dialog: {
     async pickFiles(options = {}) {
       const extensions = (options.filters ?? []).flatMap((filter) => filter.extensions);
-      const kind = extensions.some((extension) => AUDIO_EXTENSIONS.has(extension.toLowerCase())) ? "audio" : "image";
+      const lowered = extensions.map((extension) => extension.toLowerCase());
+      const kind = lowered.some((extension) => VIDEO_EXTENSIONS.has(extension))
+        ? "video"
+        : lowered.some((extension) => AUDIO_EXTENSIONS.has(extension))
+          ? "audio"
+          : "image";
       const files = await ensureSamples(kind);
       return options.multiple ? files : files.slice(0, 1);
     },

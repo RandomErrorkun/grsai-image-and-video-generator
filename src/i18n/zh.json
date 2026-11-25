@@ -210,5 +210,17 @@
   "history.open_result": "打开文件",
   "history.confirm_yes": "是",
   "history.confirm_no": "否",
-  "drop.remove_image": "移除图片"
+  "drop.remove_image": "移除图片",
+  "video.reference_videos": "参考视频",
+  "video.add_video": "点击添加参考视频（最多 {max} 个）",
+  "video.column.video_start": "起始秒数",
+  "video.column.video_audio": "音轨",
+  "video.tooltip.preview_video": "用系统播放器打开",
+  "video.tooltip.remove_video": "移除这条视频",
+  "video.msg.video_limit_reached": "参考视频最多 {max} 个。",
+  "video.msg.video_limit_skipped": "参考视频最多 {max} 个，跳过了 {count} 个。",
+  "video.msg.video_total_too_long": "参考视频总长 {total} 秒，这个模型最多允许 {max} 秒。",
+  "video.msg.video_start_invalid": "起始秒数必须是 0 到 {max} 之间的整数。",
+  "video.dialog.open_videos": "打开视频",
+  "video.dialog.video_filter": "视频文件 (*.mp4)"
 }

@@ -1,0 +1,12 @@
+/* 滚动文字：外层裁切，内层平移。动画本身由 MarqueeText 用动画接口生成 */
+
+.marquee {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.marquee__text {
+  display: inline-block;
+}

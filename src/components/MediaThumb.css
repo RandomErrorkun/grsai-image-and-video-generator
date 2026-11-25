@@ -1,0 +1,18 @@
+/* 缩略图：图片、视频和画出来的 gif 第一帧都按封面裁切填满 */
+
+.media-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.media-thumb-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 25%;
+  color: var(--text-secondary);
+  box-sizing: border-box;
+}

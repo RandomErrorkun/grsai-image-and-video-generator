@@ -31,6 +31,7 @@ import { notice } from "../components/Notice";
 import { useConfigValue } from "../hooks/useConfigValue";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
+import { MediaThumb } from "../components/MediaThumb";
 import { runAsync } from "../platform/async";
 import { requestRestore } from "../state/restore";
 import { openHistory } from "../state/services";
@@ -165,7 +166,7 @@ function Thumbnail({ path, video }: ThumbnailProps) {
   }, [video]);
 
   useEffect(() => {
-    if (!near || video) return;
+    if (!near) return;
     let cancelled = false;
     const settle = () => {
       if (!cancelled) setAllowed(true);
@@ -175,29 +176,22 @@ function Thumbnail({ path, video }: ThumbnailProps) {
     return () => {
       cancelled = true;
     };
-  }, [near, video, path]);
+  }, [near, path]);
 
   const noImage = <span className="history-item__thumb-text">{t("history.no_image")}</span>;
   let content: ReactNode;
   if (presence === "missing") {
     content = noImage;
-  } else if (video) {
-    content = <Video20Regular className="history-item__video" />;
   } else if (presence === "present" && near && allowed) {
-    content = broken ? (
-      noImage
-    ) : (
-      <img
-        className="history-item__image"
-        src={platform.media.url(path)}
-        alt=""
-        draggable={false}
-        decoding="async"
-        onError={() => setBroken(true)}
-      />
-    );
+    // gif 只显示第一帧，视频显示第一帧
+    content = broken ? noImage : <MediaThumb path={path} className="history-item__image" onBroken={() => setBroken(true)} />;
   } else {
-    content = <span className="history-item__thumb-text">...</span>;
+    // 还没滚到附近或者还没放行：视频先用图标占位，其余用省略号
+    content = video ? (
+      <Video20Regular className="history-item__video" />
+    ) : (
+      <span className="history-item__thumb-text">...</span>
+    );
   }
 
   return (

@@ -210,5 +210,17 @@
   "history.open_result": "Open file",
   "history.confirm_yes": "Yes",
   "history.confirm_no": "No",
-  "drop.remove_image": "Remove image"
+  "drop.remove_image": "Remove image",
+  "video.reference_videos": "Reference Videos",
+  "video.add_video": "Click to add video (Max {max})",
+  "video.column.video_start": "Start (s)",
+  "video.column.video_audio": "Audio",
+  "video.tooltip.preview_video": "Open with the system player",
+  "video.tooltip.remove_video": "Remove this video",
+  "video.msg.video_limit_reached": "Maximum {max} reference videos allowed.",
+  "video.msg.video_limit_skipped": "Maximum {max} reference videos allowed. {count} file(s) were skipped.",
+  "video.msg.video_total_too_long": "Reference videos add up to {total} seconds; this model allows {max} seconds in total.",
+  "video.msg.video_start_invalid": "The start second must be a whole number between 0 and {max}.",
+  "video.dialog.open_videos": "Open videos",
+  "video.dialog.video_filter": "Video files (*.mp4)"
 }

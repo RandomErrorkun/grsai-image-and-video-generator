@@ -5,11 +5,12 @@
  */
 import { useEffect, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Button, Tooltip } from "@fluentui/react-components";
-import { ArrowSync20Regular, Video20Regular } from "@fluentui/react-icons";
+import { ArrowSync20Regular } from "@fluentui/react-icons";
 import { useTaskCards } from "../hooks/useTaskList";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
+import { MediaThumb } from "./MediaThumb";
 import { taskStatusText, type TaskCard, type TaskList as TaskListModel } from "../state/taskList";
 import "./TaskList.css";
 
@@ -120,10 +121,12 @@ function ResultButton({ card, onRegenerate }: { card: TaskCard; onRegenerate: ()
         onClick={openResult}
         onContextMenu={openMenu}
       >
-        {card.mediaType === "video" ? (
-          <Video20Regular className="task-card__result-icon" />
-        ) : ready && path ? (
-          <img className="task-card__thumbnail" src={platform.media.url(path)} alt="" draggable={false} />
+        {ready && path ? (
+          <MediaThumb
+            path={path}
+            className="task-card__thumbnail"
+            alt={card.mediaType === "video" ? "Play video" : "Open result"}
+          />
         ) : null}
       </button>
       {menu ? (

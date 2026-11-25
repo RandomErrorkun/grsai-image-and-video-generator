@@ -12,6 +12,7 @@ import { platform } from "../platform";
 import { runAsync } from "../platform/async";
 import { formatDuration, isDragOver, isSupportedAudio, normalizePath, parseFileFilter, pickOnce, planSlots } from "./dropAreaLogic";
 import type { AudioDropAreaProps } from "./dropAreaTypes";
+import { MarqueeText } from "./MarqueeText";
 import { notice } from "./Notice";
 import "./AudioDropArea.css";
 
@@ -397,7 +398,9 @@ function AudioRow({ path, durationMs, current, onToggle, onStop, onRemove }: Aud
   const playLabel = current ? t("audio.tooltip.pause") : t("audio.tooltip.play");
   return (
     <tr>
-      <td title={path}>{platform.paths.basename(path)}</td>
+      <td title={path}>
+          <MarqueeText text={platform.paths.basename(path)} />
+        </td>
       <td title={t("audio.column.duration")}>{formatDuration(durationMs)}</td>
       <td>
         <div className="audio-drop-area__actions">

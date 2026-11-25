@@ -79,7 +79,8 @@
   border-radius: 8px;
 }
 
-.image-thumb__frame img {
+.image-thumb__frame img,
+.image-thumb__frame .image-thumb__still {
   position: absolute;
   inset: 0;
   display: block;

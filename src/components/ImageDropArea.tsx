@@ -13,6 +13,7 @@ import { runAsync } from "../platform/async";
 import type { ClipboardSnapshot } from "../platform/types";
 import { isDragOver, isPasteShortcut, isSupportedImage, parseFileFilter, pickOnce, pickPasteTarget, planSlots } from "./dropAreaLogic";
 import type { ImageDropAreaProps } from "./dropAreaTypes";
+import { MediaThumb, isAnimatedImage } from "./MediaThumb";
 import { notice } from "./Notice";
 import "./ImageDropArea.css";
 
@@ -225,18 +226,23 @@ function ImageThumbnail({ path, onRemove }: ImageThumbnailProps) {
     <div className="image-thumb" role="listitem">
       <div className="image-thumb__frame" style={{ aspectRatio: String(image?.ratio ?? 1) }}>
         {image ? (
-          <img
-            src={image.src}
-            alt=""
-            draggable={false}
-            onLoad={(event) => {
-              const { naturalWidth, naturalHeight } = event.currentTarget;
-              setImage((current) =>
-                current && naturalHeight > 0 ? { ...current, ratio: naturalWidth / naturalHeight } : current,
-              );
-            }}
-            onError={() => setImage(null)}
-          />
+          isAnimatedImage(path) ? (
+            // gif 当参考图时只显示第一帧，免得满屏都在动
+            <MediaThumb path={path} className="image-thumb__still" />
+          ) : (
+            <img
+              src={image.src}
+              alt=""
+              draggable={false}
+              onLoad={(event) => {
+                const { naturalWidth, naturalHeight } = event.currentTarget;
+                setImage((current) =>
+                  current && naturalHeight > 0 ? { ...current, ratio: naturalWidth / naturalHeight } : current,
+                );
+              }}
+              onError={() => setImage(null)}
+            />
+          )
         ) : null}
       </div>
       <Button
