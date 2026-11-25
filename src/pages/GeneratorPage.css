@@ -1,0 +1,151 @@
+/* 生成页。尺寸取自源项目的 GeneratorPage（对照离屏截图量过）：
+   页边距 20，左右两栏 2:1、间隔 20；左栏自上而下是选项卡、参数卡、素材区和提示词、生成按钮，间隔 15；
+   参数卡内边距 10、行距 10、两列间隔 12，标题与控件间隔 4 */
+
+.generator {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  color: var(--text-primary);
+}
+
+.generator__main,
+.generator__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.generator__main {
+  flex: 2;
+  gap: 15px;
+  /* 窗口最小、参数卡又最高（GPT Image 的 vip 系带档位和输出格式）时整栏放不下：
+     让左栏自己滚动，生成按钮不会被外壳裁掉 */
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.generator__side {
+  flex: 1;
+  gap: 10px;
+}
+
+.generator__tasks {
+  flex: 1;
+}
+
+/* ---------- 参数卡 ---------- */
+
+.generator__card {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 5px;
+  background: var(--card-bg);
+}
+
+.generator__row {
+  display: flex;
+  gap: 12px;
+}
+
+.generator__field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 透明背景的勾选框没有标题，贴着这一行的底边排，与另一侧的下拉框对齐 */
+.generator__field--end {
+  justify-content: flex-end;
+}
+
+.generator__caption {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* 窗口不够宽时并行任务那一组换到下一行，不截字 */
+.generator__row--retry {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+}
+
+.generator__parallel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.generator__slider {
+  flex: none;
+  width: 200px;
+}
+
+.generator__parallel-value {
+  width: 24px;
+}
+
+.generator__hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* ---------- 参考图和提示词 ---------- */
+
+.generator__middle {
+  display: flex;
+  flex: 1;
+  gap: 15px;
+  /* 不跟着窗口一直缩下去，留出一个还能用的最小高度，与源项目在最小窗口下的高度相当 */
+  min-height: 120px;
+}
+
+.generator__images {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.generator__images-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.generator__section-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.generator__tools {
+  display: flex;
+  gap: 2px;
+}
+
+.generator__drop,
+.generator__prompt {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- 生成按钮 ---------- */
+
+.generator__generate {
+  flex: none;
+  height: 45px;
+  border-radius: 5px;
+}
