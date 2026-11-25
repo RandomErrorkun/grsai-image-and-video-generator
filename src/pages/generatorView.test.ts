@@ -140,11 +140,12 @@ describe("generatorView", () => {
     expect(cfg.get("gpt_image_tier", "")).toBe("4K");
     expect(cfg.get("gpt_transparent_background", false)).toBe(true);
 
-    // 输出格式只在接口给这个参数的模型上带；记录的值不在选项里落到第一项
+    // 输出格式只在接口给这个参数的模型上带；记录的值不在选项里落到第一项。
+    // 两个 2.6 变体的第一项是 png（GPT Image 接口文档，2026-11-25 核对），源项目记的是只有 gif
     state = changeModel(state, "gpt-image-2.6-flare", cfg);
-    expect(state.format).toBe("gif");
-    expect(taskParams(state, cfg)).toMatchObject({ outputFormat: "gif" });
-    expect(cfg.get("gpt_image_output_format", "")).toBe("gif");
+    expect(state.format).toBe("png");
+    expect(taskParams(state, cfg)).toMatchObject({ outputFormat: "png" });
+    expect(cfg.get("gpt_image_output_format", "")).toBe("png");
   });
 
   it("submits parallel × variants tasks", () => {

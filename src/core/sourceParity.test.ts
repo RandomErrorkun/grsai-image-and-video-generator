@@ -52,6 +52,33 @@ function withoutRewriteKeys(config: Record<string, unknown>): Record<string, unk
   return copy;
 }
 
+/**
+ * 有意不跟源项目走的地方。样本文件照旧是源项目算出来的结果，这里只在比对前改命中的用例的期望值。
+ * 每一条都要写明依据和核对日期，新增时照这个格式登记。
+ */
+const KNOWN_DIVERGENCES: Array<{
+  where: (params: Record<string, unknown>) => boolean;
+  patch: Record<string, unknown> | ((params: Record<string, unknown>) => Record<string, unknown>);
+  reason: string;
+}> = [
+  {
+    where: (params) => params.model === "gpt-image-2.6-flare" || params.model === "gpt-image-2.6-sunburst",
+    patch: { outputFormat: "png" },
+    reason:
+      "GPT Image 接口文档（https://qmy27nhsd9.apifox.cn/452409160e0，2026-11-25 核对）：gif 由 gpt-image-2.6 和它的两个变体支持，默认 png。" +
+      "源项目把两个变体记成只支持 gif，取值不合法时也回退到 gif。",
+  },
+  {
+    where: (params) => params.model === "agnes-video-2.5" && Array.isArray(params.refVideos) && params.refVideos.length > 0,
+    patch: (params) => ({
+      videos: (params.refVideos as string[]).map((url) => ({ url, requireAudio: false })),
+    }),
+    reason:
+      "agnes-video 接口文档（https://qmy27nhsd9.apifox.cn/523334530e0，2026-11-25 核对）：videos 是对象数组，每项带 url、startSeconds 和 requireAudio。" +
+      "源项目预留的是字符串数组。",
+  },
+];
+
 describe("request payloads match the source project", () => {
   for (const sample of fixture.payloads) {
     const params: Record<string, unknown> = {};
@@ -65,13 +92,20 @@ describe("request payloads match the source project", () => {
     it(label, () => {
       const actual = buildGeneratePayload(params as unknown as GenerateParams) as Record<string, unknown> | null;
       // 视频模型不给种子时两边都随机取一个，只核对范围
-      const expected = sample.payload as Record<string, unknown> | null;
+      let expected = sample.payload as Record<string, unknown> | null;
       if (actual && "seed" in actual && (params.seed === null || params.seed === undefined)) {
         expect(Number.isInteger(actual.seed)).toBe(true);
         expect(actual.seed as number).toBeGreaterThanOrEqual(1);
         expect(actual.seed as number).toBeLessThanOrEqual(2 ** 31 - 1);
         delete actual.seed;
-        delete expected?.seed;
+        if (expected) {
+          expected = { ...expected };
+          delete expected.seed;
+        }
+      }
+      for (const divergence of KNOWN_DIVERGENCES) {
+        if (!expected || !divergence.where(params)) continue;
+        expected = { ...expected, ...(typeof divergence.patch === "function" ? divergence.patch(params) : divergence.patch) };
       }
       expect(actual).toEqual(expected);
     });

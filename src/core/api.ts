@@ -13,6 +13,7 @@ import {
   videoDefaultResolution,
   videoDurationBounds,
   videoDurationLimit,
+  videoModelSpec,
   videoResolutions,
   videoSupportsFrames,
 } from "./modelCatalog";
@@ -81,6 +82,14 @@ function jsonHeaders(apiKey: unknown): Record<string, string> {
   return { "Content-Type": "application/json", ...bearerHeaders(apiKey) };
 }
 
+/** 一个参考视频的附加参数；模型不同，用得上哪几项也不同，见模型表里的 videoFields。 */
+export interface VideoReferenceOption {
+  /** 从参考视频的第几秒开始读；不给按接口的默认值 0。 */
+  startSeconds?: number | null;
+  /** 是否要求参考视频必须带音轨。 */
+  requireAudio?: boolean;
+}
+
 export interface GenerateParams {
   prompt: string;
   model: string;
@@ -97,6 +106,8 @@ export interface GenerateParams {
   firstFrame?: string | null;
   lastFrame?: string | null;
   refVideos?: string[] | null;
+  /** 参考视频逐个的附加参数，与 refVideos 按下标对应。 */
+  videoOptions?: readonly VideoReferenceOption[] | null;
 }
 
 /** 旧模型名换成现行模型名。 */
@@ -205,7 +216,21 @@ export function buildGeneratePayload(params: GenerateParams): Record<string, unk
       if (params.lastFrame) payload.lastFrame = params.lastFrame;
     }
     // 参考视频：上游开放后按文档接入，目前所有模型的上限都是 0
-    if (truthy(params.refVideos)) payload.videos = params.refVideos;
+    // 参考视频：每个视频是一个对象，url 必带；agnes-video-2.5 另带起始秒数和是否必须有音轨，
+    // wan-3.0 只有 url。两项接口文档（2026-11-25）都是这么写的，源项目预留的是字符串数组。
+    const refVideos = orEmpty(params.refVideos);
+    if (refVideos.length > 0) {
+      const fields = videoModelSpec(model).videoFields ?? [];
+      payload.videos = refVideos.map((url, index) => {
+        const option = params.videoOptions?.[index];
+        const entry: Record<string, unknown> = { url };
+        if (fields.includes("startSeconds") && typeof option?.startSeconds === "number") {
+          entry.startSeconds = option.startSeconds;
+        }
+        if (fields.includes("requireAudio")) entry.requireAudio = option?.requireAudio === true;
+        return entry;
+      });
+    }
     return payload;
   }
 

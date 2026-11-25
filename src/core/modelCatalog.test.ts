@@ -122,8 +122,9 @@ describe("image model tables", () => {
     });
     expect(GPT_OUTPUT_FORMAT_OPTIONS).toEqual({
       "gpt-image-2.6": ["png", "gif", "svg"],
-      "gpt-image-2.6-flare": ["gif"],
-      "gpt-image-2.6-sunburst": ["gif"],
+      // 源项目记的是只有 gif；按 GPT Image 接口文档（2026-11-25 核对），两个变体支持 png 和 gif，默认 png
+      "gpt-image-2.6-flare": ["png", "gif"],
+      "gpt-image-2.6-sunburst": ["png", "gif"],
     });
     expect(GPT_PIXEL_ONLY_MODELS).toEqual([
       "gpt-image-2-vip",

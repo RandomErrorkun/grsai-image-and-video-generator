@@ -151,7 +151,7 @@ export const GPT_IMAGE_MODELS: readonly GptImageModelSpec[] = [
     qualities: ["auto", "low", "medium", "high"],
     pixelOnly: true,
     transparent: true,
-    outputFormats: ["gif"],
+    outputFormats: ["png", "gif"],
   },
   {
     id: "gpt-image-2.6-sunburst",
@@ -159,7 +159,7 @@ export const GPT_IMAGE_MODELS: readonly GptImageModelSpec[] = [
     qualities: ["auto", "low", "medium", "high"],
     pixelOnly: true,
     transparent: true,
-    outputFormats: ["gif"],
+    outputFormats: ["png", "gif"],
   },
 ];
 
@@ -277,6 +277,9 @@ export interface VideoConfigKeys {
   readonly duration: string;
 }
 
+/** 参考视频条目里可选的两个字段，按模型区分（依据 agnes-video 接口文档）。 */
+export type VideoReferenceField = "startSeconds" | "requireAudio";
+
 export interface VideoModelSpec {
   /** 模型名，原样发给接口。 */
   readonly id: string;
@@ -292,8 +295,12 @@ export interface VideoModelSpec {
   readonly defaultResolution: string;
   /** 接口是否提供 firstFrame / lastFrame（与 images、audios 互斥）。 */
   readonly supportsFrames: boolean;
-  /** 参考视频上限，0 表示暂不支持。 */
+  /** 参考视频上限，0 表示不支持。 */
   readonly maxVideos: number;
+  /** 每个参考视频除了 url 还带哪些字段：startSeconds 是从第几秒开始读，requireAudio 是是否必须有音轨。 */
+  readonly videoFields?: readonly VideoReferenceField[];
+  /** 参考视频总时长上限（秒）；不写表示文档没有限制。 */
+  readonly maxVideoSeconds?: number;
   /**
    * 源项目给老模型留的三个配置键，为了旧配置照常可用。新模型不写这一项：
    * 它的参数存成一条 JSON，键见 videoParamsKey。
@@ -334,7 +341,9 @@ export const VIDEO_MODELS: readonly VideoModelSpec[] = [
     defaultAspect: "16:9",
     defaultResolution: "720p",
     supportsFrames: true,
-    maxVideos: 0,
+    // 文档没写段数上限，界面先按 5 段收着
+    maxVideos: 5,
+    videoFields: ["startSeconds", "requireAudio"],
     configKeys: { aspect: "agnes_video_aspect_ratio", resolution: "agnes_video_resolution", duration: "agnes_video_duration" },
     hintKey: "video.hint_agnes",
   },
@@ -350,7 +359,9 @@ export const VIDEO_MODELS: readonly VideoModelSpec[] = [
     defaultAspect: "16:9",
     defaultResolution: "720p",
     supportsFrames: true,
-    maxVideos: 0,
+    // 最多 5 段且总时长不超过 15 秒；参考视频按秒计费
+    maxVideos: 5,
+    maxVideoSeconds: 15,
     configKeys: { aspect: "wan_video_aspect_ratio", resolution: "wan_video_resolution", duration: "wan_video_duration" },
     hintKey: "video.hint_wan",
   },
