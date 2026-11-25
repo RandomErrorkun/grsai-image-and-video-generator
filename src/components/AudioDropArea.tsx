@@ -269,8 +269,8 @@ export default function AudioDropArea({ ref, maxFiles, onChange, className }: Au
         filters: [parseFileFilter(tr("audio.dialog.filter"))],
       }),
     );
-    addFiles(picked, true);
-  }, [addFiles]);
+    addFilesInternal(picked, true);
+  }, [addFilesInternal]);
 
   useEffect(() => {
     // 拖放由平台层接管，网页收不到浏览器自己的 drop 事件
