@@ -10,7 +10,7 @@ import { tr } from "../i18n";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
-import { formatDuration, isDragOver, isSupportedAudio, normalizePath, parseFileFilter, planSlots } from "./dropAreaLogic";
+import { formatDuration, isDragOver, isSupportedAudio, normalizePath, parseFileFilter, pickOnce, planSlots } from "./dropAreaLogic";
 import type { AudioDropAreaProps } from "./dropAreaTypes";
 import { notice } from "./Notice";
 import "./AudioDropArea.css";
@@ -260,15 +260,17 @@ export default function AudioDropArea({ ref, maxFiles, onChange, className }: Au
     [allow, commit, probeNext],
   );
 
-  // 对应 open_file_dialog
+  // 对应 open_file_dialog；对话框开着时再点不开第二个
   const openFileDialog = useCallback(async () => {
-    const picked = await platform.dialog.pickFiles({
-      title: tr("audio.dialog.open_files"),
-      multiple: true,
-      filters: [parseFileFilter(tr("audio.dialog.filter"))],
-    });
-    addFilesInternal(picked, true);
-  }, [addFilesInternal]);
+    const picked = await pickOnce(() =>
+      platform.dialog.pickFiles({
+        title: tr("audio.dialog.open_files"),
+        multiple: true,
+        filters: [parseFileFilter(tr("audio.dialog.filter"))],
+      }),
+    );
+    addFiles(picked, true);
+  }, [addFiles]);
 
   useEffect(() => {
     // 拖放由平台层接管，网页收不到浏览器自己的 drop 事件

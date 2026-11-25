@@ -11,7 +11,7 @@ import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
 import type { ClipboardSnapshot } from "../platform/types";
-import { isDragOver, isPasteShortcut, isSupportedImage, parseFileFilter, pickPasteTarget, planSlots } from "./dropAreaLogic";
+import { isDragOver, isPasteShortcut, isSupportedImage, parseFileFilter, pickOnce, pickPasteTarget, planSlots } from "./dropAreaLogic";
 import type { ImageDropAreaProps } from "./dropAreaTypes";
 import { notice } from "./Notice";
 import "./ImageDropArea.css";
@@ -114,13 +114,15 @@ export default function ImageDropArea({ ref, maxImages, placeholderKey, onChange
     pasteSnapshot(await platform.clipboard.read());
   }, [pasteSnapshot]);
 
-  // 对应 mousePressEvent：点一下空白处就打开对话框
+  // 对应 mousePressEvent：点一下空白处就打开对话框；对话框开着时再点不开第二个
   const pickFiles = useCallback(async () => {
-    const picked = await platform.dialog.pickFiles({
-      title: tr("drop.dialog.open_files"),
-      multiple: true,
-      filters: [parseFileFilter(tr("drop.dialog.filter"))],
-    });
+    const picked = await pickOnce(() =>
+      platform.dialog.pickFiles({
+        title: tr("drop.dialog.open_files"),
+        multiple: true,
+        filters: [parseFileFilter(tr("drop.dialog.filter"))],
+      }),
+    );
     addImages(picked, true);
   }, [addImages]);
 

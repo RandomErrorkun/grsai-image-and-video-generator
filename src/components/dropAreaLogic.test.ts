@@ -10,6 +10,7 @@ import {
   isSupportedImage,
   normalizePath,
   parseFileFilter,
+  pickOnce,
   pickPasteTarget,
   planSlots,
 } from "./dropAreaLogic";
@@ -237,5 +238,36 @@ describe("粘贴目标", () => {
     const last = { visible: true, freeSlots: 1 };
     expect(pickPasteTarget([first, last])).toBe(first);
     expect(pickPasteTarget([{ visible: true, freeSlots: 0 }, last])).toBe(last);
+  });
+});
+
+describe("pickOnce", () => {
+  it("opens one dialog at a time and ignores a second click while the first is open", async () => {
+    let finishFirst: (paths: string[]) => void = () => {};
+    let opened = 0;
+    const open = () => {
+      opened += 1;
+      return new Promise<readonly string[]>((resolve) => {
+        finishFirst = resolve;
+      });
+    };
+    const first = pickOnce(open);
+    expect(await pickOnce(open)).toEqual([]);
+    expect(opened).toBe(1);
+    finishFirst(["a.png"]);
+    expect(await first).toEqual(["a.png"]);
+    // 关掉之后可以再开
+    finishFirst = (paths) => paths;
+    const third = pickOnce(async () => ["b.png"]);
+    expect(await third).toEqual(["b.png"]);
+  });
+
+  it("lets the next dialog open even when the first one fails", async () => {
+    await expect(
+      pickOnce(async () => {
+        throw new Error("broken");
+      }),
+    ).rejects.toThrow("broken");
+    expect(await pickOnce(async () => ["c.png"])).toEqual(["c.png"]);
   });
 });

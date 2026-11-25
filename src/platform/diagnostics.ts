@@ -3,8 +3,20 @@
  * 只在开发版输出，正式包里这一段整个被剔除。
  * 这里只打路径、状态码、任务号这类事实；不打配置内容、API key、请求头和请求体。
  */
+
+/** 上一行日志和它的发出时刻。同一行在极短时间里连着出现，多半是同一事件被多个订阅各报了一遍。 */
+let lastMessage = "";
+let lastAt = 0;
+
+const DUPLICATE_WINDOW_MS = 100;
+
 export function diag(message: string): void {
-  if (import.meta.env.DEV) console.info(`[diag] ${message}`);
+  if (!import.meta.env.DEV) return;
+  const now = Date.now();
+  if (message === lastMessage && now - lastAt < DUPLICATE_WINDOW_MS) return;
+  lastMessage = message;
+  lastAt = now;
+  console.info(`[diag] ${message}`);
 }
 
 /** 把一次 HTTP 调用的下场写成一行：标签、结果类型和状态码，不带地址里的查询串和响应内容。 */

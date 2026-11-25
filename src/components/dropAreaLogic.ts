@@ -153,3 +153,19 @@ export function pickPasteTarget<T extends { visible: boolean; freeSlots: number 
   const visible = candidates.filter((candidate) => candidate.visible);
   return visible.find((candidate) => candidate.freeSlots > 0) ?? visible[0];
 }
+
+let pickerBusy = false;
+
+/**
+ * 对话框开着的时候不再开第二个。双击或者见对话框没马上出来又点一下，会叠出两个对话框，
+ * 取消时两个一起返回，谁也没选上。整个应用同一时刻只开一个文件对话框。
+ */
+export async function pickOnce(open: () => Promise<readonly string[]>): Promise<readonly string[]> {
+  if (pickerBusy) return [];
+  pickerBusy = true;
+  try {
+    return await open();
+  } finally {
+    pickerBusy = false;
+  }
+}
