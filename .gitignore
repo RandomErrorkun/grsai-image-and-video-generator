@@ -41,3 +41,6 @@ api_docs/
 
 # Python bytecode from the helper scripts
 __pycache__/
+
+# The working handbook for the AI sessions stays in this folder as a local file only
+AGENTS.md
