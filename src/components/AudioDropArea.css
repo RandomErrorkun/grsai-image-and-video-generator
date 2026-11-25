@@ -1,0 +1,133 @@
+/* 参考音频区（源项目的 AudioDropArea）：空状态是一行 30 高的「点击添加」提示按钮；
+   有文件时是表格，表头 34（含上边线）、每行 30，高度按上限的行数留够，没放满也占着。
+   线色、表头字色、交替行底色取自组件库的 table_view 样式 */
+
+.audio-drop-area {
+  --audio-line: color-mix(in srgb, var(--text-primary) 5.9%, transparent);
+  --audio-header-text: var(--text-secondary);
+  --audio-stripe: color-mix(in srgb, var(--text-primary) 2%, transparent);
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 120ms ease-out;
+}
+
+:root[data-theme="dark"] .audio-drop-area {
+  --audio-line: color-mix(in srgb, var(--text-primary) 8.2%, transparent);
+  --audio-header-text: color-mix(in srgb, var(--text-primary) 80%, transparent);
+}
+
+/* 拖着文件悬在上方：强调色描边 */
+.audio-drop-area--dragover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+/* 选择器带上外层，压过 Fluent 按钮自己的高度和圆角 */
+.audio-drop-area .audio-drop-area__hint {
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 6px;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+/* 所有行共用的播放器，探时长也用它；只出声不出形 */
+.audio-drop-area__player {
+  display: none;
+}
+
+.audio-drop-area__table-wrap {
+  overflow: hidden;
+  border-radius: 7px;
+}
+
+.audio-drop-area__table {
+  width: 100%;
+  overflow: hidden;
+  border-spacing: 0;
+  /* 圆角要落在表格自己的边框上 */
+  border-collapse: separate;
+  border: 1px solid var(--audio-line);
+  border-radius: 8px;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+/* 源项目里这两列的固定宽度没生效，实际渲染出来各是默认的 100 */
+.audio-drop-area__col-duration,
+.audio-drop-area__col-actions {
+  width: 100px;
+}
+
+.audio-drop-area__table th {
+  height: 33px;
+  padding: 0 5px;
+  overflow: hidden;
+  border-right: 1px solid var(--audio-line);
+  border-bottom: 1px solid var(--audio-line);
+  color: var(--audio-header-text);
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.audio-drop-area__table th:last-child {
+  border-right: 0;
+}
+
+.audio-drop-area__table td {
+  height: 30px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.audio-drop-area__table td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-drop-area__table td:nth-child(2) {
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.audio-drop-area__table td:last-child {
+  padding: 0 0 0 6px;
+}
+
+/* 偶数行一层很淡的底色，悬停的行再深一点 */
+.audio-drop-area__table tbody tr:nth-child(odd) {
+  background: var(--audio-stripe);
+}
+
+.audio-drop-area__table tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.audio-drop-area__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.audio-drop-area .audio-drop-area__action {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}

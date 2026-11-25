@@ -1,0 +1,189 @@
+/* 设置页。版式取自源项目的 SettingCardGroup 和 SettingCard（qfluentwidgets 1.10.3）：
+   页面内边距 30、分组间距 20；分组标题 20 号字，标题下留 12；
+   卡片高 70、圆角 6、卡片间距 2；卡片里图标 16，图标两侧各留 16 */
+
+/* 页面本身只做宽度的参照（滑块按页面宽度的 60% 取），滚动交给里面一层。
+   卡片的底色和描边对应源项目 SettingCard.paintEvent：亮色下是 67% 的白和 7.5% 的黑 */
+.settings-page {
+  container-type: inline-size;
+  --settings-card-bg: color-mix(in srgb, var(--surface) 67%, transparent);
+  --settings-card-border: color-mix(in srgb, var(--text-primary) 7.5%, transparent);
+}
+
+/* 暗色下源项目画的是 5% 的白和 20% 的黑；现成的变量里没有纯黑，拿最深的窗口底色顶替 */
+:root[data-theme="dark"] .settings-page {
+  --settings-card-bg: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  --settings-card-border: color-mix(in srgb, var(--window-bg) 20%, transparent);
+}
+
+.settings-page__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  padding: 30px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.settings-group {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+.settings-group__title {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 28px;
+  user-select: none;
+}
+
+.settings-group__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 五列：图标、间隔、文字、间隔、控件。文字列至少 160 宽，剩下的先紧着控件 */
+.settings-card {
+  display: grid;
+  grid-template-columns: 16px 16px minmax(160px, 1fr) 16px minmax(0, auto);
+  align-items: center;
+  min-height: 70px;
+  padding: 10px 0 10px 16px;
+  border: 1px solid var(--settings-card-border);
+  border-radius: 6px;
+  background: var(--settings-card-bg);
+  user-select: none;
+}
+
+.settings-card__icon {
+  grid-column: 1;
+  width: 16px;
+  height: 16px;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.settings-card__text {
+  display: flex;
+  flex-direction: column;
+  grid-column: 3;
+  min-width: 0;
+}
+
+.settings-card__title {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 19px;
+}
+
+/* 源项目的说明文字不换行，窄窗口下会被卡片裁掉；这里让它折行 */
+.settings-card__content {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 15px;
+  overflow-wrap: anywhere;
+}
+
+.settings-card__control {
+  display: flex;
+  grid-column: 5;
+  align-items: center;
+  min-width: 0;
+  padding-right: 16px;
+}
+
+/* 下拉框和步进框 150 宽、输入框 300 宽，与源项目的 ComboBox、LineEdit 同宽 */
+.settings-card__select,
+.settings-card__number {
+  width: 150px;
+}
+
+.settings-card__input {
+  width: 300px;
+}
+
+/* 滑块卡片：数值在左，隔 10 像素是滑块。滑块占页面宽度的 60%、至少 100，与源项目的 resizeEvent 一致；
+   窄窗口放不下时可以先让出一些，文字列保住 160 宽 */
+.settings-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-slider__value {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+/* 字号那一张的数值框定宽 30，源项目是 setFixedWidth(30) */
+.settings-slider__value--fixed {
+  width: 30px;
+}
+
+.settings-slider__track {
+  flex: 0 1 auto;
+  min-width: 100px;
+  width: max(60cqi, 100px);
+}
+
+.settings-page__footer {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+}
+
+.settings-page__save {
+  width: 200px;
+}
+
+/* 主题色调色板：一排圆角色块，选中的那块带强调色描边 */
+
+.accent-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.accent-swatch {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.accent-swatch:hover {
+  transform: translateY(-1px);
+}
+
+.accent-swatch--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--window-bg) inset;
+}
+
+.accent-swatch--custom {
+  overflow: hidden;
+  background: conic-gradient(#e81123, #ffb900, #16c60c, #0078d4, #881798, #e81123);
+}
+
+.accent-swatch--custom input {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}

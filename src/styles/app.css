@@ -30,6 +30,12 @@
   --task-failed-bg: rgba(255, 0, 0, 0.1);
   --task-failed-border: rgb(255, 182, 193);
   --danger: rgb(232, 17, 35);
+  /* 页面里的大卡片：表单卡、任务列表卡。底色和边框取自源项目的 CardWidget */
+  --card-bg: rgb(255, 255, 255);
+  --card-border: rgba(0, 0, 0, 0.047);
+  /* 页面上方的分段条：选项卡或单行的标题条，取自源项目的 SegmentedWidget */
+  --segmented-bg: rgba(0, 0, 0, 0.0241);
+  --segmented-border: rgba(0, 0, 0, 0.0578);
 }
 
 :root[data-theme="dark"] {
@@ -54,6 +60,10 @@
   --task-success-border: rgb(144, 238, 144);
   --task-failed-bg: rgba(255, 255, 255, 0.1);
   --task-failed-border: rgb(255, 182, 193);
+  --card-bg: rgba(255, 255, 255, 0.06);
+  --card-border: rgba(0, 0, 0, 0.19);
+  --segmented-bg: rgba(0, 0, 0, 0.1);
+  --segmented-border: rgba(255, 255, 255, 0.08);
 }
 
 html {
