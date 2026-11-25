@@ -5,6 +5,7 @@
 import { DEFAULT_CONFIG } from "../core/config";
 import { cfg } from "./config";
 import { taskScheduler } from "./services";
+import { diag } from "../platform/diagnostics";
 import { TaskList } from "./taskList";
 
 const settings = () => ({
@@ -16,7 +17,7 @@ const create = () =>
   new TaskList({
     scheduler: taskScheduler,
     settings,
-    log: (message) => console.log(message),
+    log: diag,
   });
 
 export const generatorTasks = create();

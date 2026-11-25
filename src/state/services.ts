@@ -7,6 +7,7 @@ import { DEFAULT_CONFIG } from "../core/config";
 import { createHistoryStore, HISTORY_DB_FILE, type HistoryStore } from "../core/history";
 import { TaskScheduler } from "../core/tasks";
 import { platform } from "../platform";
+import { diag } from "../platform/diagnostics";
 import { cfg } from "./config";
 
 export function apiSettings(): ApiSettings {
@@ -80,6 +81,8 @@ export function taskScheduler(): TaskScheduler {
         query: (request) => platform.http.request(request),
         download: (url, destPath) => platform.http.download(url, destPath),
       },
+      // 调度器只在轮询出错和下载出错时写日志，实机测试时要能在日志文件里看到
+      log: diag,
     },
     { submitConcurrency: submitConcurrency },
   );

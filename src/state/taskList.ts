@@ -8,6 +8,7 @@
 import type { TaskEvent, TaskHandle, TaskScheduler, TaskSpec } from "../core/tasks";
 import { VIP_MODELS } from "../core/modelCatalog";
 import { VIDEO_MODEL_SET } from "../core/modelCatalog";
+import { diag } from "../platform/diagnostics";
 
 export type TaskMediaType = "image" | "video";
 
@@ -246,17 +247,20 @@ export class TaskList {
         this.update(index, { status: "submitting" });
         break;
       case "submitted":
+        diag(`task ${index} submitted: server id ${event.taskId}`);
         this.update(index, { status: "running", taskId: event.taskId, serverStatus: null, progress: 0 });
         break;
       case "progress":
         this.update(index, { status: "running", progress: event.progress, serverStatus: event.status });
         break;
       case "succeeded": {
+        diag(`task ${index} succeeded: ${event.resultPath ?? "(no file)"}`);
         const card = this.update(index, { status: "succeeded", resultPath: event.resultPath, progress: 100 });
         if (card) this.hooks.get(index)?.onSucceeded?.(card);
         break;
       }
       case "failed":
+        diag(`task ${index} failed (${event.failureReason}${event.delivery ? `, ${event.delivery}` : ""}): ${event.reason}`);
         this.fail(index, event);
         break;
     }
