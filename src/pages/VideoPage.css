@@ -1,0 +1,199 @@
+/* 视频页。尺寸取自源项目的 VideoPage（对照离屏截图量过）：
+   页边距 20，左右两栏 2:1、间隔 20；左栏自上而下是参数区（标题条和参数卡，间隔 10）、素材区和提示词、
+   生成按钮，间隔 15；参数卡内边距 10、行距 10、两格间隔 12，参数行里标题在控件左侧 */
+
+.video {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  color: var(--text-primary);
+}
+
+.video__main,
+.video__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.video__main {
+  flex: 2;
+  gap: 15px;
+  /* 窗口最小、参数卡又最高时整栏放不下：让左栏自己滚动，生成按钮不会被外壳裁掉 */
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.video__side {
+  flex: 1;
+  gap: 10px;
+}
+
+.video__tasks {
+  flex: 1;
+}
+
+/* ---------- 参数卡 ---------- */
+
+.video__settings {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video__card {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 5px;
+  background: var(--card-bg);
+}
+
+.video__row {
+  display: flex;
+  gap: 12px;
+}
+
+/* 模型的标题在控件上方 */
+.video__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 参数行里的一格：标题在左不换行，控件占满剩下的宽度 */
+.video__inline {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.video__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.video__control > * {
+  width: 100%;
+  min-width: 0;
+}
+
+.video__caption {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 窗口不够宽时并行任务那一组换到下一行，不截字 */
+.video__row--retry {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+}
+
+.video__parallel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.video__slider {
+  flex: none;
+  width: 200px;
+}
+
+.video__parallel-value {
+  width: 24px;
+  color: var(--text-primary);
+}
+
+/* 源项目给说明文字限了最大高度 64，超出部分不显示 */
+.video__hint {
+  margin: 0;
+  max-height: 64px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* ---------- 素材和提示词 ---------- */
+
+.video__middle {
+  display: flex;
+  flex: 1;
+  gap: 15px;
+  /* 不跟着窗口一直缩下去，留出一个还能用的最小高度，与源项目在最小窗口下的高度相当 */
+  min-height: 120px;
+}
+
+.video__prompt {
+  flex: 1;
+  min-width: 0;
+}
+
+.video__ref-column,
+.video__stack,
+.video__refs,
+.video__frames,
+.video__frame-slot {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 两块素材面板都常驻，按当前模式显示其中一块；隐藏的那块量不到尺寸，Ctrl+V 和拖放都不会落到它身上 */
+.video__stack--frames .video__refs,
+.video__stack:not(.video__stack--frames) .video__frames {
+  display: none;
+}
+
+.video__section-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.video__section-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.video__tools {
+  display: flex;
+  gap: 2px;
+}
+
+/* 参考图区占剩下的高度（伸展系数 2），参考音频区在下面按内容定高度 */
+.video__drop {
+  flex: 2;
+  min-width: 0;
+  min-height: 0;
+}
+
+.video__frame-drop {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---------- 生成按钮 ---------- */
+
+.video__generate {
+  flex: none;
+  height: 45px;
+  border-radius: 5px;
+}
