@@ -209,11 +209,12 @@ async fn write_body(response: &mut Response, dest: &Path) -> Result<(), String> 
             .await
             .map_err(|error| error.to_string())?;
     }
-    let mut file = tokio::fs::File::create(dest)
+    let file = tokio::fs::File::create(dest)
         .await
         .map_err(|error| error.to_string())?;
+    let mut writer = tokio::io::BufWriter::with_capacity(512 * 1024, file);
     while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
-        file.write_all(&chunk).await.map_err(|error| error.to_string())?;
+        writer.write_all(&chunk).await.map_err(|error| error.to_string())?;
     }
-    file.flush().await.map_err(|error| error.to_string())
+    writer.flush().await.map_err(|error| error.to_string())
 }

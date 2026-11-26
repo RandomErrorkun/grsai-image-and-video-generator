@@ -10,6 +10,7 @@ import { Add20Regular, ClipboardPaste20Regular, Delete20Regular } from "@fluentu
 import AudioDropArea from "../components/AudioDropArea";
 import type { AudioDropAreaHandle, ImageDropAreaHandle, VideoDropAreaHandle } from "../components/dropAreaTypes";
 import ImageDropArea from "../components/ImageDropArea";
+import { ModelAvailabilityButton, ModelDropdown } from "../components/ModelDropdown";
 import { notice } from "../components/Notice";
 import PromptWidget, { type PromptWidgetHandle } from "../components/PromptWidget";
 import { SegmentedHeader } from "../components/SegmentedHeader";
@@ -334,18 +335,14 @@ export default function VideoPage() {
           <div className="video__card">
             <div className="video__row">
               <InlineField caption={t("video.model")}>
-                <Select
+                <ModelDropdown
                   value={form.model}
-                  aria-label={t("video.model")}
-                  onChange={(_event, data) => onModelChange(data.value)}
-                >
-                  {VIDEO_MODEL_IDS.map((model) => (
-                    <option key={model} value={model}>
-                      {model}
-                    </option>
-                  ))}
-                </Select>
+                  models={VIDEO_MODEL_IDS}
+                  ariaLabel={t("video.model")}
+                  onChange={onModelChange}
+                />
               </InlineField>
+              <ModelAvailabilityButton />
             </div>
 
             <div className="video__row">

@@ -9,6 +9,7 @@ import { Button, Checkbox, Select, Slider, Tooltip } from "@fluentui/react-compo
 import { ClipboardPaste20Regular, Delete20Regular } from "@fluentui/react-icons";
 import ImageDropArea from "../components/ImageDropArea";
 import type { ImageDropAreaHandle } from "../components/dropAreaTypes";
+import { ModelAvailabilityButton, ModelDropdown } from "../components/ModelDropdown";
 import { notice } from "../components/Notice";
 import PromptWidget, { type PromptWidgetHandle } from "../components/PromptWidget";
 import { SegmentedHeader } from "../components/SegmentedHeader";
@@ -146,14 +147,14 @@ export default function GeneratorPage() {
         <div className="generator__card">
           <div className="generator__row">
             <Field caption={t("generator.model")}>
-              <Select
+              <ModelDropdown
                 value={form.model}
-                aria-label={t("generator.model")}
-                onChange={(_event, data) => setForm(changeModel(form, data.value, cfg))}
-              >
-                {options(tabModels(form.tab))}
-              </Select>
+                models={tabModels(form.tab)}
+                ariaLabel={t("generator.model")}
+                onChange={(model) => setForm(changeModel(form, model, cfg))}
+              />
             </Field>
+            <ModelAvailabilityButton />
           </div>
 
           {banana ? (

@@ -263,6 +263,24 @@ export function createMockHttp(deps: MockHttpDeps): HttpApi {
     if (path === GENERATE_PATH) return submit(request);
     if (path === RESULT_PATH) return query(request);
     if (path === CHAT_COMPLETIONS_PATH) return chat(request);
+    if (path === "/zh/models") {
+      const sample = JSON.stringify([
+        { name: "wan-3.0", type: "video", cost: 0, video: { "480p": 2700, "720p": 5400, "1080p": 10800 }, errorReturn: true, violationReturn: true, closeModel: false, maintenance: "" },
+        { name: "minimax-h3", type: "video", cost: 0, video: { "480p": 1000, "768p": 1400, "1080p": 3000 }, errorReturn: true, violationReturn: true, closeModel: false, maintenance: "" },
+        { name: "agnes-video-2.5", type: "video", cost: 0, video: { "720p": 2000, "1080p": 3400, "2k": 4600 }, errorReturn: true, violationReturn: true, closeModel: false, maintenance: "" },
+        { name: "nano-banana-pro", type: "image", cost: 1800, errorReturn: true, violationReturn: true, closeModel: false, maintenance: "" },
+        { name: "nano-banana-2-lite", type: "image", cost: 440, errorReturn: true, violationReturn: true, closeModel: true, maintenance: "该模型维护中" },
+        { name: "gpt-image-2.6", type: "image", cost: 600, errorReturn: true, violationReturn: true, closeModel: false, maintenance: "" },
+        { name: "gpt-image-2.6-sunburst", type: "image", cost: 2400, errorReturn: true, violationReturn: true, closeModel: true, maintenance: "该模型维护中" },
+      ]);
+      return responded(200, `1:["$","div",null,{"models":${sample}}]`);
+    }
+    if (path === "/zh/announcements" || path === "/en/announcements") {
+      return responded(
+        200,
+        `<article class="bg-emerald-500"><span class="bg-rose-50">最新</span><h3>wan-3.0 限时优惠活动已开启</h3><time>2026-11-20 11:53:00</time><p>模拟公告内容：支持参考视频与多分辨率。</p><a href="https://grsai.ai/zh/models">查看模型</a></article>`,
+      );
+    }
     return responded(404, { error: `mock: unknown path ${path}` });
   }
 

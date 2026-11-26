@@ -41,6 +41,7 @@
 .history__toolbar {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
   margin-bottom: 6px;
@@ -94,6 +95,57 @@
 
 .history-item:hover {
   background: var(--history-card-bg-hover);
+}
+
+.history-item--selected {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--history-card-bg));
+}
+
+.history-item__check {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-right: 4px;
+}
+
+.history-context-menu {
+  position: fixed;
+  z-index: 2000;
+  min-width: 156px;
+  padding: 4px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.history-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-context-menu__item:hover {
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+.history-context-menu__item--danger {
+  color: var(--history-failed);
+}
+
+.history-context-menu__item--danger:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
 .history-item__thumb {

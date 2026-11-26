@@ -21,13 +21,16 @@ import { useResolvedTheme, useThemeMode } from "./hooks/useAppTheme";
 import { useConfigValue } from "./hooks/useConfigValue";
 import { useTr } from "./hooks/useLanguage";
 import { normalizeLanguage, setLanguage } from "./i18n";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
 import ComicPage from "./pages/ComicPage";
 import GeneratorPage from "./pages/GeneratorPage";
 import HistoryPage from "./pages/HistoryPage";
 import SettingsPage from "./pages/SettingsPage";
+import UsagePage from "./pages/UsagePage";
 import VideoPage from "./pages/VideoPage";
 import { platform } from "./platform";
 import { runAsync } from "./platform/async";
+import { syncGrsaiSiteData } from "./state/announcements";
 import { cfg } from "./state/config";
 import { subscribeRestore } from "./state/restore";
 import { hasUnfinishedTasks, stopAllTasks } from "./state/taskLists";
@@ -43,6 +46,8 @@ const PAGE_COMPONENTS: Record<PageKey, ComponentType> = {
   video: VideoPage,
   comic: ComicPage,
   history: HistoryPage,
+  usage: UsagePage,
+  announcements: AnnouncementsPage,
   settings: SettingsPage,
 };
 
@@ -113,6 +118,11 @@ function Shell() {
     );
     setNavMode("compact");
   };
+
+  // 启动时静默同步一次 Grsai 官网的模型可用性、积分价目表与官方公告（纯内存缓存，不阻塞启动）
+  useEffect(() => {
+    runAsync(syncGrsaiSiteData({ force: true }));
+  }, []);
 
   // 历史页的「重新生成」：外壳只管切到目标页面，页面自己监听同一个请求回填参数
   useEffect(() => subscribeRestore((request) => navigate(request.page)), []);

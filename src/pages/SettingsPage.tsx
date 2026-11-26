@@ -8,6 +8,7 @@ import {
   ArrowSync20Regular,
   ArrowUpload20Regular,
   Color20Regular,
+  Delete20Regular,
   Edit20Regular,
   Eye20Regular,
   Folder20Regular,
@@ -15,6 +16,7 @@ import {
   Globe20Regular,
   History20Regular,
   PaintBrush20Regular,
+  Pulse20Regular,
   ShieldKeyhole20Regular,
   TextAlignLeft20Regular,
   TextFont20Regular,
@@ -22,6 +24,7 @@ import {
 import { notice } from "../components/Notice";
 import { buildModelsListRequest, parseModelsListResponse } from "../core/comicPlanner";
 import { DEFAULT_CONFIG } from "../core/config";
+import { resolveGrsaiSiteOrigin } from "../core/modelAvailability";
 import { VIP_MODELS } from "../core/modelCatalog";
 import { useAccentColor, useThemeMode } from "../hooks/useAppTheme";
 import { useConfigValue } from "../hooks/useConfigValue";
@@ -29,11 +32,13 @@ import { useTr } from "../hooks/useLanguage";
 import { languageItems, normalizeLanguage, translate } from "../i18n";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
+import { syncGrsaiSiteData } from "../state/announcements";
 import { cfg } from "../state/config";
 import { normalizePreviewMode } from "../state/preview";
 import { resolveOutputFolder } from "../state/services";
 import { ACCENT_PALETTE } from "../theme";
 import {
+  EMPTY_CUSTOM_CHAT_CONFIG,
   FONT_FAMILIES,
   FONT_SIZE_RANGE,
   HISTORY_ITEMS_RANGE,
@@ -159,9 +164,42 @@ export default function SettingsPage() {
   const outputFolder = readText(useConfigValue("output_folder", DEFAULT_CONFIG.output_folder), DEFAULT_CONFIG.output_folder);
   const [customModels, setCustomModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
+  const [fetchingSiteData, setFetchingSiteData] = useState(false);
 
   const update = <K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
+
+  const fetchGrsaiSiteData = async (siteUrl: string) => {
+    if (fetchingSiteData) return;
+    setFetchingSiteData(true);
+    try {
+      const { models, announcements } = await syncGrsaiSiteData({ force: true, siteUrl });
+      const modelsOk = models.kind === "ok";
+      const annOk = announcements.kind === "ok";
+      if (modelsOk || annOk) {
+        notice(
+          "success",
+          t("common.success"),
+          t("settings.grsai_site.fetch_done", {
+            models: modelsOk ? models.total : 0,
+            announcements: annOk ? announcements.count : 0,
+          }),
+        );
+      } else {
+        const reason = models.kind === "error" ? models.message : announcements.kind === "error" ? announcements.message : "";
+        notice("warning", t("common.warning"), t("settings.grsai_site.fetch_failed", { reason }));
+      }
+    } finally {
+      setFetchingSiteData(false);
+    }
+  };
+
+  const clearCustomLlm = () => {
+    setDraft((current) => ({ ...current, ...EMPTY_CUSTOM_CHAT_CONFIG }));
+    setCustomModels([]);
+    for (const [key, value] of Object.entries(EMPTY_CUSTOM_CHAT_CONFIG)) cfg.set(key, value);
+    notice("success", t("common.success"), t("settings.comic_chat.cleared"));
+  };
 
   const fetchCustomModels = async () => {
     const baseUrl = draft.comic_custom_chat_base_url.trim();
@@ -206,10 +244,15 @@ export default function SettingsPage() {
   };
 
   const save = () => {
+    const previousOrigin = resolveGrsaiSiteOrigin(cfg.get("grsai_site_url", DEFAULT_CONFIG.grsai_site_url));
     const saved = settingsToSave(draft);
     for (const [key, value] of Object.entries(saved)) cfg.set(key, value);
     setDraft(saved);
     notice("success", t("settings.saved_title"), t("settings.saved_content"));
+    // 只有点击「保存设置」且官网地址确实发生变化时才自动重抓，绝不在打字编辑过程中反复触发
+    if (resolveGrsaiSiteOrigin(saved.grsai_site_url) !== previousOrigin) {
+      runAsync(fetchGrsaiSiteData(saved.grsai_site_url));
+    }
   };
 
   return (
@@ -416,11 +459,45 @@ export default function SettingsPage() {
                 />
               </form>
             </SettingCard>
+            <SettingCard
+              icon={Globe20Regular}
+              title={t("settings.grsai_site.title")}
+              content={t("settings.grsai_site.content")}
+            >
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Input
+                  className="settings-card__select"
+                  aria-label={t("settings.grsai_site.title")}
+                  placeholder="grsai.ai"
+                  value={draft.grsai_site_url}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(_event, data) => update("grsai_site_url", data.value)}
+                />
+                <Button
+                  icon={<Pulse20Regular />}
+                  disabled={fetchingSiteData}
+                  onClick={() => runAsync(fetchGrsaiSiteData(draft.grsai_site_url))}
+                >
+                  {t("settings.grsai_site.fetch")}
+                </Button>
+              </div>
+            </SettingCard>
           </div>
         </section>
 
         <section className="settings-group">
-          <h2 className="settings-group__title">{t("settings.comic_chat")}</h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <h2 className="settings-group__title">{t("settings.comic_chat")}</h2>
+            <Button
+              appearance="secondary"
+              size="small"
+              icon={<Delete20Regular />}
+              onClick={clearCustomLlm}
+            >
+              {t("settings.comic_chat.clear")}
+            </Button>
+          </div>
           <div className="settings-group__cards">
             <SettingCard
               icon={Globe20Regular}

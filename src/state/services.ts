@@ -4,11 +4,13 @@
 import { DEFAULT_API_BASE_URL, type ApiSettings, type LocalFiles } from "../core/api";
 import { createComicProjectStore } from "../core/comicProject";
 import { DEFAULT_CONFIG } from "../core/config";
-import { createHistoryStore, HISTORY_DB_FILE, type HistoryStore } from "../core/history";
+import { createHistoryStore, HISTORY_DB_FILE, type HistoryStore, type HistoryTask } from "../core/history";
 import { TaskScheduler } from "../core/tasks";
+import { buildEffectivePricingMap, calculateTaskUsage } from "../core/usageStats";
 import { platform } from "../platform";
 import { diag } from "../platform/diagnostics";
 import { cfg } from "./config";
+import { modelAvailability } from "./modelAvailability";
 import { computeResultArtifacts } from "./thumbnail";
 
 export function apiSettings(): ApiSettings {
@@ -69,6 +71,62 @@ export function notifyHistoryChanged(): void {
   for (const listener of [...historyListeners]) listener();
 }
 
+/** 按当前实时定价快照计算该任务的计费积分并写入独立用量台账 usage_events。 */
+export async function syncTaskToUsageLedger(
+  task: HistoryTask | null,
+  options: { ignoreIfExists?: boolean } = {},
+): Promise<void> {
+  if (!task) return;
+  const pricing = buildEffectivePricingMap(modelAvailability.getSnapshot().models);
+  const usage = calculateTaskUsage(task, pricing);
+  if (!usage) return;
+  // 只记录已结算状态（succeeded / failed / violation），避免 running 写 0 锁住
+  if (usage.status === "running") return;
+  const history = await openHistory();
+  await history.recordUsageEvent({
+    taskId: usage.taskId,
+    date: usage.date,
+    model: usage.model,
+    kind: usage.kind,
+    credits: usage.credits,
+    status: usage.status,
+    createdAt: task.created_at,
+    ignoreIfExists: options.ignoreIfExists,
+  });
+}
+
+let backfillInFlight: Promise<void> | null = null;
+
+/** 把尚未写入 usage_events 的历史已完成/失败记录一次性补录进台账（已有记录保持原快照不覆盖）；并发调用自动合流。 */
+export function backfillUsageLedger(): Promise<void> {
+  if (backfillInFlight) return backfillInFlight;
+  const run = (async () => {
+    const history = await openHistory();
+    const [tasks, existing] = await Promise.all([history.getAllTasks(), history.getUsageEvents()]);
+    const recordedIds = new Set(existing.map((row) => row.task_id));
+    const pricing = buildEffectivePricingMap(modelAvailability.getSnapshot().models);
+    for (const task of tasks) {
+      if (recordedIds.has(task.id)) continue;
+      const usage = calculateTaskUsage(task, pricing);
+      if (!usage || usage.status === "running") continue;
+      await history.recordUsageEvent({
+        taskId: usage.taskId,
+        date: usage.date,
+        model: usage.model,
+        kind: usage.kind,
+        credits: usage.credits,
+        status: usage.status,
+        createdAt: task.created_at,
+        ignoreIfExists: true,
+      });
+    }
+  })().finally(() => {
+    backfillInFlight = null;
+  });
+  backfillInFlight = run;
+  return run;
+}
+
 let scheduler: TaskScheduler | null = null;
 
 /** 全应用只有一个调度器，提交和轮询都从它这里走。 */
@@ -97,7 +155,8 @@ export function taskScheduler(): TaskScheduler {
         updateTask: (taskId, status, update) =>
           openHistory()
             .then((history) => history.updateTask(taskId, status, update))
-            .then((task) => {
+            .then(async (task) => {
+              await syncTaskToUsageLedger(task).catch(() => {});
               notifyHistoryChanged();
               return task;
             }),

@@ -25,18 +25,21 @@ interface Result {
 
 /** 正则都开了 i：关键字、表名、列名不分大小写。 */
 const STATEMENTS = {
-  createTable: /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+history_tasks\s*\(([\s\S]*)\)$/i,
-  tableInfo: /^PRAGMA\s+table_info\s*\(\s*history_tasks\s*\)$/i,
-  addColumn: /^ALTER\s+TABLE\s+history_tasks\s+ADD\s+COLUMN\s+(.+)$/i,
+  createTable: /^CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+(history_tasks|usage_events)\s*\(([\s\S]*)\)$/i,
+  tableInfo: /^PRAGMA\s+table_info\s*\(\s*(history_tasks|usage_events)\s*\)$/i,
+  addColumn: /^ALTER\s+TABLE\s+(history_tasks|usage_events)\s+ADD\s+COLUMN\s+(.+)$/i,
   createIndex: /^CREATE\s+INDEX\s+IF\s+NOT\s+EXISTS\s+.+$/i,
-  insert: /^INSERT\s+OR\s+REPLACE\s+INTO\s+history_tasks\s*\(([^)]*)\)\s*VALUES\s*\(([^)]*)\)$/i,
+  insert: /^INSERT\s+OR\s+(?:REPLACE|IGNORE)\s+INTO\s+(history_tasks|usage_events)\s*\(([^)]*)\)\s*VALUES\s*\(([^)]*)\)$/i,
   update: /^UPDATE\s+history_tasks\s+SET\s+(.+?)\s+WHERE\s+id\s*=\s*\?$/i,
   selectById: /^SELECT\s+\*\s+FROM\s+history_tasks\s+WHERE\s+id\s*=\s*\?$/i,
   selectPage:
     /^SELECT\s+\*\s+FROM\s+history_tasks\s+ORDER\s+BY\s+created_at\s+DESC\s*,\s*id\s+DESC(\s+LIMIT\s+\?\s+OFFSET\s+\?)?$/i,
+  selectUsageEvents:
+    /^SELECT\s+\*\s+FROM\s+usage_events\s+ORDER\s+BY\s+created_at\s+DESC\s*,\s*task_id\s+DESC$/i,
   count: /^SELECT\s+COUNT\s*\(\s*1\s*\)\s+AS\s+cnt\s+FROM\s+history_tasks$/i,
   deleteAll: /^DELETE\s+FROM\s+history_tasks$/i,
   deleteByStatus: /^DELETE\s+FROM\s+history_tasks\s+WHERE\s+status\s*=\s*\?$/i,
+  deleteById: /^DELETE\s+FROM\s+history_tasks\s+WHERE\s+id\s*=\s*\?$/i,
   vacuum: /^VACUUM$/i,
 };
 
@@ -112,21 +115,21 @@ function compareValues(left: unknown, right: unknown): number {
 }
 
 export function createMemoryDatabase(): SqlExecutor {
-  let schema: Column[] | null = null;
-  const rows: Row[] = [];
+  const tables = new Map<string, { schema: Column[]; rows: Row[] }>();
 
   /** 除了建表、PRAGMA 和 VACUUM，其余语句都要求表已经在了，与 SQLite 一样。 */
-  function needTable(): Column[] {
-    if (!schema) throw new Error("no such table: history_tasks");
-    return schema;
+  function needTable(tableName = "history_tasks"): { schema: Column[]; rows: Row[] } {
+    const entry = tables.get(tableName.toLowerCase());
+    if (!entry) throw new Error(`no such table: ${tableName}`);
+    return entry;
   }
 
   /** 列名不分大小写地找；找不到时照 SQLite 的原话报错。 */
-  function columnIndex(name: string, table: Column[]): number {
+  function columnIndex(name: string, table: Column[], tableName = "history_tasks"): number {
     const index = table.findIndex(
       (column) => column.name.toLowerCase() === name.toLowerCase(),
     );
-    if (index === -1) throw new Error(`table history_tasks has no column named ${name}`);
+    if (index === -1) throw new Error(`table ${tableName} has no column named ${name}`);
     return index;
   }
 
@@ -150,7 +153,7 @@ export function createMemoryDatabase(): SqlExecutor {
   }
 
   /** 按条件删行，回报删掉了多少行。 */
-  function remove(shouldRemove: (row: Row) => boolean): Result {
+  function remove(rows: Row[], shouldRemove: (row: Row) => boolean): Result {
     let rowsAffected = 0;
     for (let index = rows.length - 1; index >= 0; index--) {
       if (shouldRemove(rows[index])) {
@@ -166,12 +169,17 @@ export function createMemoryDatabase(): SqlExecutor {
     let match: RegExpExecArray | null;
 
     if ((match = STATEMENTS.createTable.exec(text)) !== null) {
-      // 表已经在就什么都不做，已有的列和行都原样留着
-      if (!schema) schema = splitByComma(match[1]).map((part) => parseColumn(part, sql));
+      const name = match[1].toLowerCase();
+      if (!tables.has(name)) {
+        tables.set(name, {
+          schema: splitByComma(match[2]).map((part) => parseColumn(part, sql)),
+          rows: [],
+        });
+      }
       return { rows: [], rowsAffected: 0 };
     }
-    if (STATEMENTS.tableInfo.test(text)) {
-      const columns = schema ?? [];
+    if ((match = STATEMENTS.tableInfo.exec(text)) !== null) {
+      const columns = tables.get(match[1].toLowerCase())?.schema ?? [];
       return {
         rows: columns.map((column, cid) => ({
           cid,
@@ -185,14 +193,14 @@ export function createMemoryDatabase(): SqlExecutor {
       };
     }
     if ((match = STATEMENTS.addColumn.exec(text)) !== null) {
-      const table = needTable();
-      const column = parseColumn(match[1], sql);
-      const taken = table.some(
+      const entry = needTable(match[1]);
+      const column = parseColumn(match[2], sql);
+      const taken = entry.schema.some(
         (existing) => existing.name.toLowerCase() === column.name.toLowerCase(),
       );
       if (taken) throw new Error(`duplicate column name: ${column.name}`);
-      table.push(column);
-      for (const row of rows) row.push(null);
+      entry.schema.push(column);
+      for (const row of entry.rows) row.push(null);
       return { rows: [], rowsAffected: 0 };
     }
     if (STATEMENTS.createIndex.test(text)) {
@@ -201,27 +209,32 @@ export function createMemoryDatabase(): SqlExecutor {
       return { rows: [], rowsAffected: 0 };
     }
     if ((match = STATEMENTS.insert.exec(text)) !== null) {
-      const table = needTable();
-      const names = match[1].split(",").map((name) => name.trim());
-      const places = match[2].split(",").map((place) => place.trim());
+      const ignore = /^INSERT\s+OR\s+IGNORE\b/i.test(text);
+      const tableName = match[1].toLowerCase();
+      const entry = needTable(tableName);
+      const table = entry.schema;
+      const names = match[2].split(",").map((name) => name.trim());
+      const places = match[3].split(",").map((place) => place.trim());
       if (places.some((place) => place !== "?")) throw unsupported(sql);
       const row: Row = table.map(() => null);
       names.forEach((name, position) => {
-        row[columnIndex(name, table)] = bind(params[position]);
+        row[columnIndex(name, table, tableName)] = bind(params[position]);
       });
-      // OR REPLACE 是把主键相同的那一行删掉再插入：没给出来的列回到 null，新行也排到最后。
-      // 主键是 null 的行互相不冲突，SQLite 里也是这样。
       const key = table.findIndex((column) => column.primaryKey);
       const existing =
         key === -1 || row[key] === null
           ? -1
-          : rows.findIndex((other) => other[key] === row[key]);
-      if (existing !== -1) rows.splice(existing, 1);
-      rows.push(row);
+          : entry.rows.findIndex((other) => other[key] === row[key]);
+      if (existing !== -1) {
+        if (ignore) return { rows: [], rowsAffected: 0 };
+        entry.rows.splice(existing, 1);
+      }
+      entry.rows.push(row);
       return { rows: [], rowsAffected: 1 };
     }
     if ((match = STATEMENTS.update.exec(text)) !== null) {
-      const table = needTable();
+      const entry = needTable("history_tasks");
+      const table = entry.schema;
       const sets: Array<[number, unknown]> = splitByComma(match[1]).map((part, position) => {
         const assignment = ASSIGNMENT.exec(part);
         if (!assignment) throw unsupported(sql);
@@ -229,9 +242,8 @@ export function createMemoryDatabase(): SqlExecutor {
       });
       const where = columnIndex("id", table);
       const key = bind(params[sets.length]);
-      // SQLite 数的是命中的行，值没变也算
       let rowsAffected = 0;
-      for (const row of rows) {
+      for (const row of entry.rows) {
         if (!isEqual(row[where], key)) continue;
         for (const [index, value] of sets) row[index] = value;
         rowsAffected += 1;
@@ -239,16 +251,17 @@ export function createMemoryDatabase(): SqlExecutor {
       return { rows: [], rowsAffected };
     }
     if (STATEMENTS.selectById.test(text)) {
-      const table = needTable();
-      const where = columnIndex("id", table);
+      const entry = needTable("history_tasks");
+      const where = columnIndex("id", entry.schema);
       const key = bind(params[0]);
-      return { rows: toObjects(table, rows.filter((row) => isEqual(row[where], key))), rowsAffected: 0 };
+      return { rows: toObjects(entry.schema, entry.rows.filter((row) => isEqual(row[where], key))), rowsAffected: 0 };
     }
     if ((match = STATEMENTS.selectPage.exec(text)) !== null) {
-      const table = needTable();
+      const entry = needTable("history_tasks");
+      const table = entry.schema;
       const createdAt = columnIndex("created_at", table);
       const id = columnIndex("id", table);
-      const sorted = [...rows].sort(
+      const sorted = [...entry.rows].sort(
         (left, right) =>
           compareValues(right[createdAt], left[createdAt]) || compareValues(right[id], left[id]),
       );
@@ -256,24 +269,40 @@ export function createMemoryDatabase(): SqlExecutor {
       if (match[1]) {
         const limit = Number(params[0]);
         const offset = Math.max(Number(params[1]), 0);
-        // LIMIT 为负就是不设上限，OFFSET 为负按 0 算，都与 SQLite 一致
         page = sorted.slice(offset, limit < 0 ? undefined : offset + limit);
       }
       return { rows: toObjects(table, page), rowsAffected: 0 };
     }
+    if (STATEMENTS.selectUsageEvents.test(text)) {
+      const entry = needTable("usage_events");
+      const table = entry.schema;
+      const createdAt = columnIndex("created_at", table, "usage_events");
+      const taskId = columnIndex("task_id", table, "usage_events");
+      const sorted = [...entry.rows].sort(
+        (left, right) =>
+          compareValues(right[createdAt], left[createdAt]) || compareValues(right[taskId], left[taskId]),
+      );
+      return { rows: toObjects(table, sorted), rowsAffected: 0 };
+    }
     if (STATEMENTS.count.test(text)) {
-      needTable();
-      return { rows: [{ cnt: rows.length }], rowsAffected: 0 };
+      const entry = needTable("history_tasks");
+      return { rows: [{ cnt: entry.rows.length }], rowsAffected: 0 };
     }
     if (STATEMENTS.deleteByStatus.test(text)) {
-      const table = needTable();
-      const where = columnIndex("status", table);
+      const entry = needTable("history_tasks");
+      const where = columnIndex("status", entry.schema);
       const key = bind(params[0]);
-      return remove((row) => isEqual(row[where], key));
+      return remove(entry.rows, (row) => isEqual(row[where], key));
+    }
+    if (STATEMENTS.deleteById.test(text)) {
+      const entry = needTable("history_tasks");
+      const where = columnIndex("id", entry.schema);
+      const key = bind(params[0]);
+      return remove(entry.rows, (row) => isEqual(row[where], key));
     }
     if (STATEMENTS.deleteAll.test(text)) {
-      needTable();
-      return remove(() => true);
+      const entry = needTable("history_tasks");
+      return remove(entry.rows, () => true);
     }
     if (STATEMENTS.vacuum.test(text)) return { rows: [], rowsAffected: 0 };
     throw unsupported(sql);

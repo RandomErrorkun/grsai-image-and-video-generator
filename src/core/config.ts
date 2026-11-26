@@ -12,6 +12,8 @@ export const CONFIG_FILE_NAME = "grsai_config.json";
 export const DEFAULT_CONFIG = {
   api_base_url: "https://grsai.dakka.com.cn",
   api_key: "",
+  // Grsai 官网地址（可写或不写 https://），用于拉取模型可用性、积分价目表与官方公告
+  grsai_site_url: "grsai.ai",
   output_folder: "./output",
   last_model: "nano-banana-2-lite",
   // Nano Banana parameters

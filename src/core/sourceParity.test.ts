@@ -45,6 +45,7 @@ const sampleFiles = {
 
 /** 重写版多出来的配置键，比对时剔掉。 */
 const REWRITE_ONLY_KEYS = [
+  "grsai_site_url",
   "submit_concurrency",
   "accent_color",
   "preview_mode",

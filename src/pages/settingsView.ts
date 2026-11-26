@@ -27,6 +27,7 @@ export type SettingsDraft = Pick<
   AppConfig,
   | "api_base_url"
   | "api_key"
+  | "grsai_site_url"
   | "max_retries"
   | "submit_concurrency"
   | "vip_moderation_auto_retry"
@@ -41,6 +42,22 @@ export type SettingsDraft = Pick<
   | "comic_custom_chat_model"
   | "comic_custom_chat_body"
 >;
+
+/** 一键清空第三方 LLM 配置时写回的空字段集合。 */
+export const EMPTY_CUSTOM_CHAT_CONFIG: Pick<
+  SettingsDraft,
+  | "comic_custom_chat_base_url"
+  | "comic_custom_chat_endpoint"
+  | "comic_custom_chat_api_key"
+  | "comic_custom_chat_model"
+  | "comic_custom_chat_body"
+> = {
+  comic_custom_chat_base_url: "",
+  comic_custom_chat_endpoint: "",
+  comic_custom_chat_api_key: "",
+  comic_custom_chat_model: "",
+  comic_custom_chat_body: "",
+};
 
 /** 只用到 cfg.get 的「键在就返回原值、缺键才给默认值」这一条，单测里可以换成普通对象。 */
 export interface SettingsReader {
@@ -86,6 +103,7 @@ export function readSettings(store: SettingsReader): SettingsDraft {
     key:
       | "api_base_url"
       | "api_key"
+      | "grsai_site_url"
       | "comic_custom_chat_base_url"
       | "comic_custom_chat_endpoint"
       | "comic_custom_chat_api_key"
@@ -97,6 +115,7 @@ export function readSettings(store: SettingsReader): SettingsDraft {
   return {
     api_base_url: text("api_base_url"),
     api_key: text("api_key"),
+    grsai_site_url: text("grsai_site_url"),
     max_retries: number("max_retries"),
     submit_concurrency: number("submit_concurrency"),
     vip_moderation_auto_retry: Boolean(store.get("vip_moderation_auto_retry", DEFAULT_CONFIG.vip_moderation_auto_retry)),
@@ -121,6 +140,7 @@ export function settingsToSave(draft: SettingsDraft): SettingsDraft {
   return {
     api_base_url: draft.api_base_url.trim(),
     api_key: draft.api_key.trim(),
+    grsai_site_url: draft.grsai_site_url.trim() || DEFAULT_CONFIG.grsai_site_url,
     max_retries: clampToRange(draft.max_retries, MAX_RETRIES_RANGE),
     submit_concurrency: clampToRange(draft.submit_concurrency, SUBMIT_CONCURRENCY_RANGE),
     vip_moderation_auto_retry: draft.vip_moderation_auto_retry,

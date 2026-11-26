@@ -382,7 +382,7 @@ describe("statements it does not know", () => {
       "INSERT OR REPLACE INTO history_tasks (id) VALUES (1)",
       "UPDATE history_tasks SET status = 'failed' WHERE id = ?",
       "UPDATE history_tasks SET status = ? WHERE status = ?",
-      "DELETE FROM history_tasks WHERE id = ?",
+      "DELETE FROM history_tasks WHERE model = ?",
     ];
     for (const sql of statements) {
       await expect(db.execute(sql)).rejects.toThrow(`memory database does not support: ${sql}`);

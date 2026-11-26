@@ -16,7 +16,7 @@ import {
   type TaskSpec,
 } from "../core/tasks";
 import { platform } from "../platform";
-import { notifyHistoryChanged, openHistory, taskScheduler } from "./services";
+import { notifyHistoryChanged, openHistory, syncTaskToUsageLedger, taskScheduler } from "./services";
 import { isTaskIdActive, resumeHistoryTask } from "./taskLists";
 
 export type RefetchOutcome =
@@ -303,7 +303,13 @@ export function createHistoryRefetcher(deps: HistoryRefetchDeps): HistoryRefetch
 /** 全应用共享的默认历史再获取实例。 */
 export const historyRefetcher = createHistoryRefetcher({
   getTask: (taskId) => openHistory().then((history) => history.getTask(taskId)),
-  updateTask: (taskId, status, update) => openHistory().then((history) => history.updateTask(taskId, status, update)),
+  updateTask: (taskId, status, update) =>
+    openHistory()
+      .then((history) => history.updateTask(taskId, status, update))
+      .then(async (task) => {
+        await syncTaskToUsageLedger(task).catch(() => {});
+        return task;
+      }),
   probeOnce: (taskId) => taskScheduler().probeOnce(taskId),
   downloadResults: (spec, taskId, data) => taskScheduler().downloadResults(spec, taskId, data),
   isActive: (taskId) => isTaskIdActive(taskId),

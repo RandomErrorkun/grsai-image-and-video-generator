@@ -1,0 +1,89 @@
+/* 模型下拉框及双层可用性圆点（纯 CSS，不依赖 emoji 字体，在 Windows 下恒定彩色清晰） */
+
+.model-dropdown {
+  width: 100%;
+  min-width: 0;
+}
+
+.model-dropdown__listbox {
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.model-dropdown__trigger,
+.model-dropdown__option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  width: 100%;
+}
+
+.model-dropdown__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 模型下拉项最右侧右对齐展示的积分单价 */
+.model-dropdown__cost {
+  flex: none;
+  margin-left: auto;
+  padding-left: 10px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 双层小圆点：7px 实心核 + 2.5px 浅色外环 = 约 12px（单个字符宽度） */
+.model-status-dot {
+  flex: none;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline: 2px;
+  border-radius: 50%;
+  background: var(--model-dot-core);
+  box-shadow: 0 0 0 2.5px var(--model-dot-ring);
+}
+
+.model-status-dot--available {
+  --model-dot-core: #16a34a;
+  --model-dot-ring: rgba(34, 197, 94, 0.28);
+}
+
+.model-status-dot--unavailable {
+  --model-dot-core: #dc2626;
+  --model-dot-ring: rgba(239, 68, 68, 0.28);
+}
+
+.model-status-dot--unknown {
+  --model-dot-core: #9ca3af;
+  --model-dot-ring: rgba(156, 163, 175, 0.28);
+}
+
+:root[data-theme="dark"] .model-status-dot--available {
+  --model-dot-core: #4ade80;
+  --model-dot-ring: rgba(74, 222, 128, 0.28);
+}
+
+:root[data-theme="dark"] .model-status-dot--unavailable {
+  --model-dot-core: #f87171;
+  --model-dot-ring: rgba(248, 113, 113, 0.28);
+}
+
+:root[data-theme="dark"] .model-status-dot--unknown {
+  --model-dot-core: #9ca3af;
+  --model-dot-ring: rgba(156, 163, 175, 0.24);
+}
+
+/* 紧贴模型下拉框右侧的紧凑检测按钮，单行不换行 */
+.model-check-btn {
+  flex: none;
+  min-width: 0;
+  white-space: nowrap;
+}

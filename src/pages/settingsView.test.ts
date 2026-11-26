@@ -90,6 +90,7 @@ describe("readSettings", () => {
     expect(readSettings(storeOf({}))).toEqual({
       api_base_url: DEFAULT_CONFIG.api_base_url,
       api_key: DEFAULT_CONFIG.api_key,
+      grsai_site_url: DEFAULT_CONFIG.grsai_site_url,
       max_retries: DEFAULT_CONFIG.max_retries,
       submit_concurrency: DEFAULT_CONFIG.submit_concurrency,
       vip_moderation_auto_retry: DEFAULT_CONFIG.vip_moderation_auto_retry,
@@ -162,6 +163,7 @@ describe("settingsToSave", () => {
   const touched: SettingsDraft = {
     api_base_url: "  https://example.invalid/base  ",
     api_key: "  probe  ",
+    grsai_site_url: "  https://grsai.com/  ",
     max_retries: 150,
     submit_concurrency: 0,
     vip_moderation_auto_retry: true,
@@ -187,6 +189,7 @@ describe("settingsToSave", () => {
     expect(settingsToSave(touched)).toEqual({
       api_base_url: "https://example.invalid/base",
       api_key: "probe",
+      grsai_site_url: "https://grsai.com/",
       max_retries: 100,
       submit_concurrency: 1,
       vip_moderation_auto_retry: true,

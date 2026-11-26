@@ -27,6 +27,7 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /** 重写版新增的配置键，源项目的配置文件里没有。 */
 const REWRITE_ONLY_KEYS = [
+  "grsai_site_url",
   "submit_concurrency",
   "accent_color",
   "preview_mode",

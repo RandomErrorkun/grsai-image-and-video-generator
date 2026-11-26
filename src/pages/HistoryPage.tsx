@@ -5,9 +5,10 @@
  * 「重新生成」只发请求，切页和回填由外壳与目标页面完成。
  * 确认框和详情用应用内的 Dialog；源项目用的是原生对话框和提示框。
  */
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogBody,
@@ -22,8 +23,11 @@ import {
   ArrowLeft20Regular,
   ArrowRight20Regular,
   ArrowSync20Regular,
+  CheckmarkSquare20Regular,
   Delete20Regular,
+  Dismiss20Regular,
   Folder20Regular,
+  SelectAllOn20Regular,
   Video20Regular,
 } from "@fluentui/react-icons";
 import { DEFAULT_CONFIG } from "../core/config";
@@ -38,7 +42,7 @@ import { runAsync } from "../platform/async";
 import { historyRefetcher, type RefetchOutcome } from "../state/historyRefetch";
 import { openPreview } from "../state/preview";
 import { requestRestore } from "../state/restore";
-import { openHistory, subscribeHistoryChanged } from "../state/services";
+import { backfillUsageLedger, openHistory, subscribeHistoryChanged } from "../state/services";
 import { comicTasks, generatorTasks, isTaskIdActive, videoTasks } from "../state/taskLists";
 import { computeResultArtifacts, verifyHistoryResultFile } from "../state/thumbnail";
 import {
@@ -277,13 +281,29 @@ interface HistoryItemProps {
   task: HistoryTask;
   refetching: boolean;
   tracking: boolean;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect(taskId: string): void;
+  onContextMenu(event: MouseEvent<HTMLElement>, task: HistoryTask): void;
   onRefetch(task: HistoryTask): void;
   onOpenResult(task: HistoryTask): void;
   onOpenFolder(task: HistoryTask): void;
   onShowDetails(task: HistoryTask): void;
 }
 
-function HistoryItem({ task, refetching, tracking, onRefetch, onOpenResult, onOpenFolder, onShowDetails }: HistoryItemProps) {
+function HistoryItem({
+  task,
+  refetching,
+  tracking,
+  selectMode,
+  selected,
+  onToggleSelect,
+  onContextMenu,
+  onRefetch,
+  onOpenResult,
+  onOpenFolder,
+  onShowDetails,
+}: HistoryItemProps) {
   const t = useTr();
   const path = task.result_path;
   const result = hasResult(task);
@@ -291,7 +311,20 @@ function HistoryItem({ task, refetching, tracking, onRefetch, onOpenResult, onOp
   const tone = statusTone(task.status);
 
   return (
-    <article className="history-item" role="listitem">
+    <article
+      className={selected ? "history-item history-item--selected" : "history-item"}
+      role="listitem"
+      onContextMenu={(event) => onContextMenu(event, task)}
+    >
+      {selectMode ? (
+        <div className="history-item__check">
+          <Checkbox
+            checked={selected}
+            aria-label={task.id}
+            onChange={() => onToggleSelect(task.id)}
+          />
+        </div>
+      ) : null}
       {showThumb ? (
         <Thumbnail task={task} onOpenResult={onOpenResult} />
       ) : (
@@ -366,6 +399,17 @@ interface ConfirmState {
   round: number;
 }
 
+interface DeleteConfirmState {
+  mode: "single" | "page" | "selected";
+  ids: string[];
+}
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  task: HistoryTask;
+}
+
 export default function HistoryPage() {
   const t = useTr();
   const pageSize = pageSizeOf(useConfigValue("history_items_per_page", DEFAULT_CONFIG.history_items_per_page));
@@ -373,6 +417,11 @@ export default function HistoryPage() {
   // 开关和内容分开存：关掉时内容要留到淡出动画放完，不能先空掉
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [detailsTask, setDetailsTask] = useState<HistoryTask | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [pageRefetching, setPageRefetching] = useState(false);
@@ -380,7 +429,9 @@ export default function HistoryPage() {
   const [, setSyncTick] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   const noButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteCancelRef = useRef<HTMLButtonElement>(null);
   const visibleRef = useRef(false);
   // 当前页码和读取凭证放在 ref 里，事件处理函数和异步回调拿到的都是最新值
   const pageRef = useRef(1);
@@ -397,6 +448,13 @@ export default function HistoryPage() {
       if (token !== loadToken.current) return;
       pageRef.current = target;
       setData({ tasks, page: target, totalPages });
+      // 只保留当前页仍存在的已选 ID，避免误删不可见页的记录
+      setSelectedIds((prev) => {
+        if (prev.size === 0) return prev;
+        const present = new Set(tasks.map((task) => task.id));
+        const next = new Set([...prev].filter((id) => present.has(id)));
+        return next.size === prev.size ? prev : next;
+      });
       // 与源项目重建列表一致：翻页、手动刷新后回到顶部；后台任务变更触发的原地刷新保持滚动位置
       if (!options.keepScroll) listRef.current?.scrollTo(0, 0);
     },
@@ -443,7 +501,96 @@ export default function HistoryPage() {
 
   const showPage = (page: number) => {
     pageRef.current = page;
+    setSelectedIds(new Set());
+    setContextMenu(null);
     runAsync(load(page));
+  };
+
+  // 右键菜单在外部点击、滚动、窗口失焦或按 Esc 时自动关闭
+  useEffect(() => {
+    if (!contextMenu) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (contextMenuRef.current?.contains(event.target as Node)) return;
+      setContextMenu(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setContextMenu(null);
+    };
+    const close = () => setContextMenu(null);
+    const listEl = listRef.current;
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", close);
+    window.addEventListener("blur", close);
+    listEl?.addEventListener("scroll", close);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("blur", close);
+      listEl?.removeEventListener("scroll", close);
+    };
+  }, [contextMenu]);
+
+  useEffect(() => {
+    if (deleteConfirmOpen) deleteCancelRef.current?.focus();
+  }, [deleteConfirmOpen]);
+
+  const toggleSelect = (taskId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
+
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => {
+      if (prev) setSelectedIds(new Set());
+      return !prev;
+    });
+    setContextMenu(null);
+  };
+
+  const allOnPageSelected = data.tasks.length > 0 && data.tasks.every((task) => selectedIds.has(task.id));
+
+  const toggleSelectAllOnPage = () => {
+    if (allOnPageSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(data.tasks.map((task) => task.id)));
+    }
+  };
+
+  const openContextMenu = (event: MouseEvent<HTMLElement>, task: HistoryTask) => {
+    event.preventDefault();
+    const menuWidth = 176;
+    const menuHeight = 46;
+    const maxX = Math.max(8, window.innerWidth - menuWidth - 8);
+    const maxY = Math.max(8, window.innerHeight - menuHeight - 8);
+    setContextMenu({
+      x: Math.min(Math.max(8, event.clientX), maxX),
+      y: Math.min(Math.max(8, event.clientY), maxY),
+      task,
+    });
+  };
+
+  const requestDeleteConfirm = (mode: DeleteConfirmState["mode"], ids: string[]) => {
+    if (ids.length === 0) return;
+    setContextMenu(null);
+    setDeleteConfirm({ mode, ids });
+    setDeleteConfirmOpen(true);
+  };
+
+  const executeDelete = async (ids: string[]) => {
+    // 先把尚未同步进用量台账的老记录补录一份，确保删除历史不会丢失用量统计
+    await backfillUsageLedger().catch(() => {});
+    const history = await openHistory();
+    const deleted = await history.deleteTasks(ids);
+    setSelectedIds(new Set());
+    await load(pageRef.current, { keepScroll: true });
+    notice("success", t("common.success"), t("history.clear_done", { count: deleted }));
   };
 
   const announceRefetch = (outcome: RefetchOutcome) => {
@@ -542,6 +689,8 @@ export default function HistoryPage() {
   }, [confirmOpen, confirm?.round]);
 
   const clear = async (kind: ClearKind) => {
+    // 清理前先同步用量台账，避免老历史记录在尚未访问用量页前就被清空
+    await backfillUsageLedger().catch(() => {});
     const history = await openHistory();
     const deleted =
       kind === "running"
@@ -551,6 +700,7 @@ export default function HistoryPage() {
           : kind === "violation"
             ? await history.clearViolationTasks()
             : await history.clearAllTasks();
+    setSelectedIds(new Set());
     pageRef.current = 1;
     await load(1);
     notice("success", t("common.success"), t("history.clear_done", { count: deleted }));
@@ -572,38 +722,96 @@ export default function HistoryPage() {
   };
 
   const confirmAction = confirm ? CLEAR_ACTIONS[confirm.kind] : null;
+  const deleteConfirmText = deleteConfirm
+    ? deleteConfirm.mode === "single"
+      ? t("history.delete_single_confirm")
+      : deleteConfirm.mode === "page"
+        ? t("history.delete_page_confirm", { count: deleteConfirm.ids.length })
+        : t("history.delete_selected_confirm", { count: deleteConfirm.ids.length })
+    : "";
 
   return (
     <div ref={rootRef} className="page history">
       <div className="history__toolbar">
-        {CLEAR_ORDER.map((kind) => (
-          <Button
-            key={kind}
-            appearance="transparent"
-            className="history__button"
-            icon={<Delete20Regular />}
-            onClick={() => {
-              setConfirm({ kind, round: 1 });
-              setConfirmOpen(true);
-            }}
-          >
-            {t(CLEAR_ACTIONS[kind].titleKey)}
-          </Button>
-        ))}
-        <Tooltip content={t("history.refetch_page_tooltip")} relationship="description">
-          <Button
-            appearance="transparent"
-            className="history__button"
-            icon={<ArrowClockwise20Regular />}
-            disabled={pageRefetching || data.tasks.length === 0}
-            onClick={() => runAsync(refetchCurrentPage())}
-          >
-            {t("history.refetch_page")}
-          </Button>
-        </Tooltip>
-        <Button appearance="transparent" className="history__button" icon={<ArrowSync20Regular />} onClick={() => showPage(1)}>
-          {t("history.refresh")}
-        </Button>
+        {selectMode ? (
+          <>
+            <Button
+              appearance="transparent"
+              className="history__button"
+              icon={<SelectAllOn20Regular />}
+              disabled={data.tasks.length === 0}
+              onClick={toggleSelectAllOnPage}
+            >
+              {allOnPageSelected ? t("history.deselect_all_page") : t("history.select_all_page")}
+            </Button>
+            <Button
+              appearance="primary"
+              className="history__button"
+              icon={<Delete20Regular />}
+              disabled={selectedIds.size === 0}
+              onClick={() => requestDeleteConfirm("selected", [...selectedIds])}
+            >
+              {t("history.delete_selected", { count: selectedIds.size })}
+            </Button>
+            <Button
+              appearance="secondary"
+              className="history__button"
+              icon={<Dismiss20Regular />}
+              onClick={toggleSelectMode}
+            >
+              {t("history.exit_select")}
+            </Button>
+          </>
+        ) : (
+          <>
+            {CLEAR_ORDER.map((kind) => (
+              <Button
+                key={kind}
+                appearance="transparent"
+                className="history__button"
+                icon={<Delete20Regular />}
+                onClick={() => {
+                  setConfirm({ kind, round: 1 });
+                  setConfirmOpen(true);
+                }}
+              >
+                {t(CLEAR_ACTIONS[kind].titleKey)}
+              </Button>
+            ))}
+            <Button
+              appearance="transparent"
+              className="history__button"
+              icon={<Delete20Regular />}
+              disabled={data.tasks.length === 0}
+              onClick={() => requestDeleteConfirm("page", data.tasks.map((task) => task.id))}
+            >
+              {t("history.delete_page")}
+            </Button>
+            <Button
+              appearance="transparent"
+              className="history__button"
+              icon={<CheckmarkSquare20Regular />}
+              disabled={data.tasks.length === 0}
+              onClick={toggleSelectMode}
+            >
+              {t("history.multi_select")}
+            </Button>
+            <Tooltip content={t("history.refetch_page_tooltip")} relationship="description">
+              <Button
+                appearance="transparent"
+                className="history__button"
+                icon={<ArrowClockwise20Regular />}
+                disabled={pageRefetching || data.tasks.length === 0}
+                onClick={() => runAsync(refetchCurrentPage())}
+              >
+                {t("history.refetch_page")}
+              </Button>
+            </Tooltip>
+            <Button appearance="transparent" className="history__button" icon={<ArrowSync20Regular />} onClick={() => showPage(1)}>
+              {t("history.refresh")}
+            </Button>
+          </>
+        )}
       </div>
       <div ref={listRef} className="history__list" role="list">
         {data.tasks.length === 0 ? (
@@ -615,6 +823,10 @@ export default function HistoryPage() {
               task={task}
               refetching={historyRefetcher.isInFlight(task.id)}
               tracking={isTaskIdActive(task.id)}
+              selectMode={selectMode}
+              selected={selectedIds.has(task.id)}
+              onToggleSelect={toggleSelect}
+              onContextMenu={openContextMenu}
               onRefetch={(selected) => runAsync(refetchOne(selected))}
               onOpenResult={(selected) => runAsync(openVerifiedResult(selected))}
               onOpenFolder={(selected) => runAsync(openVerifiedFolder(selected))}
@@ -652,6 +864,56 @@ export default function HistoryPage() {
           {t("history.next")}
         </Button>
       </div>
+
+      {contextMenu ? (
+        <div
+          ref={contextMenuRef}
+          className="history-context-menu"
+          role="menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            type="button"
+            className="history-context-menu__item history-context-menu__item--danger"
+            role="menuitem"
+            onClick={() => requestDeleteConfirm("single", [contextMenu.task.id])}
+          >
+            <Delete20Regular />
+            <span>{t("history.delete_record")}</span>
+          </button>
+        </div>
+      ) : null}
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onOpenChange={(_event, data) => {
+          if (!data.open) setDeleteConfirmOpen(false);
+        }}
+      >
+        <DialogSurface className="history-dialog">
+          <DialogTitle>{t("history.delete_confirm_title")}</DialogTitle>
+          <DialogBody>
+            <DialogContent>
+              <p className="history-dialog__text">{deleteConfirmText}</p>
+            </DialogContent>
+          </DialogBody>
+          <DialogActions fluid>
+            <Button ref={deleteCancelRef} onClick={() => setDeleteConfirmOpen(false)}>
+              {t("history.delete_cancel")}
+            </Button>
+            <Button
+              appearance="primary"
+              onClick={() => {
+                const ids = deleteConfirm?.ids ?? [];
+                setDeleteConfirmOpen(false);
+                if (ids.length > 0) runAsync(executeDelete(ids));
+              }}
+            >
+              {t("history.delete_confirm")}
+            </Button>
+          </DialogActions>
+        </DialogSurface>
+      </Dialog>
 
       <Dialog
         open={confirmOpen}

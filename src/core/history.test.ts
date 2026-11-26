@@ -325,6 +325,55 @@ function historySuite(kit: ExecutorKit) {
       expect(await store.getTaskCount()).toBe(1);
       executor.close();
     });
+    it("deletes specified task IDs while preserving the independent usage_events ledger", async () => {
+      const { store, executor } = open();
+      await store.ensureSchema();
+      await store.addTask({ id: "del-1", prompt: "p1", model: "nano-banana-pro", aspectRatio: "1:1", imageSize: "1K" });
+      await store.addTask({ id: "del-2", prompt: "p2", model: "wan-3.0", aspectRatio: "16:9", imageSize: "720p" });
+      await store.addTask({ id: "keep-1", prompt: "p3", model: "gpt-image-2.6", aspectRatio: "1:1", imageSize: "1K" });
+
+      await store.recordUsageEvent({
+        taskId: "del-1",
+        date: "2026-11-26",
+        model: "nano-banana-pro",
+        kind: "image",
+        credits: 1800,
+        status: "succeeded",
+        createdAt: "2026-11-26 10:00:00",
+        ignoreIfExists: true,
+      });
+      // ignoreIfExists: true 不会覆盖已锁定的单价快照
+      await store.recordUsageEvent({
+        taskId: "del-1",
+        date: "2026-11-26",
+        model: "nano-banana-pro",
+        kind: "image",
+        credits: 9999,
+        status: "succeeded",
+        createdAt: "2026-11-26 10:00:00",
+        ignoreIfExists: true,
+      });
+
+      const deleted = await store.deleteTasks(["del-1", "del-2", "del-1", "nonexistent"]);
+      expect(deleted).toBe(2);
+      const remaining = (await store.getAllTasks()).map((t) => t.id);
+      expect(remaining).toContain("keep-1");
+      expect(remaining).not.toContain("del-1");
+      expect(remaining).not.toContain("del-2");
+
+      // 历史记录删了，但用量台账原封不动
+      const ledger = await store.getUsageEvents();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0]).toMatchObject({
+        task_id: "del-1",
+        model: "nano-banana-pro",
+        kind: "image",
+        credits: 1800,
+      });
+      // 清理掉本用例留下的 keep-1，不影响后续测试
+      await store.deleteTasks(["keep-1"]);
+      executor.close();
+    });
   });
 
   describe("legacy history.json migration", () => {

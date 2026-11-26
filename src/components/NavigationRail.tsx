@@ -1,9 +1,11 @@
 import type { ComponentType } from "react";
 import {
   ArrowLeftRegular,
+  DataBarVerticalRegular,
   HistoryRegular,
   ImageRegular,
   LineHorizontal3Regular,
+  MegaphoneRegular,
   PaintBrushRegular,
   SettingsRegular,
   VideoRegular,
@@ -34,6 +36,8 @@ const PAGE_ICONS: Record<PageKey, NavIcon> = {
   video: VideoRegular,
   comic: ImageRegular,
   history: HistoryRegular,
+  usage: DataBarVerticalRegular,
+  announcements: MegaphoneRegular,
   settings: SettingsRegular,
 };
 

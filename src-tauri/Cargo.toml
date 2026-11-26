@@ -41,6 +41,7 @@ windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
 codegen-units = 1
+debug = false
 lto = true
 opt-level = 3
 panic = "abort"

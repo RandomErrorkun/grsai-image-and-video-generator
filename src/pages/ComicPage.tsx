@@ -15,6 +15,7 @@ import {
 } from "@fluentui/react-icons";
 import type { ImageDropAreaHandle } from "../components/dropAreaTypes";
 import ImageDropArea from "../components/ImageDropArea";
+import { ModelDropdown } from "../components/ModelDropdown";
 import { notice } from "../components/Notice";
 import { SegmentedHeader } from "../components/SegmentedHeader";
 import { TaskListView } from "../components/TaskList";
@@ -482,32 +483,23 @@ export default function ComicPage() {
           <div className="comic__row">
             <div className="comic__field comic__grow">
               <span className="comic__caption">{t("comic.story_model")}</span>
-              <Select
+              <ModelDropdown
                 value={activeStoryModel}
-                aria-label={t("comic.story_model")}
+                models={storyModelOptions}
+                ariaLabel={t("comic.story_model")}
                 disabled={Boolean(customBaseUrl && customModel)}
-                onChange={(_e, data) => setStoryModel(data.value)}
-              >
-                {storyModelOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </Select>
+                showAvailability={!customBaseUrl}
+                onChange={setStoryModel}
+              />
             </div>
             <div className="comic__field comic__grow">
               <span className="comic__caption">{t("comic.image_model")}</span>
-              <Select
+              <ModelDropdown
                 value={imageModel}
-                aria-label={t("comic.image_model")}
-                onChange={(_e, data) => onImageModelChange(data.value)}
-              >
-                {COMIC_IMAGE_MODELS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </Select>
+                models={COMIC_IMAGE_MODELS}
+                ariaLabel={t("comic.image_model")}
+                onChange={onImageModelChange}
+              />
             </div>
           </div>
 

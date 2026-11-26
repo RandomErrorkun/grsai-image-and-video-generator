@@ -82,6 +82,29 @@ export interface TaskUpdate {
   clearFailure?: boolean;
 }
 
+export interface UsageLedgerRecord {
+  readonly task_id: string;
+  readonly date: string;
+  readonly model: string;
+  readonly kind: "image" | "video";
+  readonly credits: number;
+  readonly status: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface UsageLedgerInput {
+  taskId: string;
+  date: string;
+  model: string;
+  kind: "image" | "video";
+  credits: number;
+  status: string;
+  createdAt: string;
+  /** 为真时若该 task_id 已存在则跳过，用于历史回填不覆盖当时锁定的积分快照。 */
+  ignoreIfExists?: boolean;
+}
+
 export interface HistoryStore {
   /** 建表、补列、建索引。启动时调一次。 */
   ensureSchema(): Promise<void>;
@@ -95,10 +118,16 @@ export interface HistoryStore {
   getAllTasks(): Promise<HistoryTask[]>;
   getTaskCount(): Promise<number>;
   getTasksPage(page: number, pageSize: number): Promise<HistoryTask[]>;
+  /** 按任务 id 列表删除历史记录（不影响独立的 usage_events 用量台账）。 */
+  deleteTasks(taskIds: readonly string[]): Promise<number>;
   clearAllTasks(): Promise<number>;
   clearFailedTasks(): Promise<number>;
   clearViolationTasks(): Promise<number>;
   clearRunningTasks(): Promise<number>;
+  /** 写入/更新一条独立用量台账记录。 */
+  recordUsageEvent(input: UsageLedgerInput): Promise<void>;
+  /** 读取全部独立用量台账记录（按时间倒序）。 */
+  getUsageEvents(): Promise<UsageLedgerRecord[]>;
 }
 
 export interface HistoryStoreDeps {
@@ -157,6 +186,29 @@ const OPTIONAL_COLUMNS: ReadonlyArray<readonly [name: string, declaration: strin
 
 const CREATE_INDEX =
   "CREATE INDEX IF NOT EXISTS idx_history_created_at ON history_tasks(created_at DESC)";
+
+/** 独立用量台账表：保存任务结算时的估算积分快照，即使删除历史记录也不丢失用量统计。 */
+const CREATE_USAGE_TABLE = `CREATE TABLE IF NOT EXISTS usage_events (
+    task_id TEXT PRIMARY KEY,
+    date TEXT NOT NULL,
+    model TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    credits INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+)`;
+
+const CREATE_USAGE_INDEX =
+  "CREATE INDEX IF NOT EXISTS idx_usage_events_date ON usage_events(date DESC)";
+
+const INSERT_USAGE_REPLACE = `INSERT OR REPLACE INTO usage_events (
+    task_id, date, model, kind, credits, status, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+
+const INSERT_USAGE_IGNORE = `INSERT OR IGNORE INTO usage_events (
+    task_id, date, model, kind, credits, status, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
 const INSERT_TASK = `INSERT OR REPLACE INTO history_tasks (
     id, prompt, model, aspect_ratio, image_size, ref_images,
@@ -225,6 +277,8 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
         }
       }
       await db.execute(CREATE_INDEX);
+      await db.execute(CREATE_USAGE_TABLE);
+      await db.execute(CREATE_USAGE_INDEX);
     });
   }
 
@@ -399,6 +453,46 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
     return Number(rows[0]?.cnt ?? 0);
   }
 
+  function deleteTasks(taskIds: readonly string[]): Promise<number> {
+    return enqueueWrite(async () => {
+      const unique = [...new Set(taskIds.filter((id) => id.trim() !== ""))];
+      if (unique.length === 0) return 0;
+      let deleted = 0;
+      for (const id of unique) {
+        const result = await db.execute("DELETE FROM history_tasks WHERE id = ?", [id]);
+        deleted += Math.max(result.rowsAffected ?? 0, 0);
+      }
+      return deleted;
+    });
+  }
+
+  function recordUsageEvent(input: UsageLedgerInput): Promise<void> {
+    return enqueueWrite(async () => {
+      const sql = input.ignoreIfExists ? INSERT_USAGE_IGNORE : INSERT_USAGE_REPLACE;
+      await db.execute(sql, [
+        input.taskId,
+        input.date,
+        input.model,
+        input.kind,
+        Math.max(0, Math.trunc(input.credits)),
+        input.status,
+        input.createdAt,
+        timestamp(),
+      ]);
+    });
+  }
+
+  async function getUsageEvents(): Promise<UsageLedgerRecord[]> {
+    const rows = await db.select<UsageLedgerRecord>(
+      "SELECT * FROM usage_events ORDER BY created_at DESC, task_id DESC",
+    );
+    return rows.map((row) => ({
+      ...row,
+      kind: row.kind === "video" ? "video" : "image",
+      credits: Number(row.credits ?? 0),
+    }));
+  }
+
   function clearAllTasks(): Promise<number> {
     return enqueueWrite(async () => {
       const deleted = await getTaskCount();
@@ -435,9 +529,12 @@ export function createHistoryStore(deps: HistoryStoreDeps): HistoryStore {
     getAllTasks,
     getTaskCount,
     getTasksPage,
+    deleteTasks,
     clearAllTasks,
     clearFailedTasks: () => clearByStatus("failed"),
     clearViolationTasks: () => clearByStatus("violation"),
     clearRunningTasks: () => clearByStatus("running"),
+    recordUsageEvent,
+    getUsageEvents,
   };
 }

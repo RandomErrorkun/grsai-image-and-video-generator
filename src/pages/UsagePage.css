@@ -1,0 +1,480 @@
+/* 用量统计页：热力图、KPI 卡、扇形图、折线图与分模型堆积柱状图 */
+
+.usage-page {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-primary);
+}
+
+.usage-page__scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.usage-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.usage-header__left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.usage-header__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.usage-header__pricing {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.usage-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- KPI 摘要卡 ---------- */
+
+.usage-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.usage-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+}
+
+.usage-kpi__label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.usage-kpi__value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.usage-kpi__sub {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 通用卡片 ---------- */
+
+.usage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--card-bg);
+}
+
+.usage-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.usage-card__title-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.usage-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.usage-card__subtitle {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-empty {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* ---------- 全年贡献热力图 ---------- */
+
+.usage-heatmap__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.usage-heatmap__legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.usage-heatmap__swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+}
+
+.usage-heatmap__swatch--l0,
+.usage-heatmap__cell--l0 {
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  fill: color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.usage-heatmap__swatch--l1,
+.usage-heatmap__cell--l1 {
+  background: color-mix(in srgb, var(--accent) 26%, var(--card-bg));
+  fill: color-mix(in srgb, var(--accent) 26%, var(--card-bg));
+}
+
+.usage-heatmap__swatch--l2,
+.usage-heatmap__cell--l2 {
+  background: color-mix(in srgb, var(--accent) 50%, var(--card-bg));
+  fill: color-mix(in srgb, var(--accent) 50%, var(--card-bg));
+}
+
+.usage-heatmap__swatch--l3,
+.usage-heatmap__cell--l3 {
+  background: color-mix(in srgb, var(--accent) 75%, var(--card-bg));
+  fill: color-mix(in srgb, var(--accent) 75%, var(--card-bg));
+}
+
+.usage-heatmap__swatch--l4,
+.usage-heatmap__cell--l4 {
+  background: var(--accent);
+  fill: var(--accent);
+}
+
+.usage-year-select {
+  width: 88px;
+}
+
+.usage-heatmap__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.usage-heatmap__svg {
+  display: block;
+}
+
+.usage-heatmap__cell {
+  stroke: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  stroke-width: 0.7;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+.usage-heatmap__cell:hover {
+  stroke: var(--text-primary);
+  stroke-width: 1.2;
+}
+
+/* ---------- 双栏网格 ---------- */
+
+.usage-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* ---------- 扇形图 ---------- */
+
+.usage-donut__body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.usage-donut__chart {
+  flex: none;
+}
+
+.usage-donut__slice {
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.usage-donut__center-value {
+  fill: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-donut__center-label {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+
+.usage-donut__legend {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usage-donut__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.usage-donut__legend-item:hover,
+.usage-donut__legend-item--active {
+  background: var(--surface-hover);
+}
+
+.usage-legend-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.usage-donut__legend-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-donut__legend-val {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.usage-donut__legend-pct {
+  flex: none;
+  width: 42px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------- 时间段筛选条 ---------- */
+
+.usage-range-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.usage-range-bar__presets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.usage-range-bar__dates {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usage-range-bar__sep,
+.usage-range-bar__span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-date-input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--surface-border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12px;
+}
+
+/* ---------- 折线图与堆积柱状图 ---------- */
+
+.usage-chart-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.usage-chart-wrap--popover {
+  position: relative;
+}
+
+.usage-bar-popover {
+  position: absolute;
+  z-index: 30;
+  min-width: 188px;
+  max-width: 280px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.usage-bar-popover__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+.usage-bar-popover__date {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.usage-bar-popover__total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.usage-bar-popover__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usage-bar-popover__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.usage-bar-popover__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-bar-popover__val {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.usage-grid-line {
+  stroke: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+}
+
+.usage-axis-text {
+  fill: var(--text-secondary);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-hover-guide {
+  stroke: color-mix(in srgb, var(--accent) 55%, transparent);
+  stroke-dasharray: 3 2;
+  stroke-width: 1.2;
+}
+
+.usage-bar-highlight {
+  fill: color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.usage-stacked__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.usage-stacked__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.usage-footnote {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
