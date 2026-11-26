@@ -480,27 +480,27 @@ export default function ComicPage() {
         </div>
 
         <div className="comic__card">
-          <div className="comic__row">
-            <div className="comic__field comic__grow">
-              <span className="comic__caption">{t("comic.story_model")}</span>
-              <ModelDropdown
-                value={activeStoryModel}
-                models={storyModelOptions}
-                ariaLabel={t("comic.story_model")}
-                disabled={Boolean(customBaseUrl && customModel)}
-                showAvailability={!customBaseUrl}
-                onChange={setStoryModel}
-              />
-            </div>
-            <div className="comic__field comic__grow">
-              <span className="comic__caption">{t("comic.image_model")}</span>
-              <ModelDropdown
-                value={imageModel}
-                models={COMIC_IMAGE_MODELS}
-                ariaLabel={t("comic.image_model")}
-                onChange={onImageModelChange}
-              />
-            </div>
+          <div className="comic__field">
+            <span className="comic__caption">{t("comic.story_model")}</span>
+            <ModelDropdown
+              className="comic__model-dropdown"
+              value={activeStoryModel}
+              models={storyModelOptions}
+              ariaLabel={t("comic.story_model")}
+              disabled={Boolean(customBaseUrl && customModel)}
+              showAvailability={!customBaseUrl}
+              onChange={setStoryModel}
+            />
+          </div>
+          <div className="comic__field">
+            <span className="comic__caption">{t("comic.image_model")}</span>
+            <ModelDropdown
+              className="comic__model-dropdown"
+              value={imageModel}
+              models={COMIC_IMAGE_MODELS}
+              ariaLabel={t("comic.image_model")}
+              onChange={onImageModelChange}
+            />
           </div>
 
           <div className="comic__row">

@@ -94,6 +94,9 @@ export function createMemoryFs(paths: PathTools, root: string): FileSystemApi {
       directories.delete(target);
     },
     replaceWithBackup,
+    async fileSize(path) {
+      return (await read(path)).byteLength;
+    },
     async sha256(path) {
       const bytes = await read(path);
       const copy = new Uint8Array(bytes);

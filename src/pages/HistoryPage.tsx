@@ -596,12 +596,19 @@ export default function HistoryPage() {
   const announceRefetch = (outcome: RefetchOutcome) => {
     switch (outcome.kind) {
       case "in_flight":
+      case "skipped_succeeded":
         return;
       case "already_tracking":
         notice("info", t("common.note"), t("history.refetch_already_tracking"));
         return;
       case "already_complete":
         notice("info", t("common.note"), t("history.refetch_already_complete"));
+        return;
+      case "replaced_succeeded":
+        notice("success", t("common.success"), t("history.refetch_replaced"));
+        return;
+      case "kept_local_larger":
+        notice("info", t("common.note"), t("history.refetch_kept_local"));
         return;
       case "resumed":
         notice("info", t("common.note"), t("history.refetch_resumed", { progress: outcome.progress }));

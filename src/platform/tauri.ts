@@ -191,6 +191,9 @@ export const tauriPlatform: Platform = {
       if (await exists(backup)) await remove(backup);
       await rename(path, backup);
     },
+    async fileSize(path) {
+      return (await stat(path)).size;
+    },
     sha256: (path) => invoke<string>("file_sha256", { path }),
   },
 
@@ -209,6 +212,7 @@ export const tauriPlatform: Platform = {
         // 结果地址带签名，不记；只记落盘路径
         `download -> ${destPath}`,
       ),
+    probeRemoteSha256: (url) => invoke<string | null>("api_probe_remote_sha256", { url }).catch(() => null),
   },
 
   configStorage: {

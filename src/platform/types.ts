@@ -48,6 +48,8 @@ export interface FileSystemApi {
   remove(path: string): Promise<void>;
   /** 把 path 改名为 backup；backup 已存在时先删掉它。 */
   replaceWithBackup(path: string, backup: string): Promise<void>;
+  /** 返回本地文件字节数。 */
+  fileSize(path: string): Promise<number>;
   /** 计算本地文件的 SHA-256（小写十六进制），用于校验历史结果文件是否被替换。 */
   sha256(path: string): Promise<string>;
 }
@@ -55,8 +57,10 @@ export interface FileSystemApi {
 export interface HttpApi {
   /** 发出请求，拿到响应文本。网络问题用 HttpOutcome 表达，不抛错。 */
   request(request: HttpRequest): Promise<HttpOutcome>;
-  /** 下载到 destPath，内容完整收到后才落盘。 */
+  /** 下载到 destPath，经过完整性校验后原子落盘。 */
   download(url: string, destPath: string): Promise<HttpOutcome>;
+  /** 可选：发轻量 HEAD 请求读取远端显式 SHA-256 校验头；不支持或失败返回 null。 */
+  probeRemoteSha256?(url: string): Promise<string | null>;
 }
 
 /** 文件对话框里的文件类型筛选；extensions 不带点。 */

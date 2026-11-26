@@ -1,6 +1,6 @@
 [package]
 name = "grsai-image-and-video-generator"
-version = "0.1.2"
+version = "0.1.3"
 description = "Grsai Image and Video Generator desktop client (Tauri rewrite)"
 authors = ["you"]
 edition = "2024"
@@ -31,7 +31,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-clipboard-manager = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "http2", "system-proxy"] }
 sha2 = "0.10"
-tokio = { version = "1", features = ["fs", "io-util"] }
+tokio = { version = "1", features = ["fs", "io-util", "sync", "time"] }
 
 # 读剪贴板里的文件列表要直接调系统接口，剪贴板插件没有这一项
 [target.'cfg(windows)'.dependencies]

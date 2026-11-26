@@ -17,8 +17,8 @@ afterEach(() => {
 describe("translation tables", () => {
   it("gives both languages the same keys: the 187 inherited from the source project plus the rewrite's own", () => {
     expect(Object.keys(zh)).toEqual(Object.keys(en));
-    // 重写版自己追加的键：外壳 15 个，任务状态和提交并发设置 6 个，历史页和素材区 4 个，参考视频 12 个，关窗确认 4 个，漫画自定义接口 14 个，任务标签与时长/首尾帧校验 6 个，内部预览灯箱与设置 26 个，历史再获取与文件校验 17 个，模型可用性 9 个，用量统计 31 个，官网抓取与公告及历史多选删除 36 个，关于与版本号 2 个
-    expect(Object.keys(en)).toHaveLength(369);
+    // 重写版自己追加的键：外壳 15 个，任务状态和提交并发设置 6 个，历史页和素材区 4 个，参考视频 12 个，关窗确认 4 个，漫画自定义接口 14 个，任务标签与时长/首尾帧校验 6 个，内部预览灯箱与设置 26 个，历史再获取与文件校验 19 个，模型可用性 9 个，用量统计 31 个，官网抓取与公告及历史多选删除 36 个，关于与版本号 2 个
+    expect(Object.keys(en)).toHaveLength(371);
     for (const value of [...Object.values(en), ...Object.values(zh)]) {
       expect(typeof value).toBe("string");
     }

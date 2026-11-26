@@ -1,8 +1,10 @@
 /* 模型下拉框及双层可用性圆点（纯 CSS，不依赖 emoji 字体，在 Windows 下恒定彩色清晰） */
 
-.model-dropdown {
+.model-dropdown,
+.model-dropdown.fui-Dropdown {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
 }
 
 .model-dropdown__listbox {

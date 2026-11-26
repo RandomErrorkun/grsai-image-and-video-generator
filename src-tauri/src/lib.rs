@@ -23,6 +23,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             api::api_request,
             api::api_download,
+            api::api_probe_remote_sha256,
             native::allow_paths,
             native::open_path,
             native::clipboard_files,

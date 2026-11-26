@@ -102,6 +102,9 @@ describe("history refetch & multi-restart resume", () => {
       sleep: async () => {},
     });
 
+    let remoteSha256Handler: (url: string) => Promise<string | null> = async () => null;
+    let artifactThumbCount = 0;
+
     const makeSession = () => {
       const taskList = new TaskList({
         scheduler: () => scheduler,
@@ -112,12 +115,28 @@ describe("history refetch & multi-restart resume", () => {
         updateTask: (id, status, update) => history.updateTask(id, status, update),
         probeOnce: (id) => scheduler.probeOnce(id),
         downloadResults: (spec, id, data) => scheduler.downloadResults(spec, id, data),
+        downloadFile: async (url, destPath) => {
+          downloadCalls.push({ url, destPath });
+          return downloadHandler(url, destPath);
+        },
+        probeRemoteSha256: (url) => remoteSha256Handler(url),
         isActive: (id) => taskList.hasActiveTaskId(id),
         resume: (task, spec, progress, serverStatus) => {
           taskList.attach({ taskId: task.id, prompt: task.prompt, spec, progress, serverStatus });
         },
         allowPath: async () => {},
         exists: (p) => fs.exists(p),
+        fileSize: (p) => fs.fileSize(p),
+        sha256: (p) => fs.sha256(p),
+        replaceFile: (src, dst) => fs.replaceWithBackup(src, dst),
+        removeFile: (p) => fs.remove(p),
+        computeArtifacts: async (p) => {
+          artifactThumbCount += 1;
+          return {
+            thumbnail: `data:image/webp;base64,thumb-${artifactThumbCount}`,
+            resultSha256: await fs.sha256(p),
+          };
+        },
         onChanged: () => {},
       });
       return { taskList, refetcher };
@@ -134,6 +153,9 @@ describe("history refetch & multi-restart resume", () => {
       },
       setDownload: (fn: typeof downloadHandler) => {
         downloadHandler = fn;
+      },
+      setRemoteSha256: (fn: typeof remoteSha256Handler) => {
+        remoteSha256Handler = fn;
       },
       makeSession,
     };
@@ -235,10 +257,10 @@ describe("history refetch & multi-restart resume", () => {
     expect(env.queryCalls).toEqual([task.id]);
     expect(env.downloadCalls).toHaveLength(1);
 
-    // 下载完成后再连点 5 次：直接命中本地文件短路，0 次网络请求、0 次下载
+    // 下载完成后再通过批量「本页未完成任务再获取」连点 5 次：直接跳过 succeeded，0 次新请求、0 次新下载
     for (let i = 0; i < 5; i += 1) {
-      const again = await refetcher.refetchTask(task);
-      expect(again.kind).toBe("already_complete");
+      const summary = await refetcher.refetchPage([(await env.history.getTask(task.id))!]);
+      expect(summary.alreadyComplete).toBe(1);
     }
     expect(env.queryCalls).toEqual([task.id]);
     expect(env.downloadCalls).toHaveLength(1);
@@ -333,15 +355,17 @@ describe("history refetch & multi-restart resume", () => {
       byId.get(tOldFailed.id)!,
     ];
 
-    // 轮换点击 5 轮
+    // 轮换点击 5 轮（单条手动再获取）
     for (let round = 0; round < 5; round += 1) {
       for (const item of batch) {
         const out = await refetcher.refetchTask(item);
         if (item.id === tRunning.id) {
           expect(out.kind).toBe(round === 0 ? "resumed" : "already_tracking");
         } else if (item.id === tDoneLocal.id) {
-          expect(out.kind).toBe("already_complete");
+          // tDoneLocal 远端已 404 过期 -> 2.2.3 保持不变
+          expect(out.kind).toBe("expired_unchanged");
         } else if (item.id === tRecovered.id) {
+          // 第 0 轮下载并标为 succeeded；后续轮次单条点击再获取时与远端比对 SHA-256 一致 -> already_complete
           expect(out.kind).toBe(round === 0 ? "updated_succeeded" : "already_complete");
         } else if (item.id === tExpiredRunning.id) {
           expect(out.kind).toBe(round === 0 ? "marked_expired" : "expired_unchanged");
@@ -351,9 +375,8 @@ describe("history refetch & multi-restart resume", () => {
       }
     }
 
-    // tDoneLocal 从未发出任何远端请求；tRecovered 只下载 1 次；tRunning 只建 1 张卡片
-    expect(env.queryCalls.filter((id) => id === tDoneLocal.id)).toHaveLength(0);
-    expect(env.downloadCalls).toHaveLength(1);
+    // tDoneLocal 本地文件未受破坏；tRunning 只建 1 张卡片
+    expect(await env.fs.read(localExisting)).toEqual(new Uint8Array([9, 9]));
     expect(taskList.getCards().filter((c) => c.taskId === tRunning.id)).toHaveLength(1);
 
     // 核对 SQLite 最终数据完整性
@@ -489,12 +512,20 @@ describe("history refetch & multi-restart resume", () => {
 
     const { refetcher } = env.makeSession();
     const all = await env.history.getAllTasks();
+    // 2.2.5：批量「本页未完成任务再获取」跳过 Succeeded，仅探测 failed 与 violation
     const summary = await refetcher.refetchPage(all);
     expect(summary).toMatchObject({
       total: 3,
-      expiredUnchanged: 3,
+      alreadyComplete: 1,
+      expiredUnchanged: 2,
       markedExpired: 0,
       updatedFailed: 0,
+    });
+    expect(env.queryCalls).not.toContain(tSuccDeleted.id);
+
+    // 2.2.4：手动单条点击已过期的缺失文件 Succeeded 记录 -> 也不做修改
+    expect(await refetcher.refetchTask((await env.history.getTask(tSuccDeleted.id))!)).toEqual({
+      kind: "expired_unchanged",
     });
 
     const rSucc = await env.history.getTask(tSuccDeleted.id);
@@ -545,5 +576,109 @@ describe("history refetch & multi-restart resume", () => {
     expect(
       await verifyHistoryResultFile({ result_path: filePath, result_sha256: realHash }, deps),
     ).toEqual({ ok: false, reason: "missing" });
+  });
+
+  it("handles manual Succeeded re-fetch rules (2.2.1 checksum/size compare, 2.2.2 missing redownload, 2.2.3/2.2.4 expired, 2.2.5 batch skip)", async () => {
+    const env = await setup("succeeded-refetch-rules.db");
+    await env.fs.makeDirs(OUTPUT);
+    const { refetcher } = env.makeSession();
+
+    const truncatedBytes = new Uint8Array([1, 2, 3, 4]); // 4 bytes (模拟半截 4K PNG)
+    const completeBytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]); // 10 bytes (完整文件)
+    const smallerBytes = new Uint8Array([9, 8]); // 2 bytes (比本地小)
+
+    // --- 2.2.1 (无远端校验码)：本地半截文件 -> 新下载更大且 SHA-256 不同 -> 覆盖本地并更新缩略图与 SHA-256 ---
+    const tTrunc = await env.history.addTask({
+      id: "succ-trunc",
+      prompt: "4k png",
+      model: "nano-banana-pro",
+      aspectRatio: "1:1",
+      imageSize: "4K",
+    });
+    const truncPath = `${OUTPUT}\\grsai_trunc.png`;
+    await env.fs.write(truncPath, truncatedBytes);
+    const truncHash = await env.fs.sha256(truncPath);
+    await env.history.updateTask(tTrunc.id, "succeeded", {
+      resultPath: truncPath,
+      thumbnail: "data:image/webp;base64,old-broken-thumb",
+      resultSha256: truncHash,
+    });
+
+    env.setQuery(async (id) =>
+      responded(200, { id, status: "succeeded", progress: 100, results: [{ url: `https://cdn.example/${id}.png` }] }),
+    );
+    env.setDownload(async (_url, dest) => {
+      await env.fs.write(dest, completeBytes);
+      return responded(200, "");
+    });
+
+    const outReplace = await refetcher.refetchTask((await env.history.getTask(tTrunc.id))!);
+    expect(outReplace).toEqual({ kind: "replaced_succeeded", resultPath: truncPath });
+    expect(await env.fs.read(truncPath)).toEqual(completeBytes);
+    const updatedRow = await env.history.getTask(tTrunc.id);
+    expect(updatedRow?.result_sha256).toBe(await env.fs.sha256(truncPath));
+    expect(updatedRow?.result_sha256).not.toBe(truncHash);
+    expect(updatedRow?.thumbnail).not.toBe("data:image/webp;base64,old-broken-thumb");
+
+    // --- 2.2.1 (无远端校验码)：再次点击且远端内容相同 -> SHA-256 一致 -> 不覆盖 ---
+    const outSame = await refetcher.refetchTask((await env.history.getTask(tTrunc.id))!);
+    expect(outSame).toEqual({ kind: "already_complete", resultPath: truncPath });
+
+    // --- 2.2.1 (无远端校验码)：远端下回来的文件比本地更小且 SHA-256 不同 -> 不修改本地文件与 SQLite ---
+    env.setDownload(async (_url, dest) => {
+      await env.fs.write(dest, smallerBytes);
+      return responded(200, "");
+    });
+    const beforeKeep = await env.history.getTask(tTrunc.id);
+    const outSmaller = await refetcher.refetchTask(beforeKeep!);
+    expect(outSmaller).toEqual({ kind: "kept_local_larger" });
+    expect(await env.fs.read(truncPath)).toEqual(completeBytes);
+    expect((await env.history.getTask(tTrunc.id))?.result_sha256).toBe(beforeKeep?.result_sha256);
+
+    // --- 2.2.1 (有远端校验码)：远端 SHA-256 与本地一致 -> 0 次下载 ---
+    const completeHash = await env.fs.sha256(truncPath);
+    const dlCountBefore = env.downloadCalls.length;
+    env.setRemoteSha256(async () => completeHash);
+    expect(await refetcher.refetchTask((await env.history.getTask(tTrunc.id))!)).toEqual({
+      kind: "already_complete",
+      resultPath: truncPath,
+    });
+    expect(env.downloadCalls.length).toBe(dlCountBefore);
+
+    // --- 2.2.1 (有远端校验码)：远端 SHA-256 与本地不一致 -> 直接重下覆盖并更新缩略图与 SHA-256 ---
+    const newerBytes = new Uint8Array([42, 42, 42, 42, 42, 42]);
+    env.setRemoteSha256(async () => "f".repeat(64));
+    env.setDownload(async (_url, dest) => {
+      await env.fs.write(dest, newerBytes);
+      return responded(200, "");
+    });
+    expect(await refetcher.refetchTask((await env.history.getTask(tTrunc.id))!)).toEqual({
+      kind: "replaced_succeeded",
+      resultPath: truncPath,
+    });
+    expect(await env.fs.read(truncPath)).toEqual(newerBytes);
+    expect((await env.history.getTask(tTrunc.id))?.result_sha256).toBe(await env.fs.sha256(truncPath));
+
+    // --- 2.2.2：远端未过期且本地文件不存在 -> 直接下载并更新缩略图与 SHA-256 ---
+    env.setRemoteSha256(async () => null);
+    await env.fs.remove(truncPath);
+    env.setDownload(async (_url, dest) => {
+      await env.fs.write(dest, completeBytes);
+      return responded(200, "");
+    });
+    expect(await refetcher.refetchTask((await env.history.getTask(tTrunc.id))!)).toEqual({
+      kind: "updated_succeeded",
+      resultPath: truncPath,
+      downloaded: true,
+    });
+    expect(await env.fs.exists(truncPath)).toBe(true);
+    expect((await env.history.getTask(tTrunc.id))?.result_sha256).toBe(completeHash);
+
+    // --- 2.2.3：远端已过期且本地文件存在 -> 不做修改 ---
+    env.setQuery(async () => responded(404, { error: "result not exist, valid for 2 hours" }));
+    expect(await refetcher.refetchTask((await env.history.getTask(tTrunc.id))!)).toEqual({
+      kind: "expired_unchanged",
+    });
+    expect(await env.fs.read(truncPath)).toEqual(completeBytes);
   });
 });

@@ -79,6 +79,11 @@
   min-width: 0;
 }
 
+.comic__model-dropdown {
+  width: 100%;
+  min-width: 0;
+}
+
 .comic__textarea {
   width: 100%;
 }
