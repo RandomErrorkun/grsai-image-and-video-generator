@@ -62,4 +62,3 @@ npx tauri build --no-bundle
 ## 致谢
 
 - 原始项目：[Moeary/Grsai-Banana](https://github.com/Moeary/Grsai-Banana)
-- Fork 演进仓库：[RandomErrorkun/Grsai-Banana](https://github.com/RandomErrorkun/Grsai-Banana)
