@@ -36,16 +36,38 @@
 /* Fluent 的按钮默认有 96 的最小宽度，这里按内容宽排 */
 .history__button {
   min-width: 0;
+  white-space: nowrap;
 }
 
 .history__toolbar {
   display: flex;
   flex: none;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 2px;
   margin-bottom: 6px;
-  padding: 10px 20px 0;
+  padding: 10px 14px 0;
+}
+
+/* 顶栏按钮缩小字号、图标与内边距，保证最小窗口宽度下中英文均单行不换行 */
+.history__toolbar .history__button {
+  padding: 4px 6px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.history__toolbar .history__button .fui-Button__icon {
+  margin-right: 4px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.history__toolbar .history__button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .history__list {
