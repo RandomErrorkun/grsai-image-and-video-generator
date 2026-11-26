@@ -22,3 +22,7 @@
   scrollbar-width: thin;
   box-sizing: border-box;
 }
+
+.fluent-select__listbox .fui-Option {
+  white-space: nowrap;
+}

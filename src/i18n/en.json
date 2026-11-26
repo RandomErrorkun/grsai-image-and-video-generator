@@ -270,6 +270,8 @@
   "preview.open_folder": "Open containing folder",
   "preview.open_system": "Open with system default app",
   "preview.close": "Close preview",
+  "preview.fullscreen": "Fullscreen preview (F11)",
+  "preview.exit_fullscreen": "Windowed preview (F11)",
   "preview.tooltip_preview": "Preview",
   "preview.gif_fps": "Playback FPS (leave empty for original timing)",
   "preview.gif_fps_auto": "Auto",

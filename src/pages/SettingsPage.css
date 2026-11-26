@@ -97,8 +97,11 @@
   padding-right: 16px;
 }
 
-/* 下拉框和步进框 150 宽、输入框 300 宽，与源项目的 ComboBox、LineEdit 同宽 */
-.settings-card__select,
+/* 下拉框加宽到 220px（为左侧勾选图标与中英文长选项留足空间不换行），步进框 150px，输入框 300px */
+.settings-card__select {
+  width: 220px;
+}
+
 .settings-card__number {
   width: 150px;
 }

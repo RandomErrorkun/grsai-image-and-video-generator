@@ -325,7 +325,7 @@ export const tauriPlatform: Platform = {
 
   previewWindow: {
     open: (path) => invoke<void>("open_preview_window", { path }),
-    close: () => invoke<void>("close_preview_window"),
+    close: (returnToMain = false) => invoke<void>("close_preview_window", { returnToMain }),
     getInitialPath: () => invoke<string | null>("get_preview_path"),
     onOpen: (listener) => {
       let unlisten: (() => void) | undefined;
@@ -345,6 +345,20 @@ export const tauriPlatform: Platform = {
       let unlisten: (() => void) | undefined;
       let disposed = false;
       void listen("preview:closed", () => listener()).then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      });
+      return () => {
+        disposed = true;
+        unlisten?.();
+      };
+    },
+    onRestoreInline: (listener) => {
+      let unlisten: (() => void) | undefined;
+      let disposed = false;
+      void listen<string>("preview:restore_inline", (event) => {
+        if (typeof event.payload === "string" && event.payload) listener(event.payload);
+      }).then((stop) => {
         if (disposed) stop();
         else unlisten = stop;
       });

@@ -55,7 +55,7 @@ export function closePreview(): void {
   notify();
 }
 
-/** 统一预览入口：根据设置选择软件内灯箱（Tauri 下打开全屏独立子窗口，浏览器 mock 回退内嵌灯箱）或系统默认程序；不支持的类型始终交给系统。 */
+/** 统一预览入口：默认在程序主窗口内弹出灯箱（可按 F11/按钮/右键切换全屏子窗口）；preview_mode="system" 或不支持的类型交给系统默认程序。 */
 export function openPreview(path: string): void {
   if (!path) return;
   const kind = classifyPreviewMedia(path);
@@ -64,10 +64,24 @@ export function openPreview(path: string): void {
     runAsync(platform.opener.openPath(path));
     return;
   }
-  if (platform.isTauri && platform.previewWindow) {
-    runAsync(platform.previewWindow.open(path));
-    return;
-  }
   currentTarget = { path, kind };
   notify();
+}
+
+/** 强制以主窗口内嵌灯箱打开指定文件（用于从全屏子窗口切回窗口内灯箱）。 */
+export function openInlinePreview(path: string): void {
+  if (!path) return;
+  const kind = classifyPreviewMedia(path);
+  if (kind === "other") return;
+  currentTarget = { path, kind };
+  notify();
+}
+
+/** 从窗口内灯箱切换到全屏独立子窗口（Tauri 桌面端先关内嵌灯箱再拉起全屏子窗口）。 */
+export function openFullscreenPreview(path: string): void {
+  if (!path) return;
+  if (platform.isTauri && platform.previewWindow) {
+    closePreview();
+    runAsync(platform.previewWindow.open(path));
+  }
 }

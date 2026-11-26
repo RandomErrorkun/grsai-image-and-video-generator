@@ -131,6 +131,7 @@ function Shell() {
     setCloseConfirmOpen(false);
     stopAllTasks();
     await cfg.flush();
+    await platform.previewWindow?.close().catch(() => {});
     await platform.window.destroy();
   };
 

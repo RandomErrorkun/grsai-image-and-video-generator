@@ -250,7 +250,8 @@ function Thumbnail({ task, onOpenResult }: ThumbnailProps) {
     );
   }
 
-  const clickable = Boolean(path) && (Boolean(cachedThumb) || presence === "present");
+  // 只要是成功记录或存有结果路径，即使无缓存缩略图且本地文件已缺失，点击缩略图位也要触发校验并提示文件不存在
+  const clickable = Boolean(path) || hasResult(task);
 
   return (
     <div ref={host} className="history-item__thumb">
@@ -307,7 +308,7 @@ function HistoryItem({
   const t = useTr();
   const path = task.result_path;
   const result = hasResult(task);
-  const showThumb = Boolean(task.thumbnail) || (result && Boolean(path));
+  const showThumb = Boolean(task.thumbnail) || result;
   const tone = statusTone(task.status);
 
   return (

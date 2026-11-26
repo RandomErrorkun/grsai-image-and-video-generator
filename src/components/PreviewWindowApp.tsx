@@ -9,7 +9,7 @@ import { MediaLightbox } from "./MediaLightbox";
 import { normalizeLanguage, setLanguage } from "../i18n";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
-import { cfg, loadConfig } from "../state/config";
+import { cfg } from "../state/config";
 import { classifyPreviewMedia, type PreviewTarget } from "../state/preview";
 
 function toTarget(path: string | null): PreviewTarget | null {
@@ -31,7 +31,14 @@ export default function PreviewWindowApp() {
   const handleClose = useCallback(() => {
     setTarget(null);
     if (platform.previewWindow) {
-      runAsync(platform.previewWindow.close());
+      runAsync(platform.previewWindow.close(false));
+    }
+  }, []);
+
+  const handleExitFullscreen = useCallback(() => {
+    setTarget(null);
+    if (platform.previewWindow) {
+      runAsync(platform.previewWindow.close(true));
     }
   }, []);
 
@@ -42,7 +49,8 @@ export default function PreviewWindowApp() {
     const unsubOpen = previewWin.onOpen((path) => {
       // 每次复用窗口重新打开时同步主窗口可能刚切换过的语言与主题配置
       runAsync(
-        loadConfig()
+        cfg
+          .load()
           .then(() => {
             setLanguage(normalizeLanguage(cfg.get("language", "en")));
           })
@@ -61,7 +69,15 @@ export default function PreviewWindowApp() {
 
   return (
     <AppProvider>
-      {target ? <MediaLightbox key={`${target.path}#${openSeq}`} target={target} onClose={handleClose} /> : null}
+      {target ? (
+        <MediaLightbox
+          key={`${target.path}#${openSeq}`}
+          target={target}
+          isFullscreen
+          onClose={handleClose}
+          onToggleFullscreen={handleExitFullscreen}
+        />
+      ) : null}
     </AppProvider>
   );
 }

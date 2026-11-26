@@ -9,21 +9,24 @@ use std::{
 use tauri::{Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_fs::FsExt;
 
-/// 全屏独立预览子窗口的共享状态：保存当前预览路径与最近打开时刻（避免刚打开时的系统焦点切换误关闭）。
+/// 全屏独立预览子窗口的共享状态：保存当前预览路径、打开时刻与是否曾获得焦点，并用异步互斥锁串行化建窗。
 #[derive(Default)]
 pub struct PreviewState {
     inner: Mutex<PreviewInner>,
+    op_lock: tokio::sync::Mutex<()>,
 }
 
 #[derive(Default)]
 struct PreviewInner {
     path: Option<String>,
     opened_at: Option<Instant>,
+    has_focused: bool,
 }
 
 /// 打开或复用全屏独立预览子窗口（覆盖主窗口所在的整个显示器，无边框透明暗底浮层）。
+/// 注意：Windows 下 WebviewWindowBuilder::build 必须在 async 命令里调用，同步命令运行在 UI 线程会直接死锁 WebView2。
 #[tauri::command]
-pub fn open_preview_window(
+pub async fn open_preview_window(
     app: tauri::AppHandle,
     state: tauri::State<'_, PreviewState>,
     path: String,
@@ -32,15 +35,18 @@ pub fn open_preview_window(
         return Ok(());
     }
 
+    let _guard = state.op_lock.lock().await;
+
     // 先放行该文件，确保子窗口立刻可读
     let file_path = std::path::PathBuf::from(&path);
     let _ = app.fs_scope().allow_file(&file_path);
     let _ = app.asset_protocol_scope().allow_file(&file_path);
 
-    // 记下当前路径和打开时刻
+    // 记下当前路径和打开时刻，重置焦点标志（等子窗口真正获得一次焦点后才允许失焦自动隐藏）
     if let Ok(mut guard) = state.inner.lock() {
         guard.path = Some(path.clone());
         guard.opened_at = Some(Instant::now());
+        guard.has_focused = false;
     }
 
     // 获取主窗口所在的显示器几何信息（支持多显示器与不同 DPI 缩放）
@@ -98,19 +104,30 @@ pub fn open_preview_window(
 }
 
 /// 关闭（隐藏复用）全屏预览子窗口，并将焦点交还主窗口。
+/// 当 return_to_main 为 true 时，通知主窗口重新以窗口内灯箱打开当前文件，实现 F11 / 按钮无缝切换。
 #[tauri::command]
-pub fn close_preview_window(
+pub async fn close_preview_window(
     app: tauri::AppHandle,
     state: tauri::State<'_, PreviewState>,
+    return_to_main: Option<bool>,
 ) -> Result<(), String> {
-    if let Ok(mut guard) = state.inner.lock() {
-        guard.path = None;
-    }
+    let _guard = state.op_lock.lock().await;
+    let prev_path = if let Ok(mut guard) = state.inner.lock() {
+        guard.has_focused = false;
+        guard.path.take()
+    } else {
+        None
+    };
     if let Some(preview) = app.get_webview_window("preview") {
         let _ = preview.emit("preview:closed", ());
         let _ = preview.hide();
     }
     if let Some(main) = app.get_webview_window("main") {
+        if return_to_main.unwrap_or(false) {
+            if let Some(path) = prev_path {
+                let _ = main.emit("preview:restore_inline", &path);
+            }
+        }
         let _ = main.set_focus();
     }
     Ok(())
@@ -122,16 +139,44 @@ pub fn get_preview_path(state: tauri::State<'_, PreviewState>) -> Option<String>
     state.inner.lock().ok().and_then(|g| g.path.clone())
 }
 
-/// 预览窗口失焦（例如点击到其他显示器或切到外部程序）时自动关闭；忽略刚打开 400ms 内的焦点抖动。
+/// 预览窗口获得焦点时标记已就绪。
+pub fn handle_preview_focus(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<PreviewState>() {
+        if let Ok(mut guard) = state.inner.lock() {
+            if guard.path.is_some() {
+                guard.has_focused = true;
+            }
+        }
+    }
+}
+
+/// 预览窗口收到关闭请求（如 Alt+F4）时改为隐藏复用并清空状态、通知前端停播。
+pub fn handle_preview_close_requested(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<PreviewState>() {
+        if let Ok(mut guard) = state.inner.lock() {
+            guard.path = None;
+            guard.has_focused = false;
+        }
+    }
+    if let Some(preview) = app.get_webview_window("preview") {
+        let _ = preview.emit("preview:closed", ());
+        let _ = preview.hide();
+    }
+}
+
+/// 预览窗口失焦（例如点击到其他显示器或切到外部程序）时自动关闭；仅在获得过焦点且超过 250ms 后生效。
 pub fn handle_preview_blur(app: &tauri::AppHandle) {
     let should_close = app
         .try_state::<PreviewState>()
-        .and_then(|state| state.inner.lock().ok().map(|g| {
-            g.path.is_some()
-                && g.opened_at
-                    .map(|at| at.elapsed() > Duration::from_millis(400))
-                    .unwrap_or(true)
-        }))
+        .and_then(|state| {
+            state.inner.lock().ok().map(|g| {
+                g.path.is_some()
+                    && g.has_focused
+                    && g.opened_at
+                        .map(|at| at.elapsed() > Duration::from_millis(250))
+                        .unwrap_or(true)
+            })
+        })
         .unwrap_or(false);
     if !should_close {
         return;
@@ -139,6 +184,7 @@ pub fn handle_preview_blur(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<PreviewState>() {
         if let Ok(mut guard) = state.inner.lock() {
             guard.path = None;
+            guard.has_focused = false;
         }
     }
     if let Some(preview) = app.get_webview_window("preview") {

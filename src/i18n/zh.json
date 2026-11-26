@@ -270,6 +270,8 @@
   "preview.open_folder": "打开所在目录",
   "preview.open_system": "用系统默认程序打开",
   "preview.close": "关闭预览",
+  "preview.fullscreen": "全屏预览 (F11)",
+  "preview.exit_fullscreen": "退出全屏 (F11)",
   "preview.tooltip_preview": "预览",
   "preview.gif_fps": "播放帧率（留空按原速播放）",
   "preview.gif_fps_auto": "原速",

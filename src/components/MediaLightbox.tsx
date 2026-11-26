@@ -23,6 +23,8 @@ import {
   Copy20Regular,
   Dismiss20Regular,
   FolderOpen20Regular,
+  FullScreenMaximize20Regular,
+  FullScreenMinimize20Regular,
   Next20Regular,
   Open20Regular,
   Pause20Regular,
@@ -37,7 +39,14 @@ import {
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
 import { runAsync } from "../platform/async";
-import { closePreview, getPreviewTarget, subscribePreview, type PreviewTarget } from "../state/preview";
+import {
+  closePreview,
+  getPreviewTarget,
+  openFullscreenPreview,
+  openInlinePreview,
+  subscribePreview,
+  type PreviewTarget,
+} from "../state/preview";
 import { notice } from "./Notice";
 import "./MediaLightbox.css";
 
@@ -108,11 +117,36 @@ async function copySourceToClipboard(
   await platform.clipboard.writeImage(rgba, outW, outH);
 }
 
-/** 挂在 AppProvider 里的全局灯箱宿主（用于浏览器 mock 或回退场景）。 */
+/** 挂在 AppProvider 里的全局灯箱宿主（默认窗口内灯箱；支持 F11/按钮/右键切换独立全屏子窗口，并在退出全屏时无缝切回）。 */
 export function MediaLightboxHost() {
   const target = useSyncExternalStore(subscribePreview, getPreviewTarget);
+
+  useEffect(() => {
+    const previewWin = platform.previewWindow;
+    if (!previewWin) return;
+    return previewWin.onRestoreInline((path) => openInlinePreview(path));
+  }, []);
+
   if (!target) return null;
-  return <MediaLightbox key={target.path} target={target} onClose={closePreview} />;
+
+  const toggleFullscreen = () => {
+    if (platform.isTauri && platform.previewWindow) {
+      openFullscreenPreview(target.path);
+    } else if (typeof document !== "undefined") {
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+      else void document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  };
+
+  return (
+    <MediaLightbox
+      key={target.path}
+      target={target}
+      isFullscreen={false}
+      onClose={closePreview}
+      onToggleFullscreen={toggleFullscreen}
+    />
+  );
 }
 
 interface ContextMenuState {
@@ -120,10 +154,34 @@ interface ContextMenuState {
   y: number;
 }
 
-export function MediaLightbox({ target, onClose = closePreview }: { target: PreviewTarget; onClose?: () => void }) {
+export function MediaLightbox({
+  target,
+  isFullscreen = false,
+  onClose = closePreview,
+  onToggleFullscreen,
+}: {
+  target: PreviewTarget;
+  isFullscreen?: boolean;
+  onClose?: () => void;
+  onToggleFullscreen?: () => void;
+}) {
   const t = useTr();
   const [menu, setMenu] = useState<ContextMenuState | null>(null);
   const [ready, setReady] = useState(false);
+
+  // F11 在窗口内灯箱与独立全屏子窗口之间无缝切换
+  useEffect(() => {
+    if (!onToggleFullscreen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "F11") {
+        event.preventDefault();
+        setMenu(null);
+        onToggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onToggleFullscreen]);
 
   // 允许访问本地路径后再渲染
   useEffect(() => {
@@ -202,7 +260,9 @@ export function MediaLightbox({ target, onClose = closePreview }: { target: Prev
         <VideoLightboxBody
           path={target.path}
           menu={menu}
+          isFullscreen={isFullscreen}
           onClose={onClose}
+          onToggleFullscreen={onToggleFullscreen}
           onCloseMenu={() => setMenu(null)}
           onOpenMenu={openMenu}
           onOpenFolder={openFolder}
@@ -213,7 +273,9 @@ export function MediaLightbox({ target, onClose = closePreview }: { target: Prev
           path={target.path}
           kind={target.kind}
           menu={menu}
+          isFullscreen={isFullscreen}
           onClose={onClose}
+          onToggleFullscreen={onToggleFullscreen}
           onCloseMenu={() => setMenu(null)}
           onOpenMenu={openMenu}
           onOpenFolder={openFolder}
@@ -227,7 +289,9 @@ export function MediaLightbox({ target, onClose = closePreview }: { target: Prev
 interface BodyProps {
   path: string;
   menu: ContextMenuState | null;
+  isFullscreen: boolean;
   onClose(): void;
+  onToggleFullscreen?: () => void;
   onCloseMenu(): void;
   onOpenMenu(event: ReactMouseEvent): void;
   onOpenFolder(): void;
@@ -235,7 +299,18 @@ interface BodyProps {
 }
 
 /** 图像 / SVG / GIF 预览主体。 */
-function ImageLightboxBody({ path, kind, menu, onClose, onCloseMenu, onOpenMenu, onOpenFolder, onOpenSystem }: BodyProps & { kind: "image" | "gif" | "svg" }) {
+function ImageLightboxBody({
+  path,
+  kind,
+  menu,
+  isFullscreen,
+  onClose,
+  onToggleFullscreen,
+  onCloseMenu,
+  onOpenMenu,
+  onOpenFolder,
+  onOpenSystem,
+}: BodyProps & { kind: "image" | "gif" | "svg" }) {
   const t = useTr();
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -650,6 +725,17 @@ function ImageLightboxBody({ path, kind, menu, onClose, onCloseMenu, onOpenMenu,
             onClick={resetView}
           />
         </Tooltip>
+        {onToggleFullscreen ? (
+          <Tooltip content={isFullscreen ? t("preview.exit_fullscreen") : t("preview.fullscreen")} relationship="label">
+            <Button
+              appearance="transparent"
+              className="lightbox__icon-btn"
+              icon={isFullscreen ? <FullScreenMinimize20Regular /> : <FullScreenMaximize20Regular />}
+              aria-label={isFullscreen ? t("preview.exit_fullscreen") : t("preview.fullscreen")}
+              onClick={onToggleFullscreen}
+            />
+          </Tooltip>
+        ) : null}
         <span className="lightbox__divider" />
         <Tooltip content={hasGifStepper ? t("preview.copy_frame") : t("preview.copy_image")} relationship="label">
           <Button
@@ -690,6 +776,19 @@ function ImageLightboxBody({ path, kind, menu, onClose, onCloseMenu, onOpenMenu,
           <button type="button" role="menuitem" className="lightbox__menu-item" onClick={() => runAsync(copyCurrent())}>
             {hasGifStepper ? t("preview.copy_frame") : t("preview.copy_image")}
           </button>
+          {onToggleFullscreen ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="lightbox__menu-item"
+              onClick={() => {
+                onCloseMenu();
+                onToggleFullscreen();
+              }}
+            >
+              {isFullscreen ? t("preview.exit_fullscreen") : t("preview.fullscreen")}
+            </button>
+          ) : null}
           <button
             type="button"
             role="menuitem"
@@ -714,7 +813,17 @@ function ImageLightboxBody({ path, kind, menu, onClose, onCloseMenu, onOpenMenu,
 }
 
 /** 视频预览主体：播放/暂停/停止、进度条、音量条、左右键逐帧步进、右键复制当前帧。 */
-function VideoLightboxBody({ path, menu, onClose, onCloseMenu, onOpenMenu, onOpenFolder, onOpenSystem }: BodyProps) {
+function VideoLightboxBody({
+  path,
+  menu,
+  isFullscreen,
+  onClose,
+  onToggleFullscreen,
+  onCloseMenu,
+  onOpenMenu,
+  onOpenFolder,
+  onOpenSystem,
+}: BodyProps) {
   const t = useTr();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -906,6 +1015,17 @@ function VideoLightboxBody({ path, menu, onClose, onCloseMenu, onOpenMenu, onOpe
         />
 
         <span className="lightbox__divider" />
+        {onToggleFullscreen ? (
+          <Tooltip content={isFullscreen ? t("preview.exit_fullscreen") : t("preview.fullscreen")} relationship="label">
+            <Button
+              appearance="transparent"
+              className="lightbox__icon-btn"
+              icon={isFullscreen ? <FullScreenMinimize20Regular /> : <FullScreenMaximize20Regular />}
+              aria-label={isFullscreen ? t("preview.exit_fullscreen") : t("preview.fullscreen")}
+              onClick={onToggleFullscreen}
+            />
+          </Tooltip>
+        ) : null}
         <Tooltip content={t("preview.copy_frame")} relationship="label">
           <Button
             appearance="transparent"
@@ -950,6 +1070,19 @@ function VideoLightboxBody({ path, menu, onClose, onCloseMenu, onOpenMenu, onOpe
           >
             {t("preview.copy_frame")}
           </button>
+          {onToggleFullscreen ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="lightbox__menu-item"
+              onClick={() => {
+                onCloseMenu();
+                onToggleFullscreen();
+              }}
+            >
+              {isFullscreen ? t("preview.exit_fullscreen") : t("preview.fullscreen")}
+            </button>
+          ) : null}
           <button type="button" role="menuitem" className="lightbox__menu-item" onClick={onOpenFolder}>
             {t("preview.open_folder")}
           </button>

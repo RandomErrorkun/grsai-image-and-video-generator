@@ -124,10 +124,11 @@ export interface MediaApi {
 /** 独立全屏预览子窗口能力（仅 Tauri 桌面端提供，浏览器 mock 下省略并回退窗口内灯箱）。 */
 export interface PreviewWindowApi {
   open(path: string): Promise<void>;
-  close(): Promise<void>;
+  close(returnToMain?: boolean): Promise<void>;
   getInitialPath(): Promise<string | null>;
   onOpen(listener: (path: string) => void): () => void;
   onClosed(listener: () => void): () => void;
+  onRestoreInline(listener: (path: string) => void): () => void;
 }
 
 export interface Platform {

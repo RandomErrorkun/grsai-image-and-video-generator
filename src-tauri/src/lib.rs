@@ -19,6 +19,14 @@ pub fn run() {
                     if let Some(preview) = window.app_handle().get_webview_window("preview") {
                         let _ = preview.destroy();
                     }
+                    window.app_handle().exit(0);
+                }
+                tauri::WindowEvent::CloseRequested { api, .. } if window.label() == "preview" => {
+                    api.prevent_close();
+                    native::handle_preview_close_requested(window.app_handle());
+                }
+                tauri::WindowEvent::Focused(true) if window.label() == "preview" => {
+                    native::handle_preview_focus(window.app_handle());
                 }
                 tauri::WindowEvent::Focused(false) if window.label() == "preview" => {
                     native::handle_preview_blur(window.app_handle());
