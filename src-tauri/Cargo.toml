@@ -1,6 +1,6 @@
 [package]
 name = "grsai-image-and-video-generator"
-version = "0.1.0"
+version = "0.1.1"
 description = "Grsai Image and Video Generator desktop client (Tauri rewrite)"
 authors = ["you"]
 edition = "2024"

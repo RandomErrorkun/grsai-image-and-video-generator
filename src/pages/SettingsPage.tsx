@@ -15,12 +15,14 @@ import {
   FolderOpen20Regular,
   Globe20Regular,
   History20Regular,
+  Info20Regular,
   PaintBrush20Regular,
   Pulse20Regular,
   ShieldKeyhole20Regular,
   TextAlignLeft20Regular,
   TextFont20Regular,
 } from "@fluentui/react-icons";
+import { APP_VERSION } from "../app/version";
 import { notice } from "../components/Notice";
 import { buildModelsListRequest, parseModelsListResponse } from "../core/comicPlanner";
 import { DEFAULT_CONFIG } from "../core/config";
@@ -611,6 +613,15 @@ export default function SettingsPage() {
               <Button icon={<FolderOpen20Regular />} onClick={() => runAsync(chooseFolder())}>
                 {t("settings.output.choose")}
               </Button>
+            </SettingCard>
+          </div>
+        </section>
+
+        <section className="settings-group">
+          <h2 className="settings-group__title">{t("settings.about")}</h2>
+          <div className="settings-group__cards">
+            <SettingCard icon={Info20Regular} title={t("settings.version.title")} content={t("main.title")}>
+              <span className="settings-card__version">{`v${APP_VERSION}`}</span>
             </SettingCard>
           </div>
         </section>

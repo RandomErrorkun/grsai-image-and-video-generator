@@ -365,5 +365,7 @@
   "history.delete_page_confirm": "确定要删除当前页的全部 {count} 条历史记录吗？用量统计台账将会保留。",
   "history.delete_selected_confirm": "确定要删除选中的 {count} 条历史记录吗？用量统计台账将会保留。",
   "history.delete_cancel": "取消",
-  "history.delete_confirm": "确认删除"
+  "history.delete_confirm": "确认删除",
+  "settings.about": "关于",
+  "settings.version.title": "当前版本"
 }

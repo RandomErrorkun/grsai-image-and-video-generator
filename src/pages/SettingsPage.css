@@ -143,6 +143,18 @@
   width: 200px;
 }
 
+.settings-card__version {
+  padding: 4px 10px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* 主题色调色板：一排圆角色块，选中的那块带强调色描边 */
 
 .accent-palette {

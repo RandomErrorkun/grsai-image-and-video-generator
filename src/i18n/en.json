@@ -365,5 +365,7 @@
   "history.delete_page_confirm": "Delete all {count} history record(s) on the current page? Usage statistics will be preserved.",
   "history.delete_selected_confirm": "Delete the {count} selected history record(s)? Usage statistics will be preserved.",
   "history.delete_cancel": "Cancel",
-  "history.delete_confirm": "Confirm Delete"
+  "history.delete_confirm": "Confirm Delete",
+  "settings.about": "About",
+  "settings.version.title": "Version"
 }
