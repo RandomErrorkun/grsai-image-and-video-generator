@@ -121,6 +121,15 @@ export interface MediaApi {
   url(path: string): string;
 }
 
+/** 独立全屏预览子窗口能力（仅 Tauri 桌面端提供，浏览器 mock 下省略并回退窗口内灯箱）。 */
+export interface PreviewWindowApi {
+  open(path: string): Promise<void>;
+  close(): Promise<void>;
+  getInitialPath(): Promise<string | null>;
+  onOpen(listener: (path: string) => void): () => void;
+  onClosed(listener: () => void): () => void;
+}
+
 export interface Platform {
   readonly isTauri: boolean;
   /** 启动时准备一次：在 Tauri 里要先解析出数据目录，之后各能力才可用。 */
@@ -140,4 +149,5 @@ export interface Platform {
   readonly clipboard: ClipboardApi;
   readonly dragDrop: DragDropApi;
   readonly media: MediaApi;
+  readonly previewWindow?: PreviewWindowApi;
 }

@@ -55,13 +55,17 @@ export function closePreview(): void {
   notify();
 }
 
-/** 统一预览入口：根据设置选择软件内灯箱或系统默认程序；不支持的类型始终交给系统。 */
+/** 统一预览入口：根据设置选择软件内灯箱（Tauri 下打开全屏独立子窗口，浏览器 mock 回退内嵌灯箱）或系统默认程序；不支持的类型始终交给系统。 */
 export function openPreview(path: string): void {
   if (!path) return;
   const kind = classifyPreviewMedia(path);
   const mode = normalizePreviewMode(cfg.get("preview_mode", "internal"));
   if (mode === "system" || kind === "other") {
     runAsync(platform.opener.openPath(path));
+    return;
+  }
+  if (platform.isTauri && platform.previewWindow) {
+    runAsync(platform.previewWindow.open(path));
     return;
   }
   currentTarget = { path, kind };

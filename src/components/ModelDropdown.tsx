@@ -16,6 +16,7 @@ import { buildEffectivePricingMap, formatModelCostTag } from "../core/usageStats
 import { useTr } from "../hooks/useLanguage";
 import { runAsync } from "../platform/async";
 import { modelAvailability, useModelAvailability } from "../state/modelAvailability";
+import { DOWNWARD_POSITIONING } from "./FluentSelect";
 import { notice } from "./Notice";
 import "./ModelDropdown.css";
 
@@ -66,6 +67,7 @@ export function ModelDropdown({
     <Dropdown
       className={className ? `model-dropdown ${className}` : "model-dropdown"}
       listbox={{ className: "model-dropdown__listbox" }}
+      positioning={DOWNWARD_POSITIONING}
       value={value}
       selectedOptions={[value]}
       aria-label={ariaLabel}

@@ -5,9 +5,10 @@
  * 取值和切换的规则在 videoView.ts，这里只负责画。
  */
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref, type RefObject } from "react";
-import { Button, Checkbox, Input, Select, Slider, SpinButton, Tooltip } from "@fluentui/react-components";
+import { Button, Checkbox, Input, Slider, SpinButton, Tooltip } from "@fluentui/react-components";
 import { Add20Regular, ClipboardPaste20Regular, Delete20Regular } from "@fluentui/react-icons";
 import AudioDropArea from "../components/AudioDropArea";
+import { FluentSelect } from "../components/FluentSelect";
 import type { AudioDropAreaHandle, ImageDropAreaHandle, VideoDropAreaHandle } from "../components/dropAreaTypes";
 import ImageDropArea from "../components/ImageDropArea";
 import { ModelAvailabilityButton, ModelDropdown } from "../components/ModelDropdown";
@@ -347,30 +348,20 @@ export default function VideoPage() {
 
             <div className="video__row">
               <InlineField caption={t("video.aspect_ratio")}>
-                <Select
+                <FluentSelect
                   value={form.aspect}
-                  aria-label={t("video.aspect_ratio")}
-                  onChange={(_event, data) => update({ aspect: data.value })}
-                >
-                  {spec.aspects.map((aspect) => (
-                    <option key={aspect} value={aspect}>
-                      {aspectLabel(aspect)}
-                    </option>
-                  ))}
-                </Select>
+                  options={spec.aspects.map((aspect) => ({ value: aspect, label: aspectLabel(aspect) }))}
+                  ariaLabel={t("video.aspect_ratio")}
+                  onChange={(aspect) => update({ aspect })}
+                />
               </InlineField>
               <InlineField caption={t("video.resolution")}>
-                <Select
+                <FluentSelect
                   value={form.resolution}
-                  aria-label={t("video.resolution")}
-                  onChange={(_event, data) => onResolutionChange(data.value)}
-                >
-                  {spec.resolutions.map((resolution) => (
-                    <option key={resolution} value={resolution}>
-                      {resolution}
-                    </option>
-                  ))}
-                </Select>
+                  options={spec.resolutions}
+                  ariaLabel={t("video.resolution")}
+                  onChange={onResolutionChange}
+                />
               </InlineField>
             </div>
 

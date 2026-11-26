@@ -3,7 +3,7 @@
  * 语言、主题、主题色即时生效，输出文件夹选完立刻写回；其余字段是草稿，点了「保存设置」才写回配置。
  */
 import { useState, type CSSProperties, type ComponentType, type FormEvent, type ReactNode } from "react";
-import { Button, Input, Select, Slider, SpinButton, Switch } from "@fluentui/react-components";
+import { Button, Input, Slider, SpinButton, Switch } from "@fluentui/react-components";
 import {
   ArrowSync20Regular,
   ArrowUpload20Regular,
@@ -23,6 +23,7 @@ import {
   TextFont20Regular,
 } from "@fluentui/react-icons";
 import { APP_VERSION } from "../app/version";
+import { FluentSelect } from "../components/FluentSelect";
 import { notice } from "../components/Notice";
 import { buildModelsListRequest, parseModelsListResponse } from "../core/comicPlanner";
 import { DEFAULT_CONFIG } from "../core/config";
@@ -264,37 +265,27 @@ export default function SettingsPage() {
           <h2 className="settings-group__title">{t("settings.general")}</h2>
           <div className="settings-group__cards">
             <SettingCard icon={Globe20Regular} title={t("settings.language.title")} content={t("settings.language.content")}>
-              <Select
+              <FluentSelect
                 className="settings-card__select"
                 value={language}
-                aria-label={t("settings.language.title")}
-                onChange={(_event, data) => {
-                  const next = normalizeLanguage(data.value);
+                options={languageItems().map(({ code, label }) => ({ value: code, label }))}
+                ariaLabel={t("settings.language.title")}
+                onChange={(value) => {
+                  const next = normalizeLanguage(value);
                   cfg.set("language", next);
                   // 提示要用切换后的语言来显示
                   notice("success", translate(next, "settings.applied"));
                 }}
-              >
-                {languageItems().map(({ code, label }) => (
-                  <option key={code} value={code}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
+              />
             </SettingCard>
             <SettingCard icon={PaintBrush20Regular} title={t("settings.theme.title")} content={t("settings.theme.content")}>
-              <Select
+              <FluentSelect
                 className="settings-card__select"
                 value={themeMode}
-                aria-label={t("settings.theme.title")}
-                onChange={(_event, data) => cfg.set("theme", data.value)}
-              >
-                {THEME_MODES.map((mode) => (
-                  <option key={mode} value={mode}>
-                    {t(`theme.${mode}`)}
-                  </option>
-                ))}
-              </Select>
+                options={THEME_MODES.map((mode) => ({ value: mode, label: t(`theme.${mode}`) }))}
+                ariaLabel={t("settings.theme.title")}
+                onChange={(value) => cfg.set("theme", value)}
+              />
             </SettingCard>
             <SettingCard icon={Color20Regular} title={t("settings.accent_color.title")} content={t("settings.accent_color.content")}>
               <div className="accent-palette" role="radiogroup" aria-label={t("settings.accent_color.title")}>
@@ -333,15 +324,16 @@ export default function SettingsPage() {
               title={t("settings.preview_mode.title")}
               content={t("settings.preview_mode.content")}
             >
-              <Select
+              <FluentSelect
                 className="settings-card__select"
                 value={previewMode}
-                aria-label={t("settings.preview_mode.title")}
-                onChange={(_event, data) => cfg.set("preview_mode", normalizePreviewMode(data.value))}
-              >
-                <option value="internal">{t("settings.preview_mode.internal")}</option>
-                <option value="system">{t("settings.preview_mode.system")}</option>
-              </Select>
+                options={[
+                  { value: "internal", label: t("settings.preview_mode.internal") },
+                  { value: "system", label: t("settings.preview_mode.system") },
+                ]}
+                ariaLabel={t("settings.preview_mode.title")}
+                onChange={(value) => cfg.set("preview_mode", normalizePreviewMode(value))}
+              />
             </SettingCard>
             <SettingCard icon={ArrowSync20Regular} title={t("settings.retries.title")} content={t("settings.retries.content")}>
               <SliderField
@@ -411,18 +403,13 @@ export default function SettingsPage() {
               />
             </SettingCard>
             <SettingCard icon={TextFont20Regular} title={t("settings.font_family.title")} content={t("settings.font_family.content")}>
-              <Select
+              <FluentSelect
                 className="settings-card__select"
                 value={draft.text_font_family}
-                aria-label={t("settings.font_family.title")}
-                onChange={(_event, data) => update("text_font_family", data.value)}
-              >
-                {FONT_FAMILIES.map((family) => (
-                  <option key={family} value={family}>
-                    {family}
-                  </option>
-                ))}
-              </Select>
+                options={FONT_FAMILIES}
+                ariaLabel={t("settings.font_family.title")}
+                onChange={(value) => update("text_font_family", value)}
+              />
             </SettingCard>
             <SettingCard icon={TextAlignLeft20Regular} title={t("settings.wrap.title")} content={t("settings.wrap.content")}>
               <FlagSwitch
@@ -555,23 +542,16 @@ export default function SettingsPage() {
             >
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {customModels.length > 0 ? (
-                  <Select
+                  <FluentSelect
                     className="settings-card__select"
-                    aria-label={t("settings.comic_chat.model.title")}
-                    value={customModels.includes(draft.comic_custom_chat_model) ? draft.comic_custom_chat_model : ""}
-                    onChange={(_event, data) => {
-                      if (data.value) update("comic_custom_chat_model", data.value);
+                    ariaLabel={t("settings.comic_chat.model.title")}
+                    value={draft.comic_custom_chat_model}
+                    placeholder="--"
+                    options={customModels}
+                    onChange={(value) => {
+                      if (value) update("comic_custom_chat_model", value);
                     }}
-                  >
-                    {!customModels.includes(draft.comic_custom_chat_model) ? (
-                      <option value="">{draft.comic_custom_chat_model || "--"}</option>
-                    ) : null}
-                    {customModels.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </Select>
+                  />
                 ) : (
                   <Input
                     className="settings-card__select"

@@ -4,7 +4,7 @@
  * 剧情规划默认走 Grsai 中转的 CHAT_MODELS；若设置页填了自定义 OpenAI 兼容对话接口，则走自定义接口。
  */
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
-import { Button, Checkbox, Input, Select, Textarea, Tooltip } from "@fluentui/react-components";
+import { Button, Checkbox, Input, Textarea, Tooltip } from "@fluentui/react-components";
 import {
   ArrowDown20Regular,
   ArrowSync20Regular,
@@ -14,6 +14,7 @@ import {
   ReOrderDotsVertical20Regular,
 } from "@fluentui/react-icons";
 import type { ImageDropAreaHandle } from "../components/dropAreaTypes";
+import { FluentSelect } from "../components/FluentSelect";
 import ImageDropArea from "../components/ImageDropArea";
 import { ModelDropdown } from "../components/ModelDropdown";
 import { notice } from "../components/Notice";
@@ -452,19 +453,13 @@ export default function ComicPage() {
             </Button>
           </div>
           <div className="comic__row">
-            <Select
+            <FluentSelect
               className="comic__grow"
               value={selectedProject}
-              aria-label={t("comic.project_title")}
-              onChange={(_e, data) => setSelectedProject(data.value)}
-            >
-              {projects.length === 0 ? <option value="">--</option> : null}
-              {projects.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </Select>
+              options={projects.length === 0 ? [{ value: "", label: "--" }] : projects}
+              ariaLabel={t("comic.project_title")}
+              onChange={setSelectedProject}
+            />
             <Button appearance="primary" onClick={() => runAsync(loadSelectedProject())}>
               {t("comic.load_project")}
             </Button>
@@ -506,50 +501,35 @@ export default function ComicPage() {
           <div className="comic__row">
             <div className="comic__field comic__grow">
               <span className="comic__caption">{t("comic.page_count")}</span>
-              <Select
+              <FluentSelect
                 value={String(pageCount)}
-                aria-label={t("comic.page_count")}
-                onChange={(_e, data) => setPageCount(Number(data.value))}
-              >
-                {COMIC_PAGE_COUNTS.map((n) => (
-                  <option key={n} value={String(n)}>
-                    {n}
-                  </option>
-                ))}
-              </Select>
+                options={COMIC_PAGE_COUNTS.map(String)}
+                ariaLabel={t("comic.page_count")}
+                onChange={(val) => setPageCount(Number(val))}
+              />
             </div>
 
             {!isCompletion ? (
               <div className="comic__field comic__grow">
                 <span className="comic__caption">{t("comic.aspect_ratio")}</span>
-                <Select
+                <FluentSelect
                   value={aspectRatio}
-                  aria-label={t("comic.aspect_ratio")}
-                  onChange={(_e, data) => setAspectRatio(data.value)}
-                >
-                  {COMIC_ASPECT_RATIOS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </Select>
+                  options={COMIC_ASPECT_RATIOS}
+                  ariaLabel={t("comic.aspect_ratio")}
+                  onChange={setAspectRatio}
+                />
               </div>
             ) : null}
 
             {hasSizeOptions ? (
               <div className="comic__field comic__grow">
                 <span className="comic__caption">{t("comic.image_size")}</span>
-                <Select
+                <FluentSelect
                   value={imageSize}
-                  aria-label={t("comic.image_size")}
-                  onChange={(_e, data) => setImageSize(data.value)}
-                >
-                  {sizeOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
+                  options={sizeOptions}
+                  ariaLabel={t("comic.image_size")}
+                  onChange={setImageSize}
+                />
               </div>
             ) : null}
           </div>

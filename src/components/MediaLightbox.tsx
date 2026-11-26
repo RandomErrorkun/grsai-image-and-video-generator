@@ -108,11 +108,11 @@ async function copySourceToClipboard(
   await platform.clipboard.writeImage(rgba, outW, outH);
 }
 
-/** 挂在 AppProvider 里的全局灯箱宿主。 */
+/** 挂在 AppProvider 里的全局灯箱宿主（用于浏览器 mock 或回退场景）。 */
 export function MediaLightboxHost() {
   const target = useSyncExternalStore(subscribePreview, getPreviewTarget);
   if (!target) return null;
-  return <MediaLightbox key={target.path} target={target} />;
+  return <MediaLightbox key={target.path} target={target} onClose={closePreview} />;
 }
 
 interface ContextMenuState {
@@ -120,7 +120,7 @@ interface ContextMenuState {
   y: number;
 }
 
-function MediaLightbox({ target }: { target: PreviewTarget }) {
+export function MediaLightbox({ target, onClose = closePreview }: { target: PreviewTarget; onClose?: () => void }) {
   const t = useTr();
   const [menu, setMenu] = useState<ContextMenuState | null>(null);
   const [ready, setReady] = useState(false);
@@ -178,7 +178,7 @@ function MediaLightbox({ target }: { target: PreviewTarget }) {
       aria-modal="true"
       aria-label={filename}
       onClick={(event) => {
-        if (event.target === event.currentTarget) closePreview();
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <div className="lightbox__header">
@@ -191,7 +191,7 @@ function MediaLightbox({ target }: { target: PreviewTarget }) {
             className="lightbox__icon-btn"
             icon={<Dismiss20Regular />}
             aria-label={t("preview.close")}
-            onClick={closePreview}
+            onClick={onClose}
           />
         </Tooltip>
       </div>
@@ -202,6 +202,7 @@ function MediaLightbox({ target }: { target: PreviewTarget }) {
         <VideoLightboxBody
           path={target.path}
           menu={menu}
+          onClose={onClose}
           onCloseMenu={() => setMenu(null)}
           onOpenMenu={openMenu}
           onOpenFolder={openFolder}
@@ -212,6 +213,7 @@ function MediaLightbox({ target }: { target: PreviewTarget }) {
           path={target.path}
           kind={target.kind}
           menu={menu}
+          onClose={onClose}
           onCloseMenu={() => setMenu(null)}
           onOpenMenu={openMenu}
           onOpenFolder={openFolder}
@@ -225,6 +227,7 @@ function MediaLightbox({ target }: { target: PreviewTarget }) {
 interface BodyProps {
   path: string;
   menu: ContextMenuState | null;
+  onClose(): void;
   onCloseMenu(): void;
   onOpenMenu(event: ReactMouseEvent): void;
   onOpenFolder(): void;
@@ -232,7 +235,7 @@ interface BodyProps {
 }
 
 /** 图像 / SVG / GIF 预览主体。 */
-function ImageLightboxBody({ path, kind, menu, onCloseMenu, onOpenMenu, onOpenFolder, onOpenSystem }: BodyProps & { kind: "image" | "gif" | "svg" }) {
+function ImageLightboxBody({ path, kind, menu, onClose, onCloseMenu, onOpenMenu, onOpenFolder, onOpenSystem }: BodyProps & { kind: "image" | "gif" | "svg" }) {
   const t = useTr();
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -380,7 +383,7 @@ function ImageLightboxBody({ path, kind, menu, onCloseMenu, onOpenMenu, onOpenFo
         event.preventDefault();
         if (fpsMenuOpen) setFpsMenuOpen(false);
         else if (menu) onCloseMenu();
-        else closePreview();
+        else onClose();
         return;
       }
       // 在 FPS 输入框里打字时不抢占方向键、空格和数字键
@@ -415,7 +418,7 @@ function ImageLightboxBody({ path, kind, menu, onCloseMenu, onOpenMenu, onOpenFo
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [fpsMenuOpen, gifFrames, menu, onCloseMenu, resetView, stepGifFrame, zoomBy]);
+  }, [fpsMenuOpen, gifFrames, menu, onClose, onCloseMenu, resetView, stepGifFrame, zoomBy]);
 
   const copyCurrent = useCallback(async () => {
     onCloseMenu();
@@ -470,7 +473,7 @@ function ImageLightboxBody({ path, kind, menu, onCloseMenu, onOpenMenu, onOpenFo
         onWheel={onWheel}
         onContextMenu={onOpenMenu}
         onClick={(event) => {
-          if (event.target === event.currentTarget) closePreview();
+          if (event.target === event.currentTarget) onClose();
         }}
       >
         <div
@@ -711,7 +714,7 @@ function ImageLightboxBody({ path, kind, menu, onCloseMenu, onOpenMenu, onOpenFo
 }
 
 /** 视频预览主体：播放/暂停/停止、进度条、音量条、左右键逐帧步进、右键复制当前帧。 */
-function VideoLightboxBody({ path, menu, onCloseMenu, onOpenMenu, onOpenFolder, onOpenSystem }: BodyProps) {
+function VideoLightboxBody({ path, menu, onClose, onCloseMenu, onOpenMenu, onOpenFolder, onOpenSystem }: BodyProps) {
   const t = useTr();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -752,7 +755,7 @@ function VideoLightboxBody({ path, menu, onCloseMenu, onOpenMenu, onOpenFolder, 
       if (event.key === "Escape") {
         event.preventDefault();
         if (menu) onCloseMenu();
-        else closePreview();
+        else onClose();
         return;
       }
       if (event.key === "ArrowLeft") {
@@ -768,7 +771,7 @@ function VideoLightboxBody({ path, menu, onCloseMenu, onOpenMenu, onOpenFolder, 
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [menu, onCloseMenu, stepFrame, togglePlay]);
+  }, [menu, onClose, onCloseMenu, stepFrame, togglePlay]);
 
   const copyCurrentFrame = useCallback(async () => {
     onCloseMenu();
@@ -791,7 +794,7 @@ function VideoLightboxBody({ path, menu, onCloseMenu, onOpenMenu, onOpenFolder, 
         className="lightbox__stage"
         onContextMenu={onOpenMenu}
         onClick={(event) => {
-          if (event.target === event.currentTarget) closePreview();
+          if (event.target === event.currentTarget) onClose();
         }}
       >
         <video

@@ -6,8 +6,9 @@
  * - 复用 modelAvailability 的官网实时定价，同时内置完整默认价目表开箱即用。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Select, Tooltip } from "@fluentui/react-components";
+import { Button, Tooltip } from "@fluentui/react-components";
 import { ArrowSync20Regular, Pulse20Regular } from "@fluentui/react-icons";
+import { FluentSelect } from "../components/FluentSelect";
 import { notice } from "../components/Notice";
 import type { UsageLedgerRecord } from "../core/history";
 import {
@@ -167,19 +168,14 @@ function YearlyHeatmapCard({
             ))}
             <span>{t("usage.heatmap.more")}</span>
           </div>
-          <Select
+          <FluentSelect
             className="usage-year-select"
             size="small"
-            aria-label="Year"
+            ariaLabel="Year"
             value={String(heatmap.year)}
-            onChange={(_e, data) => onYearChange(Number(data.value))}
-          >
-            {years.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}
-              </option>
-            ))}
-          </Select>
+            options={years.map(String)}
+            onChange={(value) => onYearChange(Number(value))}
+          />
         </div>
       </div>
 

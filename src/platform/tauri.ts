@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { Image as TauriImage } from "@tauri-apps/api/image";
 import { resourceDir } from "@tauri-apps/api/path";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
@@ -320,5 +321,37 @@ export const tauriPlatform: Platform = {
       await invoke<void>("allow_paths", { paths: mediaPaths, recursive });
     },
     url: (path) => convertFileSrc(path),
+  },
+
+  previewWindow: {
+    open: (path) => invoke<void>("open_preview_window", { path }),
+    close: () => invoke<void>("close_preview_window"),
+    getInitialPath: () => invoke<string | null>("get_preview_path"),
+    onOpen: (listener) => {
+      let unlisten: (() => void) | undefined;
+      let disposed = false;
+      void listen<string>("preview:open", (event) => {
+        if (typeof event.payload === "string" && event.payload) listener(event.payload);
+      }).then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      });
+      return () => {
+        disposed = true;
+        unlisten?.();
+      };
+    },
+    onClosed: (listener) => {
+      let unlisten: (() => void) | undefined;
+      let disposed = false;
+      void listen("preview:closed", () => listener()).then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      });
+      return () => {
+        disposed = true;
+        unlisten?.();
+      };
+    },
   },
 };

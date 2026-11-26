@@ -12,6 +12,20 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(api::ApiState::default())
+        .manage(native::PreviewState::default())
+        .on_window_event(|window, event| {
+            match event {
+                tauri::WindowEvent::Destroyed if window.label() == "main" => {
+                    if let Some(preview) = window.app_handle().get_webview_window("preview") {
+                        let _ = preview.destroy();
+                    }
+                }
+                tauri::WindowEvent::Focused(false) if window.label() == "preview" => {
+                    native::handle_preview_blur(window.app_handle());
+                }
+                _ => {}
+            }
+        })
         .setup(|app| {
             // 防止从隐藏控制台（SW_HIDE）拉起时主窗口被继承的 ShowWindow 参数隐藏
             if let Some(window) = app.get_webview_window("main") {
@@ -27,7 +41,10 @@ pub fn run() {
             native::allow_paths,
             native::open_path,
             native::clipboard_files,
-            native::file_sha256
+            native::file_sha256,
+            native::open_preview_window,
+            native::close_preview_window,
+            native::get_preview_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

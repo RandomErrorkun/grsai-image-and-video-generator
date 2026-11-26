@@ -1,8 +1,151 @@
 //! 官方插件没覆盖到的几件平台小事：放行路径、读剪贴板里的文件列表、用系统程序打开路径。
 //! 每个命令都尽量短，说明写在各自上面。
 
-use tauri::Manager;
+use std::{
+    sync::Mutex,
+    time::{Duration, Instant},
+};
+
+use tauri::{Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_fs::FsExt;
+
+/// 全屏独立预览子窗口的共享状态：保存当前预览路径与最近打开时刻（避免刚打开时的系统焦点切换误关闭）。
+#[derive(Default)]
+pub struct PreviewState {
+    inner: Mutex<PreviewInner>,
+}
+
+#[derive(Default)]
+struct PreviewInner {
+    path: Option<String>,
+    opened_at: Option<Instant>,
+}
+
+/// 打开或复用全屏独立预览子窗口（覆盖主窗口所在的整个显示器，无边框透明暗底浮层）。
+#[tauri::command]
+pub fn open_preview_window(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, PreviewState>,
+    path: String,
+) -> Result<(), String> {
+    if path.is_empty() {
+        return Ok(());
+    }
+
+    // 先放行该文件，确保子窗口立刻可读
+    let file_path = std::path::PathBuf::from(&path);
+    let _ = app.fs_scope().allow_file(&file_path);
+    let _ = app.asset_protocol_scope().allow_file(&file_path);
+
+    // 记下当前路径和打开时刻
+    if let Ok(mut guard) = state.inner.lock() {
+        guard.path = Some(path.clone());
+        guard.opened_at = Some(Instant::now());
+    }
+
+    // 获取主窗口所在的显示器几何信息（支持多显示器与不同 DPI 缩放）
+    let monitor = app
+        .get_webview_window("main")
+        .and_then(|w| w.current_monitor().ok().flatten())
+        .or_else(|| app.primary_monitor().ok().flatten());
+
+    if let Some(preview) = app.get_webview_window("preview") {
+        if let Some(m) = monitor {
+            let pos = m.position();
+            let size = m.size();
+            let _ = preview.set_position(PhysicalPosition::new(pos.x, pos.y));
+            let _ = preview.set_size(PhysicalSize::new(size.width, size.height));
+        }
+        let _ = preview.show();
+        let _ = preview.set_focus();
+        let _ = preview.emit("preview:open", &path);
+        return Ok(());
+    }
+
+    let mut builder = WebviewWindowBuilder::new(
+        &app,
+        "preview",
+        WebviewUrl::App("index.html?window=preview".into()),
+    )
+    .title("Preview")
+    .decorations(false)
+    .transparent(true)
+    .shadow(false)
+    .skip_taskbar(true)
+    .always_on_top(true)
+    .resizable(false)
+    .visible(false);
+
+    if let Some(m) = &monitor {
+        let scale = m.scale_factor();
+        let pos = m.position();
+        let size = m.size();
+        builder = builder
+            .position(pos.x as f64 / scale, pos.y as f64 / scale)
+            .inner_size(size.width as f64 / scale, size.height as f64 / scale);
+    }
+
+    let preview = builder.build().map_err(|err| err.to_string())?;
+    if let Some(m) = monitor {
+        let pos = m.position();
+        let size = m.size();
+        let _ = preview.set_position(PhysicalPosition::new(pos.x, pos.y));
+        let _ = preview.set_size(PhysicalSize::new(size.width, size.height));
+    }
+    let _ = preview.show();
+    let _ = preview.set_focus();
+    Ok(())
+}
+
+/// 关闭（隐藏复用）全屏预览子窗口，并将焦点交还主窗口。
+#[tauri::command]
+pub fn close_preview_window(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, PreviewState>,
+) -> Result<(), String> {
+    if let Ok(mut guard) = state.inner.lock() {
+        guard.path = None;
+    }
+    if let Some(preview) = app.get_webview_window("preview") {
+        let _ = preview.emit("preview:closed", ());
+        let _ = preview.hide();
+    }
+    if let Some(main) = app.get_webview_window("main") {
+        let _ = main.set_focus();
+    }
+    Ok(())
+}
+
+/// 预览子窗口启动后主动拉取当前待展示路径，避免首次建窗与事件推送竞态。
+#[tauri::command]
+pub fn get_preview_path(state: tauri::State<'_, PreviewState>) -> Option<String> {
+    state.inner.lock().ok().and_then(|g| g.path.clone())
+}
+
+/// 预览窗口失焦（例如点击到其他显示器或切到外部程序）时自动关闭；忽略刚打开 400ms 内的焦点抖动。
+pub fn handle_preview_blur(app: &tauri::AppHandle) {
+    let should_close = app
+        .try_state::<PreviewState>()
+        .and_then(|state| state.inner.lock().ok().map(|g| {
+            g.path.is_some()
+                && g.opened_at
+                    .map(|at| at.elapsed() > Duration::from_millis(400))
+                    .unwrap_or(true)
+        }))
+        .unwrap_or(false);
+    if !should_close {
+        return;
+    }
+    if let Some(state) = app.try_state::<PreviewState>() {
+        if let Ok(mut guard) = state.inner.lock() {
+            guard.path = None;
+        }
+    }
+    if let Some(preview) = app.get_webview_window("preview") {
+        let _ = preview.emit("preview:closed", ());
+        let _ = preview.hide();
+    }
+}
 
 /// 把路径加进文件插件和资源协议的作用域。对话框选中的路径插件会自动放行，
 /// 拖进来的、从历史记录里翻出来的、用户另选的输出文件夹要靠这个命令。

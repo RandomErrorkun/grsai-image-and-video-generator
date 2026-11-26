@@ -72,6 +72,11 @@ html {
   background: var(--window-bg);
 }
 
+:root[data-window="preview"],
+:root[data-window="preview"] body {
+  background: transparent;
+}
+
 body {
   margin: 0;
   height: 100%;

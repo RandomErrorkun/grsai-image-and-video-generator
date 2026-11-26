@@ -1,0 +1,24 @@
+/* 全应用统一 Fluent 下拉框样式：覆盖 Griffel 默认 min-width: 250px，并确保高度受限时内部平滑滚动 */
+
+:where(.fluent-select) {
+  width: 100%;
+}
+
+.fluent-select,
+.fluent-select.fui-Dropdown {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fluent-select .fui-Dropdown__button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fluent-select__listbox {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+}

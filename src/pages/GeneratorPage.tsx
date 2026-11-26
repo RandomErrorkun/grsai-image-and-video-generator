@@ -5,8 +5,9 @@
  * 取值和切换的规则在 generatorView.ts，这里只负责画。
  */
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { Button, Checkbox, Select, Slider, Tooltip } from "@fluentui/react-components";
+import { Button, Checkbox, Slider, Tooltip } from "@fluentui/react-components";
 import { ClipboardPaste20Regular, Delete20Regular } from "@fluentui/react-icons";
+import { FluentSelect } from "../components/FluentSelect";
 import ImageDropArea from "../components/ImageDropArea";
 import type { ImageDropAreaHandle } from "../components/dropAreaTypes";
 import { ModelAvailabilityButton, ModelDropdown } from "../components/ModelDropdown";
@@ -52,15 +53,6 @@ function Field({ caption, children }: { caption: string; children: ReactNode }) 
       <div className="generator__control">{children}</div>
     </div>
   );
-}
-
-/** 下拉框的选项：显示的文字就是参数值，与源项目的 ComboBox 一致。 */
-function options(items: readonly string[]) {
-  return items.map((item) => (
-    <option key={item} value={item}>
-      {item}
-    </option>
-  ));
 }
 
 export default function GeneratorPage() {
@@ -160,22 +152,20 @@ export default function GeneratorPage() {
           {banana ? (
             <div className="generator__row">
               <Field caption={t("generator.aspect_ratio")}>
-                <Select
+                <FluentSelect
                   value={form.ratio}
-                  aria-label={t("generator.aspect_ratio")}
-                  onChange={(_event, data) => update({ ratio: data.value })}
-                >
-                  {options(banana.ratios)}
-                </Select>
+                  options={banana.ratios}
+                  ariaLabel={t("generator.aspect_ratio")}
+                  onChange={(ratio) => update({ ratio })}
+                />
               </Field>
               <Field caption={t("generator.image_size")}>
-                <Select
+                <FluentSelect
                   value={form.size}
-                  aria-label={t("generator.image_size")}
-                  onChange={(_event, data) => update({ size: data.value })}
-                >
-                  {options(banana.sizes)}
-                </Select>
+                  options={banana.sizes}
+                  ariaLabel={t("generator.image_size")}
+                  onChange={(size) => update({ size })}
+                />
               </Field>
             </div>
           ) : null}
@@ -183,23 +173,21 @@ export default function GeneratorPage() {
           {gpt ? (
             <div className="generator__row">
               <Field caption={t("generator.gpt_size")}>
-                <Select
+                <FluentSelect
                   value={form.gptRatio}
-                  aria-label={t("generator.gpt_size")}
-                  onChange={(_event, data) => update({ gptRatio: data.value })}
-                >
-                  {options(gpt.ratios)}
-                </Select>
+                  options={gpt.ratios}
+                  ariaLabel={t("generator.gpt_size")}
+                  onChange={(gptRatio) => update({ gptRatio })}
+                />
               </Field>
               {controls.quality ? (
                 <Field caption={t("generator.gpt_quality")}>
-                  <Select
+                  <FluentSelect
                     value={form.quality}
-                    aria-label={t("generator.gpt_quality")}
-                    onChange={(_event, data) => update({ quality: data.value })}
-                  >
-                    {options(gpt.qualities)}
-                  </Select>
+                    options={gpt.qualities}
+                    ariaLabel={t("generator.gpt_quality")}
+                    onChange={(quality) => update({ quality })}
+                  />
                 </Field>
               ) : null}
             </div>
@@ -209,13 +197,12 @@ export default function GeneratorPage() {
             <div className="generator__row">
               {controls.tier ? (
                 <Field caption={t("generator.gpt_tier")}>
-                  <Select
+                  <FluentSelect
                     value={form.tier}
-                    aria-label={t("generator.gpt_tier")}
-                    onChange={(_event, data) => update({ tier: data.value })}
-                  >
-                    {options(GPT_PIXEL_TIERS)}
-                  </Select>
+                    options={GPT_PIXEL_TIERS}
+                    ariaLabel={t("generator.gpt_tier")}
+                    onChange={(tier) => update({ tier })}
+                  />
                 </Field>
               ) : null}
               {controls.transparent ? (
@@ -234,13 +221,12 @@ export default function GeneratorPage() {
           {controls.format && gpt?.outputFormats ? (
             <div className="generator__row">
               <Field caption={t("generator.gpt_output_format")}>
-                <Select
+                <FluentSelect
                   value={form.format}
-                  aria-label={t("generator.gpt_output_format")}
-                  onChange={(_event, data) => update({ format: data.value })}
-                >
-                  {options(gpt.outputFormats)}
-                </Select>
+                  options={gpt.outputFormats}
+                  ariaLabel={t("generator.gpt_output_format")}
+                  onChange={(format) => update({ format })}
+                />
               </Field>
             </div>
           ) : null}
