@@ -50,6 +50,8 @@ pub fn run() {
             native::open_path,
             native::clipboard_files,
             native::file_sha256,
+            native::load_pose_body_pack,
+            native::scan_poses_dir,
             native::open_preview_window,
             native::close_preview_window,
             native::get_preview_path

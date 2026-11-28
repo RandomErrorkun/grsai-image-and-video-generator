@@ -13,7 +13,7 @@ import { createMemoryFs } from "./memoryFs";
 import { createMemoryDatabase } from "./memoryDb";
 import { createMockHttp } from "./mockApi";
 import { encodePng } from "./png";
-import type { ClipboardSnapshot, DragDropEvent, Platform } from "./types";
+import type { ClipboardSnapshot, DragDropEvent, Platform, PoseDirScanResult, PoseScannedEntry } from "./types";
 
 const DATA_DIR = "C:\\mock-data";
 const paths = createPathTools("\\");
@@ -355,5 +355,43 @@ export const browserPlatform: Platform = {
   media: {
     allow: () => noop(),
     url: (path) => mediaUrls.get(mediaKey(path)) ?? placeholderUrl(path),
+  },
+
+  pose: {
+    async loadBodyPack() {
+      const response = await fetch("/ComfyUI-Fisher-Pose/web/vnccs/assets/pose_studio_makehuman.v2.bin");
+      if (!response.ok) {
+        throw new Error(`Browser mock body pack unavailable (HTTP ${response.status})`);
+      }
+      return response.arrayBuffer();
+    },
+    async scanPosesDir(root: string): Promise<PoseDirScanResult> {
+      const folders: string[] = [];
+      const entries: PoseScannedEntry[] = [];
+      const walk = async (dir: string, relDir: string) => {
+        if (!(await fs.isDir(dir))) return;
+        for (const name of await fs.readDir(dir)) {
+          if (name.startsWith(".")) continue;
+          const full = paths.join(dir, name);
+          const rel = relDir ? `${relDir}/${name}` : name;
+          if (await fs.isDir(full)) {
+            folders.push(rel);
+            await walk(full, rel);
+          } else {
+            const lower = name.toLowerCase();
+            if (lower.endsWith(".pose.json") || lower.endsWith(".json")) {
+              const stem = lower.endsWith(".pose.json") ? name.slice(0, -10) : name.slice(0, -5);
+              entries.push({ relativePath: rel, folder: relDir, name: stem, path: full, kind: "pose_json", modifiedMs: Date.now() });
+            } else if ([".png", ".jpg", ".jpeg", ".webp"].some((ext) => lower.endsWith(ext))) {
+              const stem = paths.splitExt(name)[0];
+              entries.push({ relativePath: rel, folder: relDir, name: stem, path: full, kind: "openpose_image", modifiedMs: Date.now() });
+            }
+          }
+        }
+      };
+      await walk(root, "");
+      folders.sort();
+      return { root, folders, entries };
+    },
   },
 };

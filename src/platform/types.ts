@@ -131,6 +131,28 @@ export interface PreviewWindowApi {
   onRestoreInline(listener: (path: string) => void): () => void;
 }
 
+/** 姿势库目录扫描出的单个条目。 */
+export interface PoseScannedEntry {
+  relativePath: string;
+  folder: string;
+  name: string;
+  path: string;
+  kind: "pose_json" | "openpose_image";
+  modifiedMs: number;
+}
+
+export interface PoseDirScanResult {
+  root: string;
+  folders: string[];
+  entries: PoseScannedEntry[];
+}
+
+/** 3D 姿势工坊的平台桥接能力（解压内置人体包、递归扫描 poses/ 目录）。 */
+export interface PosePlatformApi {
+  loadBodyPack(): Promise<ArrayBuffer>;
+  scanPosesDir(root: string): Promise<PoseDirScanResult>;
+}
+
 export interface Platform {
   readonly isTauri: boolean;
   /** 启动时准备一次：在 Tauri 里要先解析出数据目录，之后各能力才可用。 */
@@ -151,4 +173,5 @@ export interface Platform {
   readonly dragDrop: DragDropApi;
   readonly media: MediaApi;
   readonly previewWindow?: PreviewWindowApi;
+  readonly pose: PosePlatformApi;
 }

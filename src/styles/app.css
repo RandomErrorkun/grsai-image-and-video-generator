@@ -3,6 +3,14 @@
  * 标题栏高 48，导航栏收起宽 48、展开宽 322，页面内容区左上角圆角 10。
  */
 
+@font-face {
+  font-family: "JetBrainsMapleMono";
+  src: url("../assets/fonts/JetBrainsMapleMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   --font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;

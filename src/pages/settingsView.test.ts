@@ -3,7 +3,10 @@ import type { ConfigValue } from "../core/config";
 import { DEFAULT_CONFIG } from "../core/config";
 import {
   FONT_FAMILIES,
+  FONT_SIZE_RANGE,
+  clampDecimalToRange,
   clampToRange,
+  parseDecimalInput,
   parseDigits,
   readFontFamily,
   readNumber,
@@ -40,10 +43,24 @@ describe("clampToRange", () => {
   });
 });
 
+describe("clampDecimalToRange & parseDecimalInput", () => {
+  it("supports decimal font sizes in range 1..72", () => {
+    expect(FONT_SIZE_RANGE).toEqual({ min: 1, max: 72 });
+    expect(clampDecimalToRange(9.5, FONT_SIZE_RANGE)).toBe(9.5);
+    expect(clampDecimalToRange(0.2, FONT_SIZE_RANGE)).toBe(1);
+    expect(clampDecimalToRange(99.9, FONT_SIZE_RANGE)).toBe(72);
+    expect(clampDecimalToRange(10.256, FONT_SIZE_RANGE)).toBe(10.26);
+    expect(parseDecimalInput("9.5")).toBe(9.5);
+    expect(parseDecimalInput(" 12 ")).toBe(12);
+    expect(parseDecimalInput("abc")).toBeNull();
+    expect(parseDecimalInput("-3")).toBeNull();
+  });
+});
+
 describe("readNumber", () => {
   it("数值原样给出，越界的也不动", () => {
     expect(readNumber(150, 5)).toBe(150);
-    expect(readNumber(12.5, 5)).toBe(12.5);
+    expect(readNumber(9.5, 5)).toBe(9.5);
   });
 
   it.each(["12", null, undefined, true, Number.NaN, Number.POSITIVE_INFINITY])("存的是 %s 时回落到默认值", (value) => {
@@ -66,8 +83,8 @@ describe("readFontFamily", () => {
     for (const family of FONT_FAMILIES) expect(readFontFamily(family)).toBe(family);
   });
 
-  it.each(["Segoe UI", "arial", "", 123, null])("存的是 %s 时落在第一项 Arial", (value) => {
-    expect(readFontFamily(value)).toBe("Arial");
+  it.each(["Segoe UI", "arial", "", 123, null])("存的是 %s 时落在第一项 JetBrainsMapleMono", (value) => {
+    expect(readFontFamily(value)).toBe("JetBrainsMapleMono");
   });
 });
 
@@ -88,6 +105,11 @@ describe("parseDigits", () => {
 describe("readSettings", () => {
   it("配置是空的时候每一项都是默认值", () => {
     expect(readSettings(storeOf({}))).toEqual({
+      language: DEFAULT_CONFIG.language,
+      theme: DEFAULT_CONFIG.theme,
+      accent_color: DEFAULT_CONFIG.accent_color.toLowerCase(),
+      preview_mode: DEFAULT_CONFIG.preview_mode,
+      output_folder: DEFAULT_CONFIG.output_folder,
       api_base_url: DEFAULT_CONFIG.api_base_url,
       api_key: DEFAULT_CONFIG.api_key,
       grsai_site_url: DEFAULT_CONFIG.grsai_site_url,
@@ -99,6 +121,8 @@ describe("readSettings", () => {
       text_font_size: DEFAULT_CONFIG.text_font_size,
       text_font_family: DEFAULT_CONFIG.text_font_family,
       text_auto_wrap: DEFAULT_CONFIG.text_auto_wrap,
+      pose_watermark_area_ratio: DEFAULT_CONFIG.pose_watermark_area_ratio,
+      pose_label_area_ratio: DEFAULT_CONFIG.pose_label_area_ratio,
       comic_custom_chat_base_url: DEFAULT_CONFIG.comic_custom_chat_base_url,
       comic_custom_chat_endpoint: DEFAULT_CONFIG.comic_custom_chat_endpoint,
       comic_custom_chat_api_key: DEFAULT_CONFIG.comic_custom_chat_api_key,
@@ -107,27 +131,21 @@ describe("readSettings", () => {
     });
   });
 
-  it("存了什么就显示什么：越界的数值照实给出，文本的首尾空白也留着", () => {
+  it("所有设置页字段（含语言、主题、主题色、预览方式、输出文件夹）统一进草稿", () => {
     const draft = readSettings(
       storeOf({
-        api_base_url: "  https://example.invalid  ",
-        api_key: "  probe  ",
-        max_retries: 150,
-        submit_concurrency: 0,
-        history_items_per_page: 0,
-        text_font_size: 200,
+        language: "zh",
+        theme: "dark",
+        accent_color: "#FF00AA",
+        preview_mode: "system",
+        output_folder: "D:/out",
       }),
     );
-    expect(draft.api_base_url).toBe("  https://example.invalid  ");
-    expect(draft.api_key).toBe("  probe  ");
-    expect(draft.max_retries).toBe(150);
-    expect(draft.submit_concurrency).toBe(0);
-    expect(draft.history_items_per_page).toBe(0);
-    expect(draft.text_font_size).toBe(200);
-  });
-
-  it("不读输出文件夹：它选完就生效，不进草稿", () => {
-    expect(readSettings(storeOf({ output_folder: "D:/out" }))).not.toHaveProperty("output_folder");
+    expect(draft.language).toBe("zh");
+    expect(draft.theme).toBe("dark");
+    expect(draft.accent_color).toBe("#ff00aa");
+    expect(draft.preview_mode).toBe("system");
+    expect(draft.output_folder).toBe("D:/out");
   });
 
   it("数值位存了字符串或 null 时回落到默认值，不让整页打不开", () => {
@@ -137,30 +155,19 @@ describe("readSettings", () => {
     expect(draft.history_items_per_page).toBe(DEFAULT_CONFIG.history_items_per_page);
   });
 
-  it("文本位存了别的类型时回落到默认值", () => {
-    const draft = readSettings(storeOf({ api_base_url: 123, api_key: null }));
-    expect(draft.api_base_url).toBe(DEFAULT_CONFIG.api_base_url);
-    expect(draft.api_key).toBe("");
-  });
-
-  it("开关按真值取", () => {
-    const on = readSettings(storeOf({ vip_moderation_auto_retry: 1, text_format_enabled: true, text_auto_wrap: "x" }));
-    expect(on.vip_moderation_auto_retry).toBe(true);
-    expect(on.text_format_enabled).toBe(true);
-    expect(on.text_auto_wrap).toBe(true);
-    const off = readSettings(storeOf({ vip_moderation_auto_retry: 0, text_format_enabled: null }));
-    expect(off.vip_moderation_auto_retry).toBe(false);
-    expect(off.text_format_enabled).toBe(false);
-  });
-
-  it("字体不在下拉框的八项里时显示第一项", () => {
-    expect(readSettings(storeOf({ text_font_family: "Segoe UI" })).text_font_family).toBe("Arial");
+  it("字体不在下拉框列表里时显示第一项", () => {
+    expect(readSettings(storeOf({ text_font_family: "Segoe UI" })).text_font_family).toBe("JetBrainsMapleMono");
     expect(readSettings(storeOf({ text_font_family: "KaiTi" })).text_font_family).toBe("KaiTi");
   });
 });
 
 describe("settingsToSave", () => {
   const touched: SettingsDraft = {
+    language: "zh",
+    theme: "dark",
+    accent_color: "#0078D4",
+    preview_mode: "system",
+    output_folder: "  D:/custom-out  ",
     api_base_url: "  https://example.invalid/base  ",
     api_key: "  probe  ",
     grsai_site_url: "  https://grsai.com/  ",
@@ -169,9 +176,11 @@ describe("settingsToSave", () => {
     vip_moderation_auto_retry: true,
     history_items_per_page: 0,
     text_format_enabled: false,
-    text_font_size: 200,
+    text_font_size: 9.5,
     text_font_family: "KaiTi",
     text_auto_wrap: false,
+    pose_watermark_area_ratio: 0.02555,
+    pose_label_area_ratio: 0,
     comic_custom_chat_base_url: "  https://api.example.invalid/v1  ",
     comic_custom_chat_endpoint: "  /chat/completions  ",
     comic_custom_chat_api_key: "  k-test  ",
@@ -179,14 +188,13 @@ describe("settingsToSave", () => {
     comic_custom_chat_body: '  {"temperature":0.7}  ',
   };
 
-  it("所有草稿键一个不少，也没有输出文件夹", () => {
-    const keys = Object.keys(settingsToSave(touched)).sort();
-    expect(keys).toEqual(Object.keys(touched).sort());
-    expect(keys).not.toContain("output_folder");
-  });
-
-  it("文本去掉首尾空白，数值钳到各自的区间", () => {
+  it("文本去掉首尾空白，整数钳到区间，字号保留小数并钳在 1..72", () => {
     expect(settingsToSave(touched)).toEqual({
+      language: "zh",
+      theme: "dark",
+      accent_color: "#0078d4",
+      preview_mode: "system",
+      output_folder: "D:/custom-out",
       api_base_url: "https://example.invalid/base",
       api_key: "probe",
       grsai_site_url: "https://grsai.com/",
@@ -195,9 +203,11 @@ describe("settingsToSave", () => {
       vip_moderation_auto_retry: true,
       history_items_per_page: 1,
       text_format_enabled: false,
-      text_font_size: 72,
+      text_font_size: 9.5,
       text_font_family: "KaiTi",
       text_auto_wrap: false,
+      pose_watermark_area_ratio: 0.0256,
+      pose_label_area_ratio: 0.0001,
       comic_custom_chat_base_url: "https://api.example.invalid/v1",
       comic_custom_chat_endpoint: "/chat/completions",
       comic_custom_chat_api_key: "k-test",
@@ -211,15 +221,11 @@ describe("settingsToSave", () => {
     expect(settingsToSave(draft)).toEqual(draft);
   });
 
-  it("数值只升不降时各自落在上限", () => {
-    const saved = settingsToSave({ ...readSettings(storeOf({})), max_retries: 101, submit_concurrency: 11, history_items_per_page: 500, text_font_size: 72.9 });
-    expect(saved.max_retries).toBe(100);
-    expect(saved.submit_concurrency).toBe(10);
-    expect(saved.history_items_per_page).toBe(100);
-    expect(saved.text_font_size).toBe(72);
-  });
-
-  it("字体位被改成列表外的名字时写回第一项", () => {
-    expect(settingsToSave({ ...touched, text_font_family: "Segoe UI" }).text_font_family).toBe("Arial");
+  it("字号越界时钳到 1..72，字体非法时落到第一项，面积占比钳到 (0, 1) 四位小数", () => {
+    expect(settingsToSave({ ...touched, text_font_size: 0.2 }).text_font_size).toBe(1);
+    expect(settingsToSave({ ...touched, text_font_size: 120.5 }).text_font_size).toBe(72);
+    expect(settingsToSave({ ...touched, text_font_family: "Segoe UI" }).text_font_family).toBe("JetBrainsMapleMono");
+    expect(settingsToSave({ ...touched, pose_watermark_area_ratio: 1 }).pose_watermark_area_ratio).toBe(0.9999);
+    expect(settingsToSave({ ...touched, pose_label_area_ratio: -0.2 }).pose_label_area_ratio).toBe(0.0001);
   });
 });

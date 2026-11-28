@@ -21,6 +21,7 @@ import { useConfigValue } from "../hooks/useConfigValue";
 import { useTr } from "../hooks/useLanguage";
 import { runAsync } from "../platform/async";
 import { cfg } from "../state/config";
+import { subscribePoseTransfer } from "../state/poseTransfer";
 import { subscribeRestore } from "../state/restore";
 import { localFiles } from "../state/services";
 import { generatorTasks } from "../state/taskLists";
@@ -95,6 +96,18 @@ export default function GeneratorPage() {
       // 对应源项目：先清空，再按记录里的顺序加回来
       dropRef.current?.clearImages();
       runAsync(addImages(dropRef, paths));
+    }), []);
+
+  // 3D 姿势页「发送到图像生成」：追加参考图（保留已有参考图），并智能追加/更新预制身份锚定块
+  useEffect(() =>
+    subscribePoseTransfer((payload) => {
+      if (payload.target !== "generator") return;
+      if (payload.imagePaths.length > 0) {
+        runAsync(addImages(dropRef, payload.imagePaths));
+      }
+      if (payload.promptBlock) {
+        promptRef.current?.upsertPoseAnchorBlock(payload.promptBlock);
+      }
     }), []);
 
   const onTabChange = (key: string) => {
@@ -247,6 +260,8 @@ export default function GeneratorPage() {
                 step={1}
                 value={parallel}
                 aria-label={t("generator.parallel_tasks")}
+                title={t("pose.slider_dblclick_reset")}
+                onDoubleClick={() => setParallel(DEFAULT_CONFIG.parallel_tasks)}
                 onChange={(_event, data) => setParallel(data.value)}
               />
               <span className="generator__parallel-value">{parallel}</span>

@@ -54,6 +54,8 @@ const REWRITE_ONLY_KEYS = [
   "comic_custom_chat_api_key",
   "comic_custom_chat_model",
   "comic_custom_chat_body",
+  "pose_watermark_area_ratio",
+  "pose_label_area_ratio",
 ];
 
 function withoutRewriteKeys(config: Record<string, unknown>): Record<string, unknown> {
@@ -154,7 +156,15 @@ describe("config migration matches the source project", () => {
     if ("ok" in sample.result) {
       it(`migrates ${label}`, () => {
         const migrated = withoutRewriteKeys(migrateConfig(sample.old) as unknown as Record<string, unknown>);
-        const expected = sample.result.ok as Record<string, unknown>;
+        const expected = { ...(sample.result.ok as Record<string, unknown>) };
+        // 重写版内置私有等宽字体 JetBrainsMapleMono 并调整默认字号为 9（源项目默认为 Arial / 12）
+        const oldRecord = sample.old as Record<string, unknown>;
+        if (!("text_font_family" in oldRecord) && expected.text_font_family === "Arial") {
+          expected.text_font_family = "JetBrainsMapleMono";
+        }
+        if (!("text_font_size" in oldRecord) && expected.text_font_size === 12) {
+          expected.text_font_size = 9;
+        }
         expect(Object.keys(migrated)).toEqual(Object.keys(expected));
         expect(migrated).toEqual(expected);
       });

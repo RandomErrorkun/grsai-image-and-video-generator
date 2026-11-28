@@ -25,6 +25,7 @@ import { useConfigValue } from "../hooks/useConfigValue";
 import { useTr } from "../hooks/useLanguage";
 import { runAsync } from "../platform/async";
 import { cfg } from "../state/config";
+import { subscribePoseTransfer } from "../state/poseTransfer";
 import { subscribeRestore } from "../state/restore";
 import { localFiles } from "../state/services";
 import { videoTasks } from "../state/taskLists";
@@ -208,6 +209,27 @@ export default function VideoPage() {
           video: videoRef,
         }),
       );
+    }), []);
+
+  // 3D 姿势页「发送到视频生成」：自动切回参考图模式（不动首尾帧），追加参考图并写入预制锚定块
+  useEffect(() =>
+    subscribePoseTransfer((payload) => {
+      if (payload.target !== "video") return;
+      if (cfg.get("video_frames_mode", false) === true) {
+        cfg.set("video_frames_mode", false);
+      }
+      if (payload.imagePaths.length > 0) {
+        runAsync(
+          (async () => {
+            for (const path of payload.imagePaths) {
+              await dropRef.current?.addImage(path);
+            }
+          })(),
+        );
+      }
+      if (payload.promptBlock) {
+        promptRef.current?.upsertPoseAnchorBlock(payload.promptBlock);
+      }
     }), []);
 
   const generate = async () => {
@@ -422,6 +444,8 @@ export default function VideoPage() {
                   step={1}
                   value={parallel}
                   aria-label={t("generator.parallel_tasks")}
+                  title={t("pose.slider_dblclick_reset")}
+                  onDoubleClick={() => setParallel(DEFAULT_CONFIG.video_parallel_tasks)}
                   onChange={(_event, data) => setParallel(data.value)}
                 />
                 <span className="video__parallel-value">{parallel}</span>

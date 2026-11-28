@@ -1,13 +1,27 @@
 /**
- * grsai_config.json 的数据模型与进程内存储（对应 core/config.py）。
+ * grsai_config.json 的数据模型与进程内存储（Schema v2 按 Tab 分块）。
  *
- * 键名和默认值与源项目保持一致，旧数据可以直接导入。文件读写通过
- * ConfigStorage 注入，core 层不依赖具体的运行环境。
+ * 磁盘格式：
+ * {
+ *   "config_version": 2,
+ *   "settings": { ... },
+ *   "image":    { ... },
+ *   "video":    { ... },
+ *   "comic":    { ... },
+ *   "pose":     { ... }
+ * }
+ *
+ * 启动读取旧版扁平 grsai_config.json 时，会自动完成旧键迁移（含默认提示词字体统一升级为
+ * JetBrainsMapleMono），重构为 v2 分块字典并静默写回磁盘；损坏文件回落默认值且绝不覆盖。
  */
 import { LEGACY_IMAGE_MODEL_ALIASES } from "./modelCatalog";
+import { DEFAULT_POSE_CONFIG, normalizePoseConfig, type PoseStudioConfig } from "./poseConfig";
 import { pyStr } from "./py";
 
 export const CONFIG_FILE_NAME = "grsai_config.json";
+export const CONFIG_SCHEMA_VERSION = 2;
+
+export type ConfigSectionName = "settings" | "image" | "video" | "comic" | "pose";
 
 export const DEFAULT_CONFIG = {
   api_base_url: "https://grsai.dakka.com.cn",
@@ -56,9 +70,12 @@ export const DEFAULT_CONFIG = {
   theme: "auto",
   language: "en",
   text_format_enabled: true,
-  text_font_size: 12,
-  text_font_family: "Arial",
+  text_font_size: 9,
+  text_font_family: "JetBrainsMapleMono",
   text_auto_wrap: true,
+  // 3D 姿势页导出分辨率变更时，水印与角色标号的目标面积占比（(0, 1) 开区间，支持 4 位小数）
+  pose_watermark_area_ratio: 0.02,
+  pose_label_area_ratio: 0.003,
   comic_story_model: "gemini-3.1-pro",
   comic_image_model: "nano-banana-2-lite",
   comic_page_count: 6,
@@ -76,7 +93,7 @@ export const DEFAULT_CONFIG = {
   last_tab: "banana_pro",
 } as const;
 
-/** 配置值的类型；源项目的配置里只出现这三种。 */
+/** 配置标量值的类型；源项目的所有扁平键只出现这三种。 */
 export type ConfigValue = string | number | boolean;
 
 type Widen<T> = T extends string
@@ -88,12 +105,96 @@ type Widen<T> = T extends string
       : never;
 
 /**
- * grsai_config.json 的全部固定键。
- * 运行时还会追加 last_model_tab_<tab> 这类键，它们不在类型里，用带默认值的 get() 读。
+ * 扁平视图里的全部固定键（供各页面通过 cfg.get/set 访问，底层自动归位到对应 Tab 块）。
  */
 export type AppConfig = {
   [K in keyof typeof DEFAULT_CONFIG]: Widen<(typeof DEFAULT_CONFIG)[K]>;
 };
+
+export interface SectionedConfigFile {
+  config_version: 2;
+  settings: Record<string, unknown>;
+  image: Record<string, unknown>;
+  video: Record<string, unknown>;
+  comic: Record<string, unknown>;
+  pose: PoseStudioConfig;
+}
+
+/** 每个固定键在磁盘 v2 分块 JSON 中的归属 Tab。 */
+export const KEY_SECTION_MAP: Readonly<Record<keyof AppConfig, Exclude<ConfigSectionName, "pose">>> = {
+  // settings tab & global preferences
+  api_base_url: "settings",
+  api_key: "settings",
+  grsai_site_url: "settings",
+  output_folder: "settings",
+  auto_retry_on_failure: "settings",
+  vip_moderation_auto_retry: "settings",
+  max_retries: "settings",
+  submit_concurrency: "settings",
+  accent_color: "settings",
+  preview_mode: "settings",
+  theme: "settings",
+  language: "settings",
+  text_format_enabled: "settings",
+  text_font_size: "settings",
+  text_font_family: "settings",
+  text_auto_wrap: "settings",
+  pose_watermark_area_ratio: "settings",
+  pose_label_area_ratio: "settings",
+  comic_custom_chat_base_url: "settings",
+  comic_custom_chat_endpoint: "settings",
+  comic_custom_chat_api_key: "settings",
+  comic_custom_chat_model: "settings",
+  comic_custom_chat_body: "settings",
+  history_items_per_page: "settings",
+
+  // image generator tab
+  last_tab: "image",
+  last_model: "image",
+  parallel_tasks: "image",
+  nano_banana_aspect_ratio: "image",
+  nano_banana_image_size: "image",
+  gpt_image_size: "image",
+  gpt_image_quality: "image",
+  gpt_image_tier: "image",
+  gpt_image_output_format: "image",
+  gpt_transparent_background: "image",
+
+  // video generator tab
+  video_last_model: "video",
+  video_aspect_ratio: "video",
+  video_resolution: "video",
+  video_duration: "video",
+  video_parallel_tasks: "video",
+  agnes_video_aspect_ratio: "video",
+  agnes_video_resolution: "video",
+  agnes_video_duration: "video",
+  wan_video_aspect_ratio: "video",
+  wan_video_resolution: "video",
+  wan_video_duration: "video",
+  video_frames_mode: "video",
+
+  // comic generator tab
+  comic_story_model: "comic",
+  comic_image_model: "comic",
+  comic_page_count: "comic",
+  comic_aspect_ratio: "comic",
+  comic_image_size: "comic",
+  comic_parallel_tasks: "comic",
+  comic_last_project: "comic",
+};
+
+/** 决定任意键（含动态键 last_model_tab_*、video_params_*）归属于哪一个 Tab 块。 */
+export function sectionForKey(key: string): Exclude<ConfigSectionName, "pose"> {
+  if (hasKey(KEY_SECTION_MAP, key)) {
+    return KEY_SECTION_MAP[key as keyof AppConfig];
+  }
+  if (key.startsWith("last_model_tab_") || key.startsWith("last_model_")) return "image";
+  if (key.startsWith("video_params_") || key.startsWith("video_")) return "video";
+  if (key.startsWith("comic_custom_chat_")) return "settings";
+  if (key.startsWith("comic_")) return "comic";
+  return "settings";
+}
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -112,16 +213,22 @@ export interface ConfigStoreOptions {
 }
 
 export interface ConfigStore {
-  /** 当前配置。读取用 get()，写入用 set()，不要直接改这里的键。 */
+  /** 当前扁平视图配置。读取用 get()，写入用 set()，不要直接改这里的键。 */
   readonly data: AppConfig;
   get<K extends keyof AppConfig>(key: K, fallback: AppConfig[K]): AppConfig[K];
   get<K extends keyof AppConfig>(key: K): AppConfig[K] | undefined;
   get<T extends ConfigValue>(key: string, fallback: T): T;
   get(key: string): ConfigValue | null | undefined;
   set(key: string, value: ConfigValue): void;
-  /** 从存储读入配置（对应 Config.load_config），读不到或损坏时回落到默认值。 */
+  /** 读取 3D 姿势页专属配置块（永远返回完整规范化副本）。 */
+  getPoseConfig(): PoseStudioConfig;
+  /** 写入/合并 3D 姿势页专属配置块并持久化。 */
+  setPoseConfig(next: PoseStudioConfig): void;
+  /** 导出当前内存对应的 v2 分块磁盘结构（用于持久化或调试）。 */
+  toSectioned(): SectionedConfigFile;
+  /** 从存储读入配置（若检测到老版本扁平格式，静默重构为 v2 分块格式并写回磁盘）。 */
   load(): Promise<void>;
-  /** 把当前配置写回存储（对应 Config.save_config）；连续调用会合并，不会乱序覆盖。 */
+  /** 把当前配置写回存储；连续调用会合并，不会乱序覆盖。 */
   save(): Promise<void>;
   /** 等还没写完的配置落盘；没有在写的就直接完成，不会再写一遍。 */
   flush(): Promise<void>;
@@ -132,14 +239,56 @@ function isRecord(value: unknown): value is LooseConfig {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** 与源项目的 json.dump(indent=4) 保持同一格式，方便用户手改和比对。 */
-export function serializeConfig(data: AppConfig): string {
-  return JSON.stringify(data, null, 4);
-}
-
 /** 只认自有键的查表，与 dict 的 in 一致。 */
 function hasKey(table: object, key: unknown): boolean {
   return typeof key === "string" && Object.prototype.hasOwnProperty.call(table, key);
+}
+
+/** 判断读入的 JSON 对象是否已经是 v2 分块结构。 */
+export function isSectionedConfigV2(raw: unknown): raw is SectionedConfigFile {
+  if (!isRecord(raw)) return false;
+  if (raw.config_version !== CONFIG_SCHEMA_VERSION) return false;
+  return (
+    isRecord(raw.settings) ||
+    isRecord(raw.image) ||
+    isRecord(raw.video) ||
+    isRecord(raw.comic) ||
+    isRecord(raw.pose)
+  );
+}
+
+/** 将扁平键表和 pose 块组装为 v2 分块磁盘结构。 */
+export function packSectionedConfig(
+  flat: AppConfig,
+  pose: PoseStudioConfig = DEFAULT_POSE_CONFIG,
+): SectionedConfigFile {
+  const settings: Record<string, unknown> = {};
+  const image: Record<string, unknown> = {};
+  const video: Record<string, unknown> = {};
+  const comic: Record<string, unknown> = {};
+  const buckets = { settings, image, video, comic };
+
+  for (const [key, value] of Object.entries(flat as unknown as LooseConfig)) {
+    const section = sectionForKey(key);
+    buckets[section][key] = value;
+  }
+
+  return {
+    config_version: CONFIG_SCHEMA_VERSION,
+    settings,
+    image,
+    video,
+    comic,
+    pose: normalizePoseConfig(pose),
+  };
+}
+
+/** 序列化为 4 空格缩进的 v2 分块 JSON，方便用户手改和按 Tab 阅读。 */
+export function serializeConfig(
+  data: AppConfig,
+  pose: PoseStudioConfig = DEFAULT_POSE_CONFIG,
+): string {
+  return JSON.stringify(packSectionedConfig(data, pose), null, 4);
 }
 
 /** 旧的标签名到现行标签键。 */
@@ -228,6 +377,45 @@ export function migrateConfig(oldConfig: unknown): AppConfig {
   return migrated as AppConfig;
 }
 
+/**
+ * 解析任意版本（v1 扁平 或 v2 分块）的已解析 JSON，返回统一扁平视图、pose 块与是否需要静默重写标记。
+ */
+export function parseConfigPayload(raw: unknown): {
+  flat: AppConfig;
+  pose: PoseStudioConfig;
+  migratedFromLegacy: boolean;
+} {
+  if (!isRecord(raw)) {
+    throw new TypeError(`'${pyStr(raw)}' object has no attribute 'get'`);
+  }
+
+  if (isSectionedConfigV2(raw)) {
+    const mergedFlat: LooseConfig = {};
+    for (const section of ["settings", "image", "video", "comic"] as const) {
+      const block = raw[section];
+      if (isRecord(block)) {
+        assignEntries(mergedFlat, block);
+      }
+    }
+    const flat = migrateConfig(mergedFlat);
+    const pose = normalizePoseConfig(raw.pose);
+    return { flat, pose, migratedFromLegacy: false };
+  }
+
+  // 老版本 v1 扁平结构：先执行完整旧键迁移，再统一把默认提示词字体切到 JetBrainsMapleMono、旧默认 12 号字调到 9 号
+  const legacyCopy: LooseConfig = { ...raw };
+  const rawPose = legacyCopy.pose;
+  delete legacyCopy.pose;
+  delete legacyCopy.config_version;
+  const flat = migrateConfig(legacyCopy);
+  (flat as unknown as LooseConfig).text_font_family = DEFAULT_CONFIG.text_font_family;
+  if (flat.text_font_size === 12) {
+    (flat as unknown as LooseConfig).text_font_size = DEFAULT_CONFIG.text_font_size;
+  }
+  const pose = normalizePoseConfig(rawPose);
+  return { flat, pose, migratedFromLegacy: true };
+}
+
 function assignEntries(target: LooseConfig, source: LooseConfig): void {
   // 不用 Object.assign：JSON 里的 "__proto__" 键会经由 setter 改掉原型。
   for (const [key, value] of Object.entries(source)) {
@@ -258,6 +446,7 @@ export function createConfigStore(
     });
   const listeners = new Set<() => void>();
   const data: AppConfig = { ...DEFAULT_CONFIG };
+  let poseConfig: PoseStudioConfig = normalizePoseConfig(DEFAULT_POSE_CONFIG);
   let pending: Promise<void> = Promise.resolve();
   let writing = false;
   let dirty = false;
@@ -274,7 +463,7 @@ export function createConfigStore(
     }
     writing = true;
     // 记下调用这一刻的内容：后面再改配置要等这次写完，按顺序轮到它。
-    const text = serializeConfig(data);
+    const text = serializeConfig(data, poseConfig);
     pending = Promise.resolve()
       .then(() => storage.write(text))
       .catch(onError)
@@ -296,27 +485,41 @@ export function createConfigStore(
       // 文件在却读不了：和源项目一样回落到默认值，且不回写，免得覆盖用户手里的文件。
       onError(error);
       replaceData(data, { ...DEFAULT_CONFIG });
+      poseConfig = normalizePoseConfig(DEFAULT_POSE_CONFIG);
       notify();
       return;
     }
 
     if (text === null) {
-      // 首次启动：生成默认配置并落盘。
+      // 首次启动：生成默认 v2 分块配置并落盘。
       replaceData(data, { ...DEFAULT_CONFIG });
+      poseConfig = normalizePoseConfig(DEFAULT_POSE_CONFIG);
       notify();
       await save();
       return;
     }
 
-    let loaded: AppConfig;
+    let loadedFlat: AppConfig;
+    let loadedPose: PoseStudioConfig;
+    let shouldPersistMigration = false;
     try {
-      // 文件损坏或有迁移不了的脏数据：只回落到默认值，不回写，给用户留下排查的余地。
-      loaded = migrateConfig(JSON.parse(text));
+      const parsed = parseConfigPayload(JSON.parse(text));
+      loadedFlat = parsed.flat;
+      loadedPose = parsed.pose;
+      shouldPersistMigration = parsed.migratedFromLegacy;
     } catch {
-      loaded = { ...DEFAULT_CONFIG };
+      // 文件损坏或有迁移不了的脏数据：只回落到默认值，不回写，给用户留下排查的余地。
+      loadedFlat = { ...DEFAULT_CONFIG };
+      loadedPose = normalizePoseConfig(DEFAULT_POSE_CONFIG);
+      shouldPersistMigration = false;
     }
-    replaceData(data, loaded);
+    replaceData(data, loadedFlat);
+    poseConfig = loadedPose;
     notify();
+    if (shouldPersistMigration) {
+      // 启动检测到旧版扁平结构时，静默重构并落盘为新版 v2 分块 grsai_config.json
+      await save();
+    }
   }
 
   function get(key: string, fallback?: ConfigValue): ConfigValue | null | undefined {
@@ -332,6 +535,20 @@ export function createConfigStore(
     void save();
   }
 
+  function getPoseConfig(): PoseStudioConfig {
+    return normalizePoseConfig(poseConfig);
+  }
+
+  function setPoseConfig(next: PoseStudioConfig): void {
+    poseConfig = normalizePoseConfig(next);
+    notify();
+    void save();
+  }
+
+  function toSectioned(): SectionedConfigFile {
+    return packSectionedConfig(data, poseConfig);
+  }
+
   function subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => {
@@ -344,5 +561,5 @@ export function createConfigStore(
     while (writing) await pending;
   }
 
-  return { data, get, set, load, save, flush, subscribe };
+  return { data, get, set, getPoseConfig, setPoseConfig, toSectioned, load, save, flush, subscribe };
 }

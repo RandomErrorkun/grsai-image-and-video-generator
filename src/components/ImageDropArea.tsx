@@ -22,7 +22,7 @@ import "./ImageDropArea.css";
 interface PasteTarget {
   element: HTMLDivElement | null;
   freeSlots(): number;
-  paste(): Promise<void>;
+  paste(options?: { silentWhenNoImage?: boolean }): Promise<void>;
 }
 
 const pasteTargets = new Set<PasteTarget>();
@@ -30,6 +30,18 @@ const pasteTargets = new Set<PasteTarget>();
 /** 所在的页面隐藏（display: none）时量不到矩形，Ctrl+V 不该落到这里。 */
 function isShown(element: HTMLElement | null): boolean {
   return element !== null && element.getClientRects().length > 0;
+}
+
+/** 当前焦点是否在文本输入控件内（textarea / input / contenteditable）。 */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target.tagName === "TEXTAREA") return true;
+  if (target.tagName === "INPUT") {
+    const type = (target as HTMLInputElement).type.toLowerCase();
+    return !["button", "checkbox", "radio", "submit", "reset", "file", "range", "color"].includes(type);
+  }
+  return false;
 }
 
 let shortcutBound = false;
@@ -43,9 +55,11 @@ function listenForPaste(): void {
     const target = pickPasteTarget(
       [...pasteTargets].map((area) => ({ visible: isShown(area.element), freeSlots: area.freeSlots(), area })),
     );
-    // 剪贴板要问了才知道是图、文件还是文字，这时按键的默认动作早已过去：
-    // 文字照常落进聚焦的输入框，这里只对图和文件列表有反应
-    runAsync(target ? target.area.paste() : Promise.resolve());
+    if (!target) return;
+    // 在提示词框等文本输入框内按 Ctrl+V 时：若是粘贴文字则静默放行，不弹「剪贴板中找不到图像」；
+    // 若剪贴板里确实是图片或图片文件，依然能顺手加入参考图区。
+    const inTextInput = isEditableTarget(event.target);
+    runAsync(target.area.paste({ silentWhenNoImage: inTextInput }));
   });
 }
 
@@ -97,23 +111,25 @@ export default function ImageDropArea({ ref, maxImages, placeholderKey, onChange
 
   // 对应 paste_from_clipboard。源项目在这里先看位图、再看文件列表，两者都没有才提示剪贴板里没有图片
   const pasteSnapshot = useCallback(
-    (snapshot: ClipboardSnapshot): void => {
+    (snapshot: ClipboardSnapshot, options?: { silentWhenNoImage?: boolean }): void => {
       if (snapshot.kind === "image") {
         if (addImages([snapshot.path], true)) notice("success", tr("common.pasted"), tr("drop.msg.pasted_image"));
         return;
       }
       if (snapshot.kind === "files") {
         if (addImages(snapshot.paths, true)) notice("success", tr("common.pasted"), tr("drop.msg.pasted_files"));
-        else notice("warning", tr("common.warning"), tr("drop.msg.no_supported_image"));
+        else if (!options?.silentWhenNoImage) notice("warning", tr("common.warning"), tr("drop.msg.no_supported_image"));
         return;
       }
-      notice("warning", tr("common.warning"), tr("drop.msg.no_image"));
+      if (!options?.silentWhenNoImage) {
+        notice("warning", tr("common.warning"), tr("drop.msg.no_image"));
+      }
     },
     [addImages],
   );
 
-  const pasteFromClipboard = useCallback(async () => {
-    pasteSnapshot(await platform.clipboard.read());
+  const pasteFromClipboard = useCallback(async (options?: { silentWhenNoImage?: boolean }) => {
+    pasteSnapshot(await platform.clipboard.read(), options);
   }, [pasteSnapshot]);
 
   // 对应 mousePressEvent：点一下空白处就打开对话框；对话框开着时再点不开第二个
@@ -201,6 +217,21 @@ interface ImageThumbnailProps {
 function ImageThumbnail({ path, onRemove }: ImageThumbnailProps) {
   const t = useTr();
   const [image, setImage] = useState<{ src: string; ratio: number } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenu(null);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
 
   useEffect(() => {
     let cancelled = false;
@@ -220,16 +251,34 @@ function ImageThumbnail({ path, onRemove }: ImageThumbnailProps) {
   const onRemoveClick = (event: MouseEvent<HTMLButtonElement>) => {
     // 移除只是移除，不要落进外层的「点一下选图」
     event.stopPropagation();
+    setMenu(null);
     onRemove(path);
   };
 
   const onPreviewClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
+    setMenu(null);
     openPreview(path);
   };
 
+  const onContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const x = Math.min(event.clientX, Math.max(8, window.innerWidth - 180));
+    const y = Math.min(event.clientY, Math.max(8, window.innerHeight - 100));
+    setMenu({ x, y });
+  };
+
   return (
-    <div className="image-thumb" role="listitem">
+    <div
+      className="image-thumb"
+      role="listitem"
+      onContextMenu={onContextMenu}
+      onClick={(event) => {
+        event.stopPropagation();
+        openPreview(path);
+      }}
+    >
       <div className="image-thumb__frame" style={{ aspectRatio: String(image?.ratio ?? 1) }}>
         {image ? (
           isAnimatedImage(path) ? (
@@ -269,6 +318,21 @@ function ImageThumbnail({ path, onRemove }: ImageThumbnailProps) {
           onClick={onPreviewClick}
         />
       </Tooltip>
+      {menu ? (
+        <div
+          className="image-thumb__menu"
+          style={{ left: menu.x, top: menu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button type="button" onClick={onPreviewClick}>
+            {t("preview.tooltip_preview")}
+          </button>
+          <button type="button" onClick={onRemoveClick}>
+            {t("drop.remove_image")}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

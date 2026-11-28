@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Button, Tooltip } from "@fluentui/react-components";
 import { ClipboardPaste20Regular, Delete20Regular, Edit20Regular } from "@fluentui/react-icons";
+import { upsertPoseAnchorInPrompt } from "../core/posePrompt";
 import { useConfigValue } from "../hooks/useConfigValue";
 import { useTr } from "../hooks/useLanguage";
 import { platform } from "../platform";
@@ -21,6 +22,8 @@ export interface PromptWidgetHandle {
   /** 去掉首尾空白后的提示词。 */
   getPrompt(): string;
   setPrompt(text: string): void;
+  /** 智能写入或原地替换姿势参考身份锚定块（保留用户其余提示词）。 */
+  upsertPoseAnchorBlock(block: string): void;
   pasteFromClipboard(): Promise<void>;
   clear(): void;
   focus(): void;
@@ -52,12 +55,12 @@ export default function PromptWidget({ ref, className }: PromptWidgetProps) {
   const caretRef = useRef<number | null>(null);
 
   const formatEnabled = useConfigValue("text_format_enabled", true);
-  const fontSize = useConfigValue("text_font_size", 12);
-  const fontFamily = useConfigValue("text_font_family", "Arial");
+  const fontSize = useConfigValue("text_font_size", 9);
+  const fontFamily = useConfigValue("text_font_family", "JetBrainsMapleMono");
   const autoWrap = useConfigValue("text_auto_wrap", true);
 
   const formatStyle: CSSProperties | undefined = formatEnabled
-    ? { fontFamily: quoteFamily(fontFamily), fontSize: `${Math.round(fontSize * PT_TO_PX)}px` }
+    ? { fontFamily: quoteFamily(fontFamily), fontSize: `${Number((fontSize * PT_TO_PX).toFixed(2))}px` }
     : undefined;
 
   const pasteFromClipboard = useCallback(async () => {
@@ -87,6 +90,13 @@ export default function PromptWidget({ ref, className }: PromptWidgetProps) {
     setPrompt: (next: string) => {
       caretRef.current = next.length;
       setText(next);
+    },
+    upsertPoseAnchorBlock: (block: string) => {
+      setText((prev) => {
+        const next = upsertPoseAnchorInPrompt(prev, block);
+        caretRef.current = next.length;
+        return next;
+      });
     },
     pasteFromClipboard,
     clear: clearPrompt,

@@ -1,5 +1,5 @@
-/** 主窗口的页面（对应 ui/main_window.py 里的五个子界面 + 重写版新增的用量统计与官方公告页）。 */
-export type PageKey = "generator" | "video" | "comic" | "history" | "usage" | "announcements" | "settings";
+/** 主窗口的页面（对应 ui/main_window.py 里的五个子界面 + 重写版新增的 3D 姿势、用量统计与官方公告页）。 */
+export type PageKey = "generator" | "video" | "comic" | "pose" | "history" | "usage" | "announcements" | "settings";
 
 /** 启动时显示的页面，也是返回键退到底时的那一页。 */
 export const DEFAULT_PAGE: PageKey = "generator";
@@ -9,6 +9,7 @@ export const ALL_PAGES: readonly PageKey[] = [
   "generator",
   "video",
   "comic",
+  "pose",
   "history",
   "usage",
   "announcements",
@@ -23,6 +24,7 @@ export const NAV_LABEL_KEY: Record<PageKey, string> = {
   generator: "nav.generator",
   video: "nav.video",
   comic: "nav.comic",
+  pose: "nav.pose",
   history: "nav.history",
   usage: "nav.usage",
   announcements: "nav.announcements",

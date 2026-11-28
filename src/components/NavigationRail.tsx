@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import {
+  AccessibilityRegular,
   ArrowLeftRegular,
   DataBarVerticalRegular,
   HistoryRegular,
@@ -35,6 +36,7 @@ const PAGE_ICONS: Record<PageKey, NavIcon> = {
   generator: PaintBrushRegular,
   video: VideoRegular,
   comic: ImageRegular,
+  pose: AccessibilityRegular,
   history: HistoryRegular,
   usage: DataBarVerticalRegular,
   announcements: MegaphoneRegular,

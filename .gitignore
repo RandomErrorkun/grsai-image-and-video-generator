@@ -35,6 +35,7 @@ grsai_history.json.bak
 history.json
 input/
 output/
+poses/
 
 # The API docs stay in the source project and are read from there, never copied here
 api_docs/
@@ -44,3 +45,9 @@ __pycache__/
 
 # The working handbook for the AI sessions stays in this folder as a local file only
 AGENTS.md
+
+# Local reference repos / raw downloads (only root-level /fonts/ is ignored; src/assets/fonts/ is tracked)
+/fonts/
+/ComfyUI-Fisher-Pose/
+202611282224.txt
+color_scheme.json

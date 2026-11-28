@@ -24,7 +24,7 @@ import { DOWNLOAD_TIMEOUT_SECS, type HttpOutcome, type HttpRequest } from "../co
 import { CONFIG_FILE_NAME, type ConfigStorage } from "../core/config";
 import type { SqlExecutor } from "../core/history";
 import { createPathTools } from "../core/paths";
-import type { ClipboardSnapshot, NativeTheme, Platform } from "./types";
+import type { ClipboardSnapshot, NativeTheme, Platform, PoseDirScanResult } from "./types";
 import { encodePng } from "./png";
 import { diag, diagOutcome } from "./diagnostics";
 
@@ -367,5 +367,10 @@ export const tauriPlatform: Platform = {
         unlisten?.();
       };
     },
+  },
+
+  pose: {
+    loadBodyPack: () => invoke<ArrayBuffer>("load_pose_body_pack"),
+    scanPosesDir: (root) => invoke<PoseDirScanResult>("scan_poses_dir", { root }),
   },
 };

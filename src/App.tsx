@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from "react";
+import { Suspense, lazy, useEffect, useState, type ComponentType } from "react";
 import {
   Button,
   Dialog,
@@ -32,8 +32,11 @@ import { platform } from "./platform";
 import { runAsync } from "./platform/async";
 import { syncGrsaiSiteData } from "./state/announcements";
 import { cfg } from "./state/config";
+import { subscribePoseTransfer } from "./state/poseTransfer";
 import { subscribeRestore } from "./state/restore";
 import { hasUnfinishedTasks, stopAllTasks } from "./state/taskLists";
+
+const PosePage = lazy(() => import("./pages/PosePage"));
 
 /** 当前页面和返回栈；返回栈按顺序记着经过的页面，最后一项是上一页。 */
 interface Location {
@@ -41,7 +44,7 @@ interface Location {
   backStack: PageKey[];
 }
 
-const PAGE_COMPONENTS: Record<PageKey, ComponentType> = {
+const PAGE_COMPONENTS: Record<Exclude<PageKey, "pose">, ComponentType> = {
   generator: GeneratorPage,
   video: VideoPage,
   comic: ComicPage,
@@ -66,6 +69,8 @@ function Shell() {
   const resolvedTheme = useResolvedTheme();
   const language = normalizeLanguage(useConfigValue("language", "en"));
   const [location, setLocation] = useState<Location>({ page: DEFAULT_PAGE, backStack: [] });
+  // 3D 姿势页按需懒加载：首次切换到「姿势」Tab 才初始化 Three.js 与 MakeHuman，之后常驻保活
+  const [poseMounted, setPoseMounted] = useState(false);
   const [navMode, setNavMode] = useState<NavMode>("compact");
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
@@ -111,6 +116,7 @@ function Shell() {
 
   // 换页才入栈；通过浮层导航切页后顺手收起导航
   const navigate = (next: PageKey) => {
+    if (next === "pose") setPoseMounted(true);
     setLocation((current) =>
       current.page === next
         ? current
@@ -124,8 +130,9 @@ function Shell() {
     runAsync(syncGrsaiSiteData({ force: true }));
   }, []);
 
-  // 历史页的「重新生成」：外壳只管切到目标页面，页面自己监听同一个请求回填参数
+  // 历史页的「重新生成」与 3D 姿势页的「发送到图像/视频生成」：外壳切到目标页，页面监听同一事件
   useEffect(() => subscribeRestore((request) => navigate(request.page)), []);
+  useEffect(() => subscribePoseTransfer((payload) => navigate(payload.target)), []);
 
   const finishClose = async () => {
     setCloseConfirmOpen(false);
@@ -177,11 +184,26 @@ function Shell() {
         onToggleExpanded={toggleNav}
         onToggleTheme={toggleTheme}
       />
-      {/* 五个页面常驻，只隐藏不卸载：切走再切回，输入的内容和跑着的任务都还在 */}
+      {/* 页面常驻，只隐藏不卸载：切走再切回，输入的内容和跑着的任务都还在；姿势页首次访问才懒加载 */}
       <main className="content">
         {ALL_PAGES.map((key) => {
-          const Page = PAGE_COMPONENTS[key];
           const active = key === location.page;
+          if (key === "pose") {
+            return (
+              <div
+                key={key}
+                className={active ? "page-host" : "page-host page-host--hidden"}
+                aria-hidden={!active}
+              >
+                {poseMounted ? (
+                  <Suspense fallback={null}>
+                    <PosePage active={active} />
+                  </Suspense>
+                ) : null}
+              </div>
+            );
+          }
+          const Page = PAGE_COMPONENTS[key];
           return (
             <div
               key={key}

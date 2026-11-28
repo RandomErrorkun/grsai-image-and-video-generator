@@ -4,6 +4,7 @@ import { useAccentColor, useResolvedTheme } from "../hooks/useAppTheme";
 import { themesFor } from "../theme";
 import { MediaLightboxHost } from "./MediaLightbox";
 import { NoticeHost } from "./Notice";
+import { TextInputContextMenu } from "./TextInputContextMenu";
 
 /** 主题、主题色和轻提示的宿主。应用外壳和开发时单独预览组件都包在它里面。 */
 export function AppProvider({ children }: { children?: ReactNode }) {
@@ -22,6 +23,7 @@ export function AppProvider({ children }: { children?: ReactNode }) {
       {children}
       <NoticeHost />
       <MediaLightboxHost />
+      <TextInputContextMenu />
     </FluentProvider>
   );
 }

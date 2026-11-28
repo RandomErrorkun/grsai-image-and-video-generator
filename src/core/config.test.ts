@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  CONFIG_SCHEMA_VERSION,
   DEFAULT_CONFIG,
   createConfigStore,
+  packSectionedConfig,
   serializeConfig,
   type ConfigStorage,
 } from "./config";
+import { DEFAULT_POSE_CONFIG } from "./poseConfig";
 
 /** 内存里的配置文件，行为和真实文件一致：没写过就是不存在。 */
 function memoryStorage(initial?: string) {
@@ -36,6 +39,8 @@ const REWRITE_ONLY_KEYS = [
   "comic_custom_chat_api_key",
   "comic_custom_chat_model",
   "comic_custom_chat_body",
+  "pose_watermark_area_ratio",
+  "pose_label_area_ratio",
 ];
 
 describe("config defaults", () => {
@@ -57,11 +62,12 @@ describe("config defaults", () => {
     expect(DEFAULT_CONFIG.video_frames_mode).toBe(false);
   });
 
-  it("serializes with 4-space indentation like json.dump(indent=4)", () => {
+  it("serializes as sectioned v2 JSON with 4-space indentation", () => {
     const store = createConfigStore(memoryStorage().storage);
     const text = serializeConfig(store.data);
-    expect(text).toContain('\n    "api_base_url": "https://grsai.dakka.com.cn",\n    "api_key": "",\n');
-    expect(JSON.parse(text)).toEqual(DEFAULT_CONFIG);
+    expect(text).toContain('"config_version": 2');
+    expect(text).toContain('\n    "settings": {\n        "api_base_url": "https://grsai.dakka.com.cn",');
+    expect(JSON.parse(text)).toEqual(packSectionedConfig(DEFAULT_CONFIG, DEFAULT_POSE_CONFIG));
   });
 });
 
@@ -70,21 +76,50 @@ describe("config store", () => {
     const file = memoryStorage();
     const store = createConfigStore(file.storage);
     await store.load();
-    expect(file.text).toBe(serializeConfig(DEFAULT_CONFIG));
+    expect(file.text).toBe(serializeConfig(DEFAULT_CONFIG, DEFAULT_POSE_CONFIG));
   });
 
-  it("keeps loaded values, runtime keys and fills in missing default keys", async () => {
+  it("silently migrates legacy v1 flat config to v2 sectioned JSON and upgrades prompt font", async () => {
     const file = memoryStorage(
-      JSON.stringify({ theme: "dark", last_model_tab_banana_pro: "nano-banana-pro" }),
+      JSON.stringify({
+        theme: "dark",
+        text_font_family: "Arial",
+        last_model_tab_banana_pro: "nano-banana-pro",
+      }),
     );
     const store = createConfigStore(file.storage);
-    const original = file.text;
     await store.load();
     expect(store.get("theme", "auto")).toBe("dark");
     expect(store.get("max_retries", 0)).toBe(5);
     expect(store.get("last_model_tab_banana_pro", "")).toBe("nano-banana-pro");
-    // 只是读入，不改写文件
-    expect(file.text).toBe(original);
+    expect(store.get("text_font_family", "")).toBe("JetBrainsMapleMono");
+    // 检测到旧版扁平结构时自动静默重构为 v2 分块格式并落盘
+    const saved = JSON.parse(file.text ?? "{}");
+    expect(saved.config_version).toBe(CONFIG_SCHEMA_VERSION);
+    expect(saved.settings.theme).toBe("dark");
+    expect(saved.settings.text_font_family).toBe("JetBrainsMapleMono");
+    expect(saved.image.last_model_tab_banana_pro).toBe("nano-banana-pro");
+    expect(saved.pose.exportWidth).toBe(1920);
+    expect(saved.pose.exportHeight).toBe(1080);
+  });
+
+  it("does not rewrite an already v2 sectioned config on load and keeps user-chosen font", async () => {
+    const v2Text = JSON.stringify({
+      config_version: 2,
+      settings: { theme: "dark", text_font_family: "KaiTi" },
+      image: { last_model_tab_banana_pro: "nano-banana-pro" },
+      video: {},
+      comic: {},
+      pose: { exportWidth: 1440, exportHeight: 1080 },
+    });
+    const file = memoryStorage(v2Text);
+    const store = createConfigStore(file.storage);
+    await store.load();
+    expect(store.get("theme", "auto")).toBe("dark");
+    expect(store.get("text_font_family", "")).toBe("KaiTi");
+    expect(store.getPoseConfig().exportWidth).toBe(1440);
+    // 已是 v2 时只读入，不改写文件
+    expect(file.text).toBe(v2Text);
   });
 
   it("falls back to defaults on a corrupted file and leaves the file untouched", async () => {
@@ -160,12 +195,12 @@ describe("config store", () => {
     await tick();
     // 第一次写还没完成，后两次只记为待写
     expect(writes).toHaveLength(1);
-    expect(JSON.parse(writes[0]).theme).toBe("dark");
+    expect(JSON.parse(writes[0]).settings.theme).toBe("dark");
 
     releases[0]();
     await tick();
     expect(writes).toHaveLength(2);
-    expect(JSON.parse(writes[1]).theme).toBe("auto");
+    expect(JSON.parse(writes[1]).settings.theme).toBe("auto");
 
     releases[1]();
     await tick();
@@ -204,7 +239,7 @@ describe("config store", () => {
     releases[1]();
     await flushing;
     expect(flushed).toBe(true);
-    expect(JSON.parse(writes[1]).theme).toBe("light");
+    expect(JSON.parse(writes[1]).settings.theme).toBe("light");
   });
 
   it("reports a failed write instead of throwing", async () => {

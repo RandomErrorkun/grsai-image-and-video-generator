@@ -2,10 +2,12 @@
 //! 每个命令都尽量短，说明写在各自上面。
 
 use std::{
+    path::{Path, PathBuf},
     sync::Mutex,
     time::{Duration, Instant},
 };
 
+use serde::Serialize;
 use tauri::{Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_fs::FsExt;
 
@@ -256,6 +258,222 @@ pub async fn file_sha256(path: String) -> Result<String, String> {
     })
     .await
     .map_err(|error| error.to_string())?
+}
+
+/// 预压进可执行文件的 MakeHuman 人体包（Brotli 11 级无损压缩，约 2.89 MB）。
+static EMBEDDED_POSE_BODY_PACK_BR: &[u8] = include_bytes!("../assets/pose_studio_makehuman.v2.bin.br");
+
+/// 解压内置 MakeHuman 二进制包并以原生二进制 IPC 响应返回，零 Base64 膨胀。
+#[tauri::command]
+pub async fn load_pose_body_pack() -> Result<tauri::ipc::Response, String> {
+    let raw = tauri::async_runtime::spawn_blocking(decompress_embedded_pose_body_pack)
+        .await
+        .map_err(|error| error.to_string())??;
+    Ok(tauri::ipc::Response::new(raw))
+}
+
+fn decompress_embedded_pose_body_pack() -> Result<Vec<u8>, String> {
+    use std::io::Read;
+    let mut decoder = brotli::Decompressor::new(EMBEDDED_POSE_BODY_PACK_BR, 64 * 1024);
+    let mut output = Vec::with_capacity(88 * 1024 * 1024);
+    decoder
+        .read_to_end(&mut output)
+        .map_err(|error| format!("Failed to decompress pose body pack: {error}"))?;
+    Ok(output)
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PoseScannedEntry {
+    /// 相对 poses 根目录的相对路径（统一用 '/' 分隔，保留空格与非英文字符）。
+    pub relative_path: String,
+    /// 所在相对子目录（根目录为 ""），完整保留空格与多级路径。
+    pub folder: String,
+    /// 文件名（不含扩展名，.pose.json 去掉完整 .pose.json 后缀）。
+    pub name: String,
+    /// 绝对路径。
+    pub path: String,
+    /// "pose_json" | "openpose_image"
+    pub kind: String,
+    /// 最后修改时间（毫秒时间戳）。
+    pub modified_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PoseDirScanResult {
+    pub root: String,
+    /// 所有子目录的相对路径列表（统一用 '/' 分隔，保留空格与非英文字符，按字母序）。
+    pub folders: Vec<String>,
+    pub entries: Vec<PoseScannedEntry>,
+}
+
+/// 递归扫描 poses 目录并返回目录树与支持的文件条目；自动放行该目录给 fs 与 asset 协议。
+#[tauri::command]
+pub async fn scan_poses_dir(app: tauri::AppHandle, root: String) -> Result<PoseDirScanResult, String> {
+    let root_path = PathBuf::from(&root);
+    let _ = std::fs::create_dir_all(&root_path);
+    let _ = app.fs_scope().allow_directory(&root_path, true);
+    let _ = app.asset_protocol_scope().allow_directory(&root_path, true);
+
+    tauri::async_runtime::spawn_blocking(move || scan_poses_dir_sync(&root_path))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+fn classify_pose_file(file_name: &str) -> Option<(&'static str, String)> {
+    let lower = file_name.to_ascii_lowercase();
+    if lower.ends_with(".pose.json") {
+        let stem = &file_name[..file_name.len() - ".pose.json".len()];
+        if !stem.is_empty() {
+            return Some(("pose_json", stem.to_string()));
+        }
+        return None;
+    }
+    if lower.ends_with(".json") {
+        let stem = &file_name[..file_name.len() - ".json".len()];
+        if !stem.is_empty() {
+            return Some(("pose_json", stem.to_string()));
+        }
+        return None;
+    }
+    for ext in [".png", ".jpg", ".jpeg", ".webp"] {
+        if lower.ends_with(ext) {
+            let stem = &file_name[..file_name.len() - ext.len()];
+            if !stem.is_empty() {
+                return Some(("openpose_image", stem.to_string()));
+            }
+        }
+    }
+    None
+}
+
+fn scan_poses_dir_sync(root: &Path) -> Result<PoseDirScanResult, String> {
+    let mut folders = Vec::new();
+    let mut entries = Vec::new();
+    if !root.exists() {
+        return Ok(PoseDirScanResult {
+            root: root.to_string_lossy().to_string(),
+            folders,
+            entries,
+        });
+    }
+    let mut stack: Vec<(PathBuf, String, usize)> = vec![(root.to_path_buf(), String::new(), 0)];
+    const MAX_DEPTH: usize = 12;
+
+    while let Some((dir, rel_dir, depth)) = stack.pop() {
+        if depth > MAX_DEPTH {
+            continue;
+        }
+        let read_dir = match std::fs::read_dir(&dir) {
+            Ok(iter) => iter,
+            Err(_) => continue,
+        };
+        let mut subdirs: Vec<(PathBuf, String)> = Vec::new();
+        for item in read_dir.flatten() {
+            let Ok(file_type) = item.file_type() else {
+                continue;
+            };
+            // 跳过符号链接，防止循环引用
+            if file_type.is_symlink() {
+                continue;
+            }
+            let file_name = item.file_name().to_string_lossy().to_string();
+            if file_name.is_empty() || file_name.starts_with('.') {
+                continue;
+            }
+            let full_path = item.path();
+            let rel_path = if rel_dir.is_empty() {
+                file_name.clone()
+            } else {
+                format!("{rel_dir}/{file_name}")
+            };
+            if file_type.is_dir() {
+                folders.push(rel_path.clone());
+                subdirs.push((full_path, rel_path));
+            } else if file_type.is_file() {
+                if let Some((kind, stem)) = classify_pose_file(&file_name) {
+                    let modified_ms = item
+                        .metadata()
+                        .ok()
+                        .and_then(|m| m.modified().ok())
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_millis() as u64)
+                        .unwrap_or(0);
+                    entries.push(PoseScannedEntry {
+                        relative_path: rel_path,
+                        folder: rel_dir.clone(),
+                        name: stem,
+                        path: full_path.to_string_lossy().to_string(),
+                        kind: kind.to_string(),
+                        modified_ms,
+                    });
+                }
+            }
+        }
+        for (sub_path, sub_rel) in subdirs {
+            stack.push((sub_path, sub_rel, depth + 1));
+        }
+    }
+
+    folders.sort();
+    entries.sort_by(|a, b| {
+        a.folder
+            .cmp(&b.folder)
+            .then_with(|| b.modified_ms.cmp(&a.modified_ms))
+            .then_with(|| a.name.cmp(&b.name))
+    });
+
+    Ok(PoseDirScanResult {
+        root: root.to_string_lossy().to_string(),
+        folders,
+        entries,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn embedded_pose_body_pack_decompresses_with_valid_magic() {
+        let bytes = decompress_embedded_pose_body_pack().expect("decompress makehuman pack");
+        assert!(bytes.len() > 80 * 1024 * 1024, "unexpected size: {}", bytes.len());
+        assert_eq!(&bytes[0..8], b"VNMHJS02");
+    }
+
+    #[test]
+    fn scan_poses_dir_preserves_spaces_and_nested_subdirectories() {
+        let temp = std::env::temp_dir().join(format!("grsai_pose_scan_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&temp);
+        std::fs::create_dir_all(temp.join("presets").join("Action Poses 01")).unwrap();
+        std::fs::create_dir_all(temp.join("saved").join("My Favorites").join("双人 动作")).unwrap();
+        std::fs::write(temp.join("presets").join("Action Poses 01").join("jump high.png"), b"png").unwrap();
+        std::fs::write(
+            temp.join("saved").join("My Favorites").join("双人 动作").join("hero duo.pose.json"),
+            b"{}",
+        )
+        .unwrap();
+        std::fs::write(temp.join("saved").join(".hidden.json"), b"{}").unwrap();
+        std::fs::write(temp.join("saved").join("readme.txt"), b"skip").unwrap();
+
+        let result = scan_poses_dir_sync(&temp).expect("scan succeeds");
+        assert!(result.folders.contains(&"presets".to_string()));
+        assert!(result.folders.contains(&"presets/Action Poses 01".to_string()));
+        assert!(result.folders.contains(&"saved/My Favorites".to_string()));
+        assert!(result.folders.contains(&"saved/My Favorites/双人 动作".to_string()));
+        assert_eq!(result.entries.len(), 2);
+
+        let img = result.entries.iter().find(|e| e.kind == "openpose_image").unwrap();
+        assert_eq!(img.folder, "presets/Action Poses 01");
+        assert_eq!(img.name, "jump high");
+
+        let json = result.entries.iter().find(|e| e.kind == "pose_json").unwrap();
+        assert_eq!(json.folder, "saved/My Favorites/双人 动作");
+        assert_eq!(json.name, "hero duo");
+
+        let _ = std::fs::remove_dir_all(&temp);
+    }
 }
 
 mod clipboard {

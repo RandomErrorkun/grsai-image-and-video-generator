@@ -1,6 +1,7 @@
 /**
  * 设置页（对应 ui/settings_page.py）。分组和卡片的版式照源项目的 SettingCardGroup / SettingCard。
- * 语言、主题、主题色即时生效，输出文件夹选完立刻写回；其余字段是草稿，点了「保存设置」才写回配置。
+ * 所有设置项（含语言、主题、主题色、预览方式、输出目录、字体字号等）均在草稿中修改，
+ * 只有点击「保存设置」后才统一写入 grsai_config.json 并生效，避免误改。
  */
 import { useState, type CSSProperties, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { Button, Input, Slider, SpinButton, Switch } from "@fluentui/react-components";
@@ -29,8 +30,7 @@ import { buildModelsListRequest, parseModelsListResponse } from "../core/comicPl
 import { DEFAULT_CONFIG } from "../core/config";
 import { resolveGrsaiSiteOrigin } from "../core/modelAvailability";
 import { VIP_MODELS } from "../core/modelCatalog";
-import { useAccentColor, useThemeMode } from "../hooks/useAppTheme";
-import { useConfigValue } from "../hooks/useConfigValue";
+import { clampOpenUnitRatio } from "../core/poseConfig";
 import { useTr } from "../hooks/useLanguage";
 import { languageItems, normalizeLanguage, translate } from "../i18n";
 import { platform } from "../platform";
@@ -39,7 +39,7 @@ import { syncGrsaiSiteData } from "../state/announcements";
 import { cfg } from "../state/config";
 import { normalizePreviewMode } from "../state/preview";
 import { resolveOutputFolder } from "../state/services";
-import { ACCENT_PALETTE } from "../theme";
+import { ACCENT_PALETTE, normalizeAccentColor } from "../theme";
 import {
   EMPTY_CUSTOM_CHAT_CONFIG,
   FONT_FAMILIES,
@@ -47,10 +47,11 @@ import {
   HISTORY_ITEMS_RANGE,
   MAX_RETRIES_RANGE,
   SUBMIT_CONCURRENCY_RANGE,
+  clampDecimalToRange,
   clampToRange,
+  parseDecimalInput,
   parseDigits,
   readSettings,
-  readText,
   settingsToSave,
   type NumberRange,
   type SettingsDraft,
@@ -92,9 +93,21 @@ interface NumberRangeFieldProps {
  * 滑块卡片，对应源项目的三张滑块卡片：数值在左，隔 10 像素是滑块。
  * 存值越界时数值照实显示、滑块停在边界（源项目的滑块也是如此），留到保存时再钳。
  */
-function SliderField({ label, value, range, fixedValueWidth, onChange }: NumberRangeFieldProps & { fixedValueWidth?: boolean }) {
+function SliderField({
+  label,
+  value,
+  range,
+  defaultValue,
+  fixedValueWidth,
+  onChange,
+}: NumberRangeFieldProps & { defaultValue?: number; fixedValueWidth?: boolean }) {
   return (
-    <div className="settings-slider">
+    <div
+      className="settings-slider"
+      onDoubleClick={() => {
+        if (defaultValue !== undefined) onChange(defaultValue);
+      }}
+    >
       <span className={fixedValueWidth ? "settings-slider__value settings-slider__value--fixed" : "settings-slider__value"}>{value}</span>
       <Slider
         className="settings-slider__track"
@@ -155,16 +168,13 @@ function FlagSwitch({ label, checked, onChange }: FlagSwitchProps) {
 
 export default function SettingsPage() {
   const t = useTr();
-  const language = normalizeLanguage(useConfigValue("language", "en"));
-  const themeMode = useThemeMode();
-  const accent = useAccentColor();
-  const previewMode = normalizePreviewMode(useConfigValue("preview_mode", DEFAULT_CONFIG.preview_mode));
-  // useAccentColor 给的是小写的 #rrggbb，调色板里写的是大写，比较前先统一
-  const inPalette = ACCENT_PALETTE.some((color) => color.toLowerCase() === accent);
-  // 草稿只在页面建起来的时候从配置里读一次；外壳里页面常驻，和源项目一样不会自己跟着别处变
+  // 所有设置项均维护在草稿中，只有点击「保存设置」才写回 grsai_config.json 并生效
   const [draft, setDraft] = useState(() => readSettings(cfg));
-  // 输出文件夹不是草稿：卡片上显示的就是配置里的当前值
-  const outputFolder = readText(useConfigValue("output_folder", DEFAULT_CONFIG.output_folder), DEFAULT_CONFIG.output_folder);
+  const [fontSizeText, setFontSizeText] = useState(() => String(readSettings(cfg).text_font_size));
+  const [watermarkRatioText, setWatermarkRatioText] = useState(() => String(readSettings(cfg).pose_watermark_area_ratio));
+  const [labelRatioText, setLabelRatioText] = useState(() => String(readSettings(cfg).pose_label_area_ratio));
+  const accent = normalizeAccentColor(draft.accent_color) ?? DEFAULT_CONFIG.accent_color.toLowerCase();
+  const inPalette = ACCENT_PALETTE.some((color) => color.toLowerCase() === accent);
   const [customModels, setCustomModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [fetchingSiteData, setFetchingSiteData] = useState(false);
@@ -200,8 +210,7 @@ export default function SettingsPage() {
   const clearCustomLlm = () => {
     setDraft((current) => ({ ...current, ...EMPTY_CUSTOM_CHAT_CONFIG }));
     setCustomModels([]);
-    for (const [key, value] of Object.entries(EMPTY_CUSTOM_CHAT_CONFIG)) cfg.set(key, value);
-    notice("success", t("common.success"), t("settings.comic_chat.cleared"));
+    notice("info", t("common.info"), t("settings.comic_chat.cleared"));
   };
 
   const fetchCustomModels = async () => {
@@ -235,23 +244,36 @@ export default function SettingsPage() {
   const chooseFolder = async () => {
     const folder = await platform.dialog.pickDirectory({
       title: t("settings.dialog.select_folder"),
-      // 对话框从当前的输出文件夹开起；相对路径先按数据目录展开
-      defaultPath: String(resolveOutputFolder(outputFolder)),
+      defaultPath: String(resolveOutputFolder(draft.output_folder)),
     });
-    // 取消时拿到 null，什么都不动
     if (!folder) return;
-    // 与源项目一致：选完立刻生效，不等保存
-    cfg.set("output_folder", folder);
-    // 换到程序目录之外的输出文件夹要先进放行名单，任务往里写文件才不会被文件插件拦下
-    runAsync(platform.media.allow([String(resolveOutputFolder(folder))], true));
+    // 仅更新草稿，点「保存设置」后才写盘并生效
+    update("output_folder", folder);
   };
 
   const save = () => {
     const previousOrigin = resolveGrsaiSiteOrigin(cfg.get("grsai_site_url", DEFAULT_CONFIG.grsai_site_url));
-    const saved = settingsToSave(draft);
+    const parsedSize = parseDecimalInput(fontSizeText);
+    const parsedWatermarkRatio = parseDecimalInput(watermarkRatioText);
+    const parsedLabelRatio = parseDecimalInput(labelRatioText);
+    const nextDraft: SettingsDraft = {
+      ...draft,
+      text_font_size: parsedSize !== null ? parsedSize : draft.text_font_size,
+      pose_watermark_area_ratio:
+        parsedWatermarkRatio !== null ? parsedWatermarkRatio : draft.pose_watermark_area_ratio,
+      pose_label_area_ratio:
+        parsedLabelRatio !== null ? parsedLabelRatio : draft.pose_label_area_ratio,
+    };
+    const saved = settingsToSave(nextDraft);
     for (const [key, value] of Object.entries(saved)) cfg.set(key, value);
+    // 放行新输出目录
+    runAsync(platform.media.allow([String(resolveOutputFolder(saved.output_folder))], true));
     setDraft(saved);
-    notice("success", t("settings.saved_title"), t("settings.saved_content"));
+    setFontSizeText(String(saved.text_font_size));
+    setWatermarkRatioText(String(saved.pose_watermark_area_ratio));
+    setLabelRatioText(String(saved.pose_label_area_ratio));
+    const savedLang = normalizeLanguage(saved.language);
+    notice("success", translate(savedLang, "settings.saved_title"), translate(savedLang, "settings.saved_content"));
     // 只有点击「保存设置」且官网地址确实发生变化时才自动重抓，绝不在打字编辑过程中反复触发
     if (resolveGrsaiSiteOrigin(saved.grsai_site_url) !== previousOrigin) {
       runAsync(fetchGrsaiSiteData(saved.grsai_site_url));
@@ -267,24 +289,19 @@ export default function SettingsPage() {
             <SettingCard icon={Globe20Regular} title={t("settings.language.title")} content={t("settings.language.content")}>
               <FluentSelect
                 className="settings-card__select"
-                value={language}
+                value={draft.language}
                 options={languageItems().map(({ code, label }) => ({ value: code, label }))}
                 ariaLabel={t("settings.language.title")}
-                onChange={(value) => {
-                  const next = normalizeLanguage(value);
-                  cfg.set("language", next);
-                  // 提示要用切换后的语言来显示
-                  notice("success", translate(next, "settings.applied"));
-                }}
+                onChange={(value) => update("language", normalizeLanguage(value))}
               />
             </SettingCard>
             <SettingCard icon={PaintBrush20Regular} title={t("settings.theme.title")} content={t("settings.theme.content")}>
               <FluentSelect
                 className="settings-card__select"
-                value={themeMode}
+                value={draft.theme}
                 options={THEME_MODES.map((mode) => ({ value: mode, label: t(`theme.${mode}`) }))}
                 ariaLabel={t("settings.theme.title")}
-                onChange={(value) => cfg.set("theme", value)}
+                onChange={(value) => update("theme", value)}
               />
             </SettingCard>
             <SettingCard icon={Color20Regular} title={t("settings.accent_color.title")} content={t("settings.accent_color.content")}>
@@ -301,7 +318,7 @@ export default function SettingsPage() {
                       title={color}
                       className={active ? "accent-swatch accent-swatch--active" : "accent-swatch"}
                       style={{ "--swatch": color } as CSSProperties}
-                      onClick={() => cfg.set("accent_color", color)}
+                      onClick={() => update("accent_color", color)}
                     />
                   );
                 })}
@@ -314,7 +331,7 @@ export default function SettingsPage() {
                     type="color"
                     value={accent}
                     aria-label={t("settings.accent_color.title")}
-                    onChange={(event) => cfg.set("accent_color", event.target.value)}
+                    onChange={(event) => update("accent_color", event.target.value)}
                   />
                 </label>
               </div>
@@ -326,13 +343,13 @@ export default function SettingsPage() {
             >
               <FluentSelect
                 className="settings-card__select"
-                value={previewMode}
+                value={draft.preview_mode}
                 options={[
                   { value: "internal", label: t("settings.preview_mode.internal") },
                   { value: "system", label: t("settings.preview_mode.system") },
                 ]}
                 ariaLabel={t("settings.preview_mode.title")}
-                onChange={(value) => cfg.set("preview_mode", normalizePreviewMode(value))}
+                onChange={(value) => update("preview_mode", normalizePreviewMode(value))}
               />
             </SettingCard>
             <SettingCard icon={ArrowSync20Regular} title={t("settings.retries.title")} content={t("settings.retries.content")}>
@@ -340,6 +357,7 @@ export default function SettingsPage() {
                 label={t("settings.retries.title")}
                 value={draft.max_retries}
                 range={MAX_RETRIES_RANGE}
+                defaultValue={DEFAULT_CONFIG.max_retries}
                 onChange={(value) => update("max_retries", value)}
               />
             </SettingCard>
@@ -377,6 +395,7 @@ export default function SettingsPage() {
                 label={t("settings.history.title")}
                 value={draft.history_items_per_page}
                 range={HISTORY_ITEMS_RANGE}
+                defaultValue={DEFAULT_CONFIG.history_items_per_page}
                 onChange={(value) => update("history_items_per_page", value)}
               />
             </SettingCard>
@@ -394,12 +413,31 @@ export default function SettingsPage() {
               />
             </SettingCard>
             <SettingCard icon={TextFont20Regular} title={t("settings.font_size.title")} content={t("settings.font_size.content")}>
-              <SliderField
-                label={t("settings.font_size.title")}
-                value={draft.text_font_size}
-                range={FONT_SIZE_RANGE}
-                fixedValueWidth
-                onChange={(value) => update("text_font_size", value)}
+              <Input
+                className="settings-card__number"
+                type="text"
+                inputMode="decimal"
+                aria-label={t("settings.font_size.title")}
+                placeholder="9"
+                value={fontSizeText}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(_event, data) => {
+                  const next = data.value;
+                  if (next === "" || /^\d*\.?\d*$/.test(next)) {
+                    setFontSizeText(next);
+                    const parsed = parseDecimalInput(next);
+                    if (parsed !== null) {
+                      update("text_font_size", parsed);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseDecimalInput(fontSizeText);
+                  const clamped = clampDecimalToRange(parsed ?? draft.text_font_size, FONT_SIZE_RANGE);
+                  update("text_font_size", clamped);
+                  setFontSizeText(String(clamped));
+                }}
               />
             </SettingCard>
             <SettingCard icon={TextFont20Regular} title={t("settings.font_family.title")} content={t("settings.font_family.content")}>
@@ -416,6 +454,76 @@ export default function SettingsPage() {
                 label={t("settings.wrap.title")}
                 checked={draft.text_auto_wrap}
                 onChange={(checked) => update("text_auto_wrap", checked)}
+              />
+            </SettingCard>
+            <SettingCard
+              icon={TextFont20Regular}
+              title={t("settings.pose_watermark_ratio.title")}
+              content={t("settings.pose_watermark_ratio.content")}
+            >
+              <Input
+                className="settings-card__number"
+                type="text"
+                inputMode="decimal"
+                aria-label={t("settings.pose_watermark_ratio.title")}
+                placeholder="0.02"
+                value={watermarkRatioText}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(_event, data) => {
+                  const next = data.value;
+                  if (next === "" || /^(?:0(?:\.\d{0,4})?|\.\d{0,4})$/.test(next)) {
+                    setWatermarkRatioText(next);
+                    const parsed = parseDecimalInput(next);
+                    if (parsed !== null && parsed > 0 && parsed < 1) {
+                      update("pose_watermark_area_ratio", parsed);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseDecimalInput(watermarkRatioText);
+                  const clamped = clampOpenUnitRatio(
+                    parsed ?? draft.pose_watermark_area_ratio,
+                    DEFAULT_CONFIG.pose_watermark_area_ratio,
+                  );
+                  update("pose_watermark_area_ratio", clamped);
+                  setWatermarkRatioText(String(clamped));
+                }}
+              />
+            </SettingCard>
+            <SettingCard
+              icon={TextFont20Regular}
+              title={t("settings.pose_label_ratio.title")}
+              content={t("settings.pose_label_ratio.content")}
+            >
+              <Input
+                className="settings-card__number"
+                type="text"
+                inputMode="decimal"
+                aria-label={t("settings.pose_label_ratio.title")}
+                placeholder="0.003"
+                value={labelRatioText}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(_event, data) => {
+                  const next = data.value;
+                  if (next === "" || /^(?:0(?:\.\d{0,4})?|\.\d{0,4})$/.test(next)) {
+                    setLabelRatioText(next);
+                    const parsed = parseDecimalInput(next);
+                    if (parsed !== null && parsed > 0 && parsed < 1) {
+                      update("pose_label_area_ratio", parsed);
+                    }
+                  }
+                }}
+                onBlur={() => {
+                  const parsed = parseDecimalInput(labelRatioText);
+                  const clamped = clampOpenUnitRatio(
+                    parsed ?? draft.pose_label_area_ratio,
+                    DEFAULT_CONFIG.pose_label_area_ratio,
+                  );
+                  update("pose_label_area_ratio", clamped);
+                  setLabelRatioText(String(clamped));
+                }}
               />
             </SettingCard>
           </div>
@@ -588,8 +696,7 @@ export default function SettingsPage() {
         <section className="settings-group">
           <h2 className="settings-group__title">{t("settings.output")}</h2>
           <div className="settings-group__cards">
-            {/* 与源项目一致：只读卡片，路径是说明行，选完立刻写回配置 */}
-            <SettingCard icon={Folder20Regular} title={t("settings.output.title")} content={outputFolder}>
+            <SettingCard icon={Folder20Regular} title={t("settings.output.title")} content={draft.output_folder}>
               <Button icon={<FolderOpen20Regular />} onClick={() => runAsync(chooseFolder())}>
                 {t("settings.output.choose")}
               </Button>
